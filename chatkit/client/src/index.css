@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@theme {
+  /* Mapping Tailwind names to our CSS variables */
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-bg: var(--brand-bg);
+  --color-brand-card: var(--brand-card);
+  --color-brand-border: var(--brand-border);
+  --color-brand-text: var(--brand-text);
+  --color-brand-muted: var(--brand-muted);
+}
+
+:root {
+  /* NEON GREEN & BLACK THEME */
+  --brand-primary: #39ff14;
+  --brand-bg: #000000;
+  --brand-card: #0a0a0a;
+  --brand-border: #1a2e05;
+  --brand-text: #ffffff;
+  --brand-muted: #94a3b8;
+}
+
+body {
+  background-color: var(--brand-bg);
+  color: var(--brand-text);
+}
+
+/* Glass effect with a green tint */
+.glass {
+  background: rgba(10, 10, 10, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(57, 255, 20, 0.1);
+}
