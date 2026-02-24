@@ -13,6 +13,7 @@ import { connectDB } from "./config/db.js";
 import projectRoutes from "./routes/ProjectsRoute.js";
 import authRoutes from "./routes/auth.js";
 import pricingRoutes from "./routes/PricingRoute.js";
+import docRoutes from "./routes/Docroute.js";
 
 export async function start() {
   const app: Application = express();
@@ -48,6 +49,7 @@ export async function start() {
   app.use(passport.session());
 
   // 4. Routes
+  app.use("/api/docs", docRoutes);
   app.use("/auth", authRoutes);
   app.use("/api", projectRoutes);
   app.use("/api", pricingRoutes);
