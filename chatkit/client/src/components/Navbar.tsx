@@ -3,9 +3,11 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
   Menu,
   X,
-  Zap, // Swapped icon for "Hermes" theme
+  Zap,
   LogOut,
   LayoutDashboard,
+  FilePen,
+  ShieldCheck,
 } from "lucide-react";
 
 interface NavbarProps {
@@ -16,6 +18,7 @@ interface UserData {
   displayName: string;
   avatar?: string;
   email: string;
+  isAdmin?: boolean;
 }
 
 const Navbar: React.FC<NavbarProps> = ({ onSignInClick }) => {
@@ -63,11 +66,16 @@ const Navbar: React.FC<NavbarProps> = ({ onSignInClick }) => {
     { name: "Docs", path: "/documentation" },
   ];
 
+  const isActivePath = (path: string) =>
+    path === "/"
+      ? location.pathname === "/"
+      : location.pathname.startsWith(path);
+
   return (
     <nav className="bg-brand-bg/80 backdrop-blur-md border-b border-brand-border w-full fixed top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
-          {/* Logo Section - Changed to Project Hermes */}
+          {/* Logo */}
           <div
             className="flex items-center gap-2 font-black text-xl text-white cursor-pointer group"
             onClick={() => navigate("/")}
@@ -80,30 +88,27 @@ const Navbar: React.FC<NavbarProps> = ({ onSignInClick }) => {
             </span>
           </div>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Nav */}
           <div className="hidden md:flex space-x-8 items-center">
-            {navLinks.map((link) => {
-              const isActive = location.pathname === link.path;
-              return (
-                <button
-                  key={link.name}
-                  onClick={() => navigate(link.path)}
-                  className={`text-xs font-black uppercase tracking-widest transition-all duration-200 ${
-                    isActive
-                      ? "text-brand-primary drop-shadow-[0_0_8px_rgba(57,255,20,0.5)]"
-                      : "text-brand-muted hover:text-brand-primary"
-                  }`}
-                >
-                  {link.name}
-                </button>
-              );
-            })}
+            {navLinks.map((link) => (
+              <button
+                key={link.name}
+                onClick={() => navigate(link.path)}
+                className={`text-xs font-black uppercase tracking-widest transition-all duration-200 ${
+                  isActivePath(link.path)
+                    ? "text-brand-primary drop-shadow-[0_0_8px_rgba(57,255,20,0.5)]"
+                    : "text-brand-muted hover:text-brand-primary"
+                }`}
+              >
+                {link.name}
+              </button>
+            ))}
 
             {user && (
               <button
                 onClick={() => navigate("/dashboard")}
                 className={`text-xs font-black uppercase tracking-widest transition-all duration-200 flex items-center gap-2 ${
-                  location.pathname.startsWith("/dashboard")
+                  isActivePath("/dashboard")
                     ? "text-brand-primary drop-shadow-[0_0_8px_rgba(57,255,20,0.5)]"
                     : "text-brand-muted hover:text-brand-primary"
                 }`}
@@ -112,17 +117,55 @@ const Navbar: React.FC<NavbarProps> = ({ onSignInClick }) => {
               </button>
             )}
 
+            {/* ── Admin-only buttons ── */}
+            {user?.isAdmin && (
+              <>
+                <div className="h-6 w-[1px] bg-brand-border" />
+
+                <button
+                  onClick={() => navigate("/doceditor")}
+                  title="Doc Editor"
+                  className={`text-xs font-black uppercase tracking-widest transition-all duration-200 flex items-center gap-1.5 ${
+                    isActivePath("/doceditor")
+                      ? "text-brand-primary drop-shadow-[0_0_8px_rgba(57,255,20,0.5)]"
+                      : "text-brand-muted hover:text-brand-primary"
+                  }`}
+                >
+                  <FilePen size={14} /> Doc Editor
+                </button>
+
+                <button
+                  onClick={() => navigate("/admin")}
+                  title="Admin Panel"
+                  className={`text-xs font-black uppercase tracking-widest transition-all duration-200 flex items-center gap-1.5 ${
+                    isActivePath("/admin")
+                      ? "text-brand-primary drop-shadow-[0_0_8px_rgba(57,255,20,0.5)]"
+                      : "text-brand-muted hover:text-brand-primary"
+                  }`}
+                >
+                  <ShieldCheck size={14} /> Admin
+                </button>
+              </>
+            )}
+
             <div className="h-6 w-[1px] bg-brand-border mx-2" />
 
-            {/* Identity / Auth Section */}
+            {/* Identity / Auth */}
             {loading ? (
               <div className="w-8 h-8 rounded-full bg-brand-card animate-pulse" />
             ) : user ? (
               <div className="flex items-center gap-3 pl-2">
                 <div className="flex flex-col items-end">
-                  <span className="text-white text-[10px] font-black leading-none mb-1 uppercase tracking-tighter">
-                    {user.displayName}
-                  </span>
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="text-white text-[10px] font-black leading-none uppercase tracking-tighter">
+                      {user.displayName}
+                    </span>
+                    {user.isAdmin && (
+                      <span className="text-[8px] font-black uppercase tracking-widest bg-[#00ff41]/10 text-[#00ff41] border border-[#00ff41]/20 px-1.5 py-0.5 rounded-full leading-none">
+                        Admin
+                      </span>
+                    )}
+                  </div>
                   <button
                     onClick={handleLogout}
                     className="text-[8px] text-brand-muted hover:text-red-500 uppercase tracking-widest font-black transition-colors"
@@ -149,7 +192,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSignInClick }) => {
             )}
           </div>
 
-          {/* Mobile Menu Toggle */}
+          {/* Mobile toggle */}
           <div className="md:hidden flex items-center gap-4">
             <button
               onClick={() => setIsOpen(!isOpen)}
@@ -161,7 +204,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSignInClick }) => {
         </div>
       </div>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile Menu */}
       {isOpen && (
         <div className="md:hidden bg-brand-bg border-b border-brand-border p-6 space-y-6 animate-in slide-in-from-top-4 duration-200">
           <div className="space-y-4">
@@ -173,7 +216,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSignInClick }) => {
                   setIsOpen(false);
                 }}
                 className={`block w-full text-left font-black text-lg uppercase tracking-tighter ${
-                  location.pathname === link.path
+                  isActivePath(link.path)
                     ? "text-brand-primary"
                     : "text-brand-text"
                 }`}
@@ -181,6 +224,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSignInClick }) => {
                 {link.name}
               </button>
             ))}
+
             {user && (
               <button
                 onClick={() => {
@@ -192,7 +236,33 @@ const Navbar: React.FC<NavbarProps> = ({ onSignInClick }) => {
                 Dashboard
               </button>
             )}
+
+            {/* Admin mobile links */}
+            {user?.isAdmin && (
+              <>
+                <div className="h-px bg-brand-border" />
+                <button
+                  onClick={() => {
+                    navigate("/doceditor");
+                    setIsOpen(false);
+                  }}
+                  className="flex items-center gap-2 w-full text-left font-black text-lg uppercase tracking-tighter text-brand-primary"
+                >
+                  <FilePen size={18} /> Doc Editor
+                </button>
+                <button
+                  onClick={() => {
+                    navigate("/admin");
+                    setIsOpen(false);
+                  }}
+                  className="flex items-center gap-2 w-full text-left font-black text-lg uppercase tracking-tighter text-brand-primary"
+                >
+                  <ShieldCheck size={18} /> Admin
+                </button>
+              </>
+            )}
           </div>
+
           <div className="pt-4 border-t border-brand-border">
             {user ? (
               <button

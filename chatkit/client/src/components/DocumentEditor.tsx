@@ -76,8 +76,8 @@ const ToolbarButton = ({
     title={title}
     className={`p-2 rounded-md transition-all duration-150 ${
       active
-        ? "bg-[#00ff41] text-black"
-        : "text-gray-400 hover:bg-white/5 hover:text-white"
+        ? "bg-[var(--brand-primary)] text-black shadow-[0_0_10px_rgba(57,255,20,0.3)]"
+        : "text-[var(--brand-muted)] hover:bg-white/5 hover:text-[var(--brand-text)]"
     }`}
   >
     {icon}
@@ -98,10 +98,10 @@ const Toast = ({
   }, [onClose]);
   return (
     <div
-      className={`fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-4 py-3 rounded-xl border shadow-2xl text-sm font-mono ${
+      className={`fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-4 py-3 rounded-xl border shadow-2xl text-sm font-mono animate-in slide-in-from-right-5 ${
         toast.type === "success"
-          ? "bg-[#050505] border-[#00ff41]/30 text-[#00ff41]"
-          : "bg-[#050505] border-red-500/30 text-red-400"
+          ? "bg-[var(--brand-card)] border-[var(--brand-primary)]/30 text-[var(--brand-primary)]"
+          : "bg-[var(--brand-card)] border-red-500/30 text-red-400"
       }`}
     >
       {toast.type === "success" ? (
@@ -149,7 +149,6 @@ const DocumentEditor = () => {
     },
   });
 
-  // ── Fetch docs ───────────────────────────────────────────────────────────
   const fetchDocs = useCallback(async () => {
     try {
       const res = await fetch(`${API}/list`, { credentials: "include" });
@@ -164,7 +163,6 @@ const DocumentEditor = () => {
     fetchDocs();
   }, [fetchDocs]);
 
-  // ── Group docs by category ───────────────────────────────────────────────
   const groupedDocs = docs.reduce(
     (acc, doc) => {
       const cat = doc.category || "General";
@@ -183,7 +181,6 @@ const DocumentEditor = () => {
     });
   };
 
-  // ── Open doc ─────────────────────────────────────────────────────────────
   const openDoc = async (slug: string) => {
     if (!editor) return;
     setIsLoading(true);
@@ -199,8 +196,6 @@ const DocumentEditor = () => {
         setStatus(doc.status);
         setSlugManuallyEdited(true);
         editor.commands.setContent(doc.content);
-      } else {
-        showToast("Failed to load document", "error");
       }
     } catch {
       showToast("Failed to load document", "error");
@@ -209,7 +204,6 @@ const DocumentEditor = () => {
     }
   };
 
-  // ── New doc ──────────────────────────────────────────────────────────────
   const handleNew = () => {
     if (!editor) return;
     setActiveDocId(null);
@@ -219,10 +213,8 @@ const DocumentEditor = () => {
     setStatus("draft");
     setSlugManuallyEdited(false);
     editor.commands.setContent("<h1></h1><p></p>");
-    setTimeout(() => editor.commands.focus("start"), 0);
   };
 
-  // ── Extract H1 from editor ───────────────────────────────────────────────
   const extractTitleFromEditor = (): string => {
     if (!editor) return "Untitled Document";
     const json = editor.getJSON();
@@ -235,7 +227,6 @@ const DocumentEditor = () => {
     return title?.trim() || "Untitled Document";
   };
 
-  // ── Save / Publish ────────────────────────────────────────────────────────
   const handleSave = async (publishStatus: "draft" | "published") => {
     if (!editor) return;
     setIsSaving(true);
@@ -243,9 +234,6 @@ const DocumentEditor = () => {
       const content = editor.getJSON();
       const derivedTitle = extractTitleFromEditor();
       const derivedSlug = slugManuallyEdited ? slug : toSlug(derivedTitle);
-
-      setTitle(derivedTitle);
-      setSlug(derivedSlug);
 
       const endpoint = activeDocId
         ? `${API}/update/${activeDocId}`
@@ -274,8 +262,6 @@ const DocumentEditor = () => {
           "success",
         );
         fetchDocs();
-      } else {
-        showToast(result.message || "Save failed", "error");
       }
     } catch {
       showToast("Save failed", "error");
@@ -284,7 +270,6 @@ const DocumentEditor = () => {
     }
   };
 
-  // ── Delete ───────────────────────────────────────────────────────────────
   const handleDelete = async (slugToDelete: string) => {
     setIsDeleting(true);
     try {
@@ -298,8 +283,6 @@ const DocumentEditor = () => {
         setConfirmDelete(null);
         if (slug === slugToDelete) handleNew();
         fetchDocs();
-      } else {
-        showToast(result.message || "Delete failed", "error");
       }
     } catch {
       showToast("Delete failed", "error");
@@ -308,16 +291,13 @@ const DocumentEditor = () => {
     }
   };
 
-  // ── Drag to reorder ──────────────────────────────────────────────────────
   const handleDragStart = (id: string) => setDraggedId(id);
-
   const handleDragOver = (e: React.DragEvent, targetId: string) => {
     e.preventDefault();
     if (!draggedId || draggedId === targetId) return;
     setDocs((prev) => {
       const from = prev.findIndex((d) => d._id === draggedId);
       const to = prev.findIndex((d) => d._id === targetId);
-      if (from === -1 || to === -1) return prev;
       const updated = [...prev];
       const [moved] = updated.splice(from, 1);
       updated.splice(to, 0, moved);
@@ -342,14 +322,23 @@ const DocumentEditor = () => {
   if (!editor) return null;
 
   return (
-    <div className="min-h-screen bg-[#050505] text-[#e0e0e0] font-sans flex flex-col selection:bg-[#00ff41] selection:text-black">
+    <div
+      className="min-h-screen flex flex-col font-sans selection:bg-[var(--brand-primary)] selection:text-black"
+      style={{ backgroundColor: "var(--brand-bg)", color: "var(--brand-text)" }}
+    >
       {/* ── Top Bar ──────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 bg-[#050505]/90 backdrop-blur-md border-b border-white/5">
+      <header
+        className="sticky top-0 z-50 backdrop-blur-md border-b"
+        style={{
+          backgroundColor: "rgba(0,0,0,0.8)",
+          borderColor: "rgba(255,255,255,0.05)",
+        }}
+      >
         <div className="px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 flex-grow min-w-0">
             <button
               onClick={() => setSidebarOpen((p) => !p)}
-              className="text-gray-500 hover:text-white transition-colors p-1 rounded"
+              className="text-[var(--brand-muted)] hover:text-[var(--brand-text)] transition-colors p-1 rounded"
             >
               <ChevronRight
                 size={18}
@@ -361,26 +350,32 @@ const DocumentEditor = () => {
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="bg-transparent border-none text-lg font-bold text-white focus:ring-0 w-full outline-none placeholder:opacity-30 truncate"
+                className="bg-transparent border-none text-lg font-bold focus:ring-0 w-full outline-none placeholder:opacity-30 truncate"
+                style={{ color: "var(--brand-text)" }}
                 placeholder="Title auto-read from H1..."
               />
-              <div className="flex items-center gap-2 text-[10px] font-mono text-gray-500 flex-wrap">
-                <span className="text-[#00ff41]">~/docs/</span>
+              <div
+                className="flex items-center gap-2 text-[10px] font-mono flex-wrap"
+                style={{ color: "var(--brand-muted)" }}
+              >
+                <span style={{ color: "var(--brand-primary)" }}>~/docs/</span>
                 <input
                   value={slug}
                   onChange={(e) => {
                     setSlug(e.target.value);
                     setSlugManuallyEdited(true);
                   }}
-                  className="bg-transparent border-none focus:ring-0 outline-none p-0 text-[#00ff41] min-w-0 w-32"
+                  className="bg-transparent border-none focus:ring-0 outline-none p-0 min-w-0 w-32"
+                  style={{ color: "var(--brand-primary)" }}
                   placeholder="auto-slug"
                 />
-                <span className="text-gray-700">|</span>
-                <Tag size={10} className="text-gray-600" />
+                <span className="opacity-20">|</span>
+                <Tag size={10} className="opacity-60" />
                 <input
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="bg-transparent border-none focus:ring-0 outline-none p-0 text-gray-400 hover:text-white min-w-0 w-24"
+                  className="bg-transparent border-none focus:ring-0 outline-none p-0 hover:text-[var(--brand-text)] min-w-0 w-24"
+                  style={{ color: "var(--brand-muted)" }}
                   placeholder="Category"
                 />
               </div>
@@ -390,11 +385,15 @@ const DocumentEditor = () => {
           <div className="flex items-center gap-2 shrink-0">
             {activeDocId && (
               <span
-                className={`text-[10px] font-mono px-2 py-1 rounded-full border ${
-                  status === "published"
-                    ? "border-[#00ff41]/30 text-[#00ff41]"
-                    : "border-yellow-500/30 text-yellow-400"
-                }`}
+                className="text-[10px] font-mono px-2 py-1 rounded-full border"
+                style={{
+                  borderColor:
+                    status === "published"
+                      ? "rgba(57,255,20,0.3)"
+                      : "rgba(234,179,8,0.3)",
+                  color:
+                    status === "published" ? "var(--brand-primary)" : "#eab308",
+                }}
               >
                 {status}
               </span>
@@ -402,7 +401,11 @@ const DocumentEditor = () => {
             <button
               onClick={() => handleSave("draft")}
               disabled={isSaving}
-              className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border border-white/10 text-gray-300 hover:border-white/20 hover:text-white transition-all disabled:opacity-50"
+              className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border transition-all disabled:opacity-50"
+              style={{
+                borderColor: "rgba(255,255,255,0.1)",
+                color: "var(--brand-muted)",
+              }}
             >
               {isSaving ? (
                 <Loader2 size={14} className="animate-spin" />
@@ -414,7 +417,11 @@ const DocumentEditor = () => {
             <button
               onClick={() => handleSave("published")}
               disabled={isSaving}
-              className="flex items-center gap-1.5 text-sm bg-[#00ff41] text-black px-4 py-2 rounded-lg font-bold hover:bg-[#00cc33] transition-all active:scale-95 disabled:opacity-50"
+              className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg font-bold transition-all active:scale-95 disabled:opacity-50"
+              style={{
+                backgroundColor: "var(--brand-primary)",
+                color: "black",
+              }}
             >
               {isSaving ? (
                 <Loader2 size={14} className="animate-spin" />
@@ -427,7 +434,10 @@ const DocumentEditor = () => {
         </div>
 
         {/* Toolbar */}
-        <div className="px-4 py-1.5 flex items-center gap-1 border-t border-white/5">
+        <div
+          className="px-4 py-1.5 flex items-center gap-1 border-t"
+          style={{ borderColor: "rgba(255,255,255,0.05)" }}
+        >
           <ToolbarButton
             onClick={() =>
               editor.chain().focus().toggleHeading({ level: 1 }).run()
@@ -444,7 +454,10 @@ const DocumentEditor = () => {
             active={editor.isActive("heading", { level: 2 })}
             title="H2"
           />
-          <div className="w-px h-4 bg-white/10 mx-1" />
+          <div
+            className="w-px h-4 mx-1"
+            style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
+          />
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBold().run()}
             icon={<Bold size={15} />}
@@ -463,7 +476,10 @@ const DocumentEditor = () => {
             active={editor.isActive("strike")}
             title="Strike"
           />
-          <div className="w-px h-4 bg-white/10 mx-1" />
+          <div
+            className="w-px h-4 mx-1"
+            style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
+          />
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleCodeBlock().run()}
             icon={<Code size={15} />}
@@ -481,32 +497,37 @@ const DocumentEditor = () => {
 
       {/* ── Body ─────────────────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
         {sidebarOpen && (
-          <aside className="w-64 shrink-0 border-r border-white/5 flex flex-col bg-[#080808]">
-            <div className="p-3 border-b border-white/5">
+          <aside
+            className="w-64 shrink-0 border-r flex flex-col"
+            style={{
+              backgroundColor: "var(--brand-card)",
+              borderColor: "rgba(255,255,255,0.05)",
+            }}
+          >
+            <div
+              className="p-3 border-b"
+              style={{ borderColor: "rgba(255,255,255,0.05)" }}
+            >
               <button
                 onClick={handleNew}
-                className="w-full flex items-center justify-center gap-2 text-sm py-2 px-3 rounded-lg border border-dashed border-white/10 text-gray-400 hover:border-[#00ff41]/40 hover:text-[#00ff41] transition-all"
+                className="w-full flex items-center justify-center gap-2 text-sm py-2 px-3 rounded-lg border border-dashed transition-all"
+                style={{
+                  borderColor: "rgba(255,255,255,0.1)",
+                  color: "var(--brand-muted)",
+                }}
               >
                 <Plus size={14} /> New Document
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-2">
-              {docs.length === 0 && (
-                <p className="text-center text-gray-600 text-xs font-mono py-8">
-                  no documents yet
-                </p>
-              )}
-
-              {/* Grouped by category */}
               {Object.entries(groupedDocs).map(([cat, catDocs]) => (
                 <div key={cat} className="mb-2">
-                  {/* Category header */}
                   <button
                     onClick={() => toggleCategory(cat)}
-                    className="w-full flex items-center justify-between px-2 py-1.5 text-[10px] font-mono font-bold uppercase tracking-widest text-gray-600 hover:text-gray-400 transition-colors"
+                    className="w-full flex items-center justify-between px-2 py-1.5 text-[10px] font-mono font-bold uppercase tracking-widest hover:text-[var(--brand-text)] transition-colors"
+                    style={{ color: "var(--brand-muted)" }}
                   >
                     <span>{cat}</span>
                     <ChevronRight
@@ -515,7 +536,6 @@ const DocumentEditor = () => {
                     />
                   </button>
 
-                  {/* Docs under category */}
                   {!collapsedCategories.has(cat) &&
                     catDocs.map((doc) => (
                       <div
@@ -524,24 +544,20 @@ const DocumentEditor = () => {
                         onDragStart={() => handleDragStart(doc._id)}
                         onDragOver={(e) => handleDragOver(e, doc._id)}
                         onDragEnd={handleDragEnd}
-                        className={`group flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all ${
-                          activeDocId === doc._id
-                            ? "bg-white/5 text-white"
-                            : "text-gray-500 hover:bg-white/[0.03] hover:text-gray-300"
-                        } ${draggedId === doc._id ? "opacity-40 scale-95" : ""}`}
+                        className={`group flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all ${activeDocId === doc._id ? "bg-white/5 text-[var(--brand-text)]" : "text-[var(--brand-muted)] hover:bg-white/[0.03] hover:text-[var(--brand-text)]"} ${draggedId === doc._id ? "opacity-40 scale-95" : ""}`}
                         onClick={() => openDoc(doc.slug)}
                       >
                         <GripVertical
                           size={12}
-                          className="shrink-0 text-gray-700 cursor-grab active:cursor-grabbing"
+                          className="shrink-0 opacity-20 group-hover:opacity-100 cursor-grab active:cursor-grabbing"
                         />
                         <FileText size={13} className="shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-medium truncate">
                             {doc.title}
                           </p>
-                          <p className="text-[10px] font-mono text-gray-600 truncate">
-                            {timeAgo(doc.lastUpdated)}
+                          <p className="text-[10px] font-mono opacity-40 truncate">
+                            {timeAgo(doc.lastUpdated)}{" "}
                             {doc.status === "draft" && (
                               <span className="ml-1 text-yellow-600">
                                 • draft
@@ -550,7 +566,6 @@ const DocumentEditor = () => {
                           </p>
                         </div>
 
-                        {/* Delete */}
                         {confirmDelete === doc.slug ? (
                           <div
                             className="flex items-center gap-1"
@@ -559,14 +574,14 @@ const DocumentEditor = () => {
                             <button
                               onClick={() => handleDelete(doc.slug)}
                               disabled={isDeleting}
-                              className="text-[10px] text-red-400 hover:text-red-300 font-mono"
+                              className="text-[10px] text-red-400 font-mono"
                             >
-                              {isDeleting ? "..." : "yes"}
+                              yes
                             </button>
-                            <span className="text-gray-600 text-[10px]">/</span>
+                            <span className="opacity-20 text-[10px]">/</span>
                             <button
                               onClick={() => setConfirmDelete(null)}
-                              className="text-[10px] text-gray-500 hover:text-gray-300 font-mono"
+                              className="text-[10px] opacity-40 font-mono"
                             >
                               no
                             </button>
@@ -577,7 +592,7 @@ const DocumentEditor = () => {
                               e.stopPropagation();
                               setConfirmDelete(doc.slug);
                             }}
-                            className="opacity-0 group-hover:opacity-100 p-1 text-gray-600 hover:text-red-400 transition-all"
+                            className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 transition-all"
                           >
                             <Trash2 size={12} />
                           </button>
@@ -590,11 +605,14 @@ const DocumentEditor = () => {
           </aside>
         )}
 
-        {/* Editor */}
         <main className="flex-1 overflow-y-auto relative">
           {isLoading && (
-            <div className="absolute inset-0 bg-[#050505]/80 flex items-center justify-center z-10">
-              <Loader2 size={24} className="animate-spin text-[#00ff41]" />
+            <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10 backdrop-blur-[2px]">
+              <Loader2
+                size={24}
+                className="animate-spin"
+                style={{ color: "var(--brand-primary)" }}
+              />
             </div>
           )}
           <div className="max-w-3xl mx-auto px-8">
@@ -607,15 +625,21 @@ const DocumentEditor = () => {
 
       <style>{`
         .ProseMirror { min-height: 500px; }
-        .ProseMirror h1 { font-size: 2.8rem; font-weight: 800; color: white; margin-bottom: 1.5rem; margin-top: 3rem; }
-        .ProseMirror h2 { font-size: 1.6rem; color: white; margin-top: 2.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem; }
-        .ProseMirror p { font-size: 1.05rem; line-height: 1.8; color: #a1a1aa; margin: 0.75rem 0; }
-        .ProseMirror ul { list-style: disc; padding-left: 1.5rem; color: #a1a1aa; }
-        .ProseMirror pre { background: #000 !important; border: 1px solid rgba(255,255,255,0.08); padding: 1.25rem; border-radius: 10px; margin: 1.5rem 0; overflow-x: auto; }
-        .ProseMirror code { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: #00ff41; }
-        .ProseMirror strong { color: white; }
-        .ProseMirror em { color: #d4d4d8; }
-        .ProseMirror s { color: #71717a; }
+        .ProseMirror h1 { font-size: 2.8rem; font-weight: 800; color: var(--brand-text); margin-bottom: 1.5rem; margin-top: 3rem; }
+        .ProseMirror h2 { font-size: 1.6rem; color: var(--brand-text); margin-top: 2.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem; }
+        .ProseMirror p { font-size: 1.05rem; line-height: 1.8; color: var(--brand-muted); margin: 0.75rem 0; }
+        .ProseMirror ul { list-style: disc; padding-left: 1.5rem; color: var(--brand-muted); }
+        .ProseMirror pre { background: var(--brand-bg) !important; border: 1px solid rgba(255,255,255,0.08); padding: 1.25rem; border-radius: 10px; margin: 1.5rem 0; overflow-x: auto; }
+        .ProseMirror code { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: var(--brand-primary); background: rgba(57,255,20,0.05); padding: 0.2rem 0.4rem; border-radius: 4px; }
+        .ProseMirror pre code { background: none; padding: 0; color: inherit; }
+        .ProseMirror strong { color: var(--brand-text); }
+        .ProseMirror em { color: var(--brand-text); opacity: 0.8; }
+        
+        /* Syntax Highlighting */
+        .hljs-keyword { color: #ff79c6; }
+        .hljs-string { color: #f1fa8c; }
+        .hljs-function { color: var(--brand-primary); }
+        .hljs-comment { color: #6272a4; font-style: italic; }
       `}</style>
     </div>
   );

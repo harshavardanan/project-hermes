@@ -132,16 +132,36 @@ const DocumentationPage: React.FC = () => {
 
   return (
     <div
-      className="flex bg-[#050505] text-[#e0e0e0] font-sans overflow-hidden"
-      style={{ height: "calc(100vh - 64px)", marginTop: "64px" }}
+      className="flex font-sans overflow-hidden"
+      style={{
+        height: "calc(100vh - 64px)",
+        marginTop: "64px",
+        backgroundColor: "var(--brand-bg)",
+        color: "var(--brand-text)",
+      }}
     >
       {/* ── Sidebar ──────────────────────────────────────────────────────── */}
-      <aside className="w-64 md:w-72 border-r border-white/5 bg-[#070707] flex flex-col shrink-0">
-        {/* Logo */}
+      <aside
+        className="w-64 md:w-72 border-r flex flex-col shrink-0"
+        style={{
+          borderColor: "rgba(255,255,255,0.05)",
+          backgroundColor: "var(--brand-card)",
+        }}
+      >
+        {/* Logo Section */}
         <div className="px-6 pt-8 pb-4">
           <div className="flex items-center gap-2 mb-6">
-            <div className="w-4 h-4 bg-[#00ff41] rounded shadow-[0_0_10px_rgba(0,255,65,0.4)]" />
-            <span className="font-bold tracking-widest text-[11px] text-gray-400 uppercase">
+            <div
+              className="w-4 h-4 rounded"
+              style={{
+                backgroundColor: "var(--brand-primary)",
+                boxShadow: "0 0 10px rgba(57, 255, 20, 0.4)",
+              }}
+            />
+            <span
+              className="font-bold tracking-widest text-[11px] uppercase"
+              style={{ color: "var(--brand-muted)" }}
+            >
               Documentation
             </span>
           </div>
@@ -150,18 +170,24 @@ const DocumentationPage: React.FC = () => {
           <div className="relative">
             <Search
               size={13}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600"
+              className="absolute left-3 top-1/2 -translate-y-1/2"
+              style={{ color: "var(--brand-muted)" }}
             />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search docs..."
-              className="w-full bg-white/[0.03] border border-white/5 rounded-lg pl-8 pr-8 py-2 text-xs text-gray-300 placeholder:text-gray-600 focus:outline-none focus:border-[#00ff41]/20 transition-colors"
+              className="w-full bg-white/[0.03] border rounded-lg pl-8 pr-8 py-2 text-xs transition-colors"
+              style={{
+                borderColor: "rgba(255,255,255,0.05)",
+                color: "var(--brand-text)",
+              }}
             />
             {search && (
               <button
                 onClick={() => setSearch("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-400"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 hover:opacity-70 transition-opacity"
+                style={{ color: "var(--brand-muted)" }}
               >
                 <X size={12} />
               </button>
@@ -172,7 +198,10 @@ const DocumentationPage: React.FC = () => {
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-3 pb-8">
           {Object.keys(groupedDocs).length === 0 && (
-            <p className="text-[11px] font-mono text-gray-700 px-3 py-4">
+            <p
+              className="text-[11px] font-mono px-3 py-4"
+              style={{ color: "var(--brand-muted)" }}
+            >
               {search ? "no results" : "no docs published yet"}
             </p>
           )}
@@ -182,7 +211,8 @@ const DocumentationPage: React.FC = () => {
               {/* Category header */}
               <button
                 onClick={() => toggleCategory(cat)}
-                className="w-full flex items-center justify-between px-2 py-1.5 mb-1 text-[10px] font-mono font-bold uppercase tracking-widest text-gray-600 hover:text-gray-400 transition-colors"
+                className="w-full flex items-center justify-between px-2 py-1.5 mb-1 text-[10px] font-mono font-bold uppercase tracking-widest hover:opacity-80 transition-opacity"
+                style={{ color: "var(--brand-muted)" }}
               >
                 <span>{cat}</span>
                 <ChevronRight
@@ -199,12 +229,21 @@ const DocumentationPage: React.FC = () => {
                     to={`/documentation/${item.slug}`}
                     className={`flex items-center py-2 px-3 rounded-lg text-sm transition-all duration-150 ${
                       urlSlug === item.slug
-                        ? "bg-white/[0.06] text-white font-medium"
-                        : "text-gray-500 hover:text-gray-200 hover:bg-white/[0.03]"
+                        ? "bg-white/[0.06] font-medium"
+                        : "hover:bg-white/[0.03]"
                     }`}
+                    style={{
+                      color:
+                        urlSlug === item.slug
+                          ? "var(--brand-text)"
+                          : "var(--brand-muted)",
+                    }}
                   >
                     {urlSlug === item.slug && (
-                      <span className="w-0.5 h-3.5 bg-[#00ff41] rounded-full mr-2.5 shrink-0" />
+                      <span
+                        className="w-0.5 h-3.5 rounded-full mr-2.5 shrink-0"
+                        style={{ backgroundColor: "var(--brand-primary)" }}
+                      />
                     )}
                     <span className="truncate">{item.title}</span>
                   </Link>
@@ -215,36 +254,43 @@ const DocumentationPage: React.FC = () => {
       </aside>
 
       {/* ── Main Content ─────────────────────────────────────────────────── */}
-      <main className="flex-1 overflow-y-auto bg-[#050505]">
+      <main
+        className="flex-1 overflow-y-auto bg-[#050505]"
+        style={{ backgroundColor: "var(--brand-bg)" }}
+      >
         <div className="max-w-3xl mx-auto px-8 lg:px-16 pt-10 pb-24">
           {/* Loading */}
           {loading && (
-            <div className="font-mono text-[#00ff41] text-[10px] animate-pulse tracking-widest">
+            <div
+              className="font-mono text-[10px] animate-pulse tracking-widest"
+              style={{ color: "var(--brand-primary)" }}
+            >
               &gt; FETCHING_RESOURCES...
             </div>
           )}
 
           {/* 404 */}
           {!loading && notFound && (
-            <div className="h-[40vh] flex items-center font-mono text-gray-700 text-xs">
+            <div className="h-[40vh] flex items-center font-mono text-xs opacity-50">
               [!] 404_PAGE_NOT_FOUND
             </div>
           )}
 
-          {/* Content */}
+          {/* Content Wrapper */}
           {!loading && !notFound && docData && (
             <>
               {/* Breadcrumb */}
-              <nav className="flex items-center gap-1.5 text-[11px] font-mono text-gray-600 mb-10">
+              <nav
+                className="flex items-center gap-1.5 text-[11px] font-mono mb-10"
+                style={{ color: "var(--brand-muted)" }}
+              >
                 {breadcrumb.map((crumb, i) => (
                   <React.Fragment key={i}>
-                    {i > 0 && (
-                      <ChevronRight size={10} className="text-gray-700" />
-                    )}
+                    {i > 0 && <ChevronRight size={10} className="opacity-50" />}
                     {crumb.href && crumb.href !== "#" ? (
                       <Link
                         to={crumb.href}
-                        className="hover:text-gray-400 transition-colors"
+                        className="hover:text-white transition-colors"
                       >
                         {crumb.label}
                       </Link>
@@ -263,12 +309,8 @@ const DocumentationPage: React.FC = () => {
 
               {/* Doc header */}
               <header className="mb-10">
-                <h1 className="text-5xl font-black text-white tracking-tighter mb-4">
-                  {docData.title}
-                </h1>
                 <div className="flex items-center gap-4">
-                  <div className="h-px w-12 bg-[#00ff41] opacity-40" />
-                  <span className="text-[10px] font-mono text-gray-600">
+                  <span className="text-[10px] font-mono opacity-60">
                     last updated{" "}
                     {new Date(docData.lastUpdated).toLocaleDateString("en-GB", {
                       day: "numeric",
@@ -281,7 +323,7 @@ const DocumentationPage: React.FC = () => {
             </>
           )}
 
-          {/* Editor — always mounted */}
+          {/* Editor Area */}
           <div
             className="prose prose-invert max-w-none"
             style={{
@@ -295,8 +337,8 @@ const DocumentationPage: React.FC = () => {
 
       <style>{`
         .ProseMirror { outline: none; }
-        .ProseMirror h1 { font-size: 2.5rem; font-weight: 800; color: white; margin-top: 3rem; margin-bottom: 1rem; }
-        .ProseMirror h2 { font-size: 1.8rem; color: white; margin-top: 3.5rem; margin-bottom: 1.25rem; font-weight: 800; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem; }
+        .ProseMirror h1 { font-size: 2.5rem; font-weight: 800; color: var(--brand-text); margin-top: 3rem; margin-bottom: 1rem; }
+        .ProseMirror h2 { font-size: 1.8rem; color: var(--brand-text); margin-top: 3.5rem; margin-bottom: 1.25rem; font-weight: 800; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem; }
         .ProseMirror p { font-size: 1.1rem; line-height: 1.8; color: #a1a1aa; margin-bottom: 1.5rem; }
         .ProseMirror ul { padding-left: 1.5rem; list-style: disc; color: #a1a1aa; margin-bottom: 1.5rem; }
         .ProseMirror ul li { margin-bottom: 0.4rem; }
@@ -304,11 +346,13 @@ const DocumentationPage: React.FC = () => {
         .ProseMirror em { color: #d4d4d8; font-style: italic; }
         .ProseMirror s { color: #71717a; }
         .ProseMirror pre { background: #000 !important; border: 1px solid rgba(255,255,255,0.05); padding: 1.25rem; border-radius: 6px; margin: 2rem 0; font-family: 'JetBrains Mono', monospace; overflow-x: auto; }
-        .ProseMirror code { color: #00ff41; background: rgba(0,255,65,0.05); padding: 0.2rem 0.4rem; border-radius: 3px; font-size: 0.85em; }
+        .ProseMirror code { color: var(--brand-primary); background: rgba(57, 255, 20, 0.05); padding: 0.2rem 0.4rem; border-radius: 3px; font-size: 0.85em; }
         .ProseMirror pre code { background: none; padding: 0; color: inherit; }
+        
+        /* Highlighting tied to theme */
         .hljs-keyword { color: #ff79c6; }
         .hljs-string { color: #f1fa8c; }
-        .hljs-function { color: #50fa7b; }
+        .hljs-function { color: var(--brand-primary); }
         .hljs-comment { color: #6272a4; font-style: italic; }
         .hljs-number { color: #bd93f9; }
         .hljs-operator { color: #ff79c6; }
