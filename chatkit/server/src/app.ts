@@ -14,12 +14,14 @@ import projectRoutes from "./routes/ProjectsRoute.js";
 import authRoutes from "./routes/auth.js";
 import pricingRoutes from "./routes/PricingRoute.js";
 import docRoutes from "./routes/Docroute.js";
+import { initHermes } from "../hermes-engine/src/index.js"; // 👈 Hermes
 
 export async function start() {
   const app: Application = express();
   const mongoUri = process.env.MONGO_URI!;
 
   await connectDB(mongoUri);
+
   app.use(
     cors({
       origin: process.env.FRONTEND_URL,
@@ -44,11 +46,10 @@ export async function start() {
     }),
   );
 
-  // 3. Passport Initialization
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // 4. Routes
+  // ── Existing routes ─────────────────────────────────────────────────────────
   app.use("/api/docs", docRoutes);
   app.use("/auth", authRoutes);
   app.use("/api", projectRoutes);
@@ -58,6 +59,9 @@ export async function start() {
   const io = new Server(server, {
     cors: { origin: process.env.FRONTEND_URL, credentials: true },
   });
+
+  // ── Hermes Engine ───────────────────────────────────────────────────────────
+  initHermes(io, app); // 👈 One line, that's it
 
   const PORT = process.env.PORT || 8080;
   server.listen(PORT, () =>
