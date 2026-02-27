@@ -2,7 +2,6 @@ import type { Application } from "express";
 import type { Server } from "socket.io";
 import { Router } from "express";
 import type { Request, Response } from "express";
-import { v4 as uuidv4 } from "uuid";
 import { initHermesSocket } from "./socket/index.js";
 import { hermesApiLimiter } from "./middleware/rateLimit.js";
 import {
@@ -12,9 +11,12 @@ import {
 } from "./middleware/auth.js";
 import User from "../../src/models/Users.js";
 import healthRouter from "./routes/health.js";
+import metricsRouter from "./routes/metrics.js";
 import historyRouter from "./routes/history.js";
+import uploadRouter from "./routes/upload.js";
 import { logger } from "./utils/logger.js";
 import { v2 as cloudinary } from "cloudinary";
+import "dotenv/config";
 
 export const initHermes = (io: Server, app: Application) => {
   // ── Cloudinary config ───────────────────────────────────────────────────────
@@ -24,7 +26,7 @@ export const initHermes = (io: Server, app: Application) => {
     api_secret: process.env.CLOUDINARY_API_SECRET,
   });
 
-  // ── Socket.io namespace ─────────────────────────────────────────────────────
+  // ── Socket.io /hermes namespace ─────────────────────────────────────────────
   initHermesSocket(io);
 
   // ── REST router ─────────────────────────────────────────────────────────────
@@ -32,10 +34,10 @@ export const initHermes = (io: Server, app: Application) => {
   hermesRouter.use(hermesApiLimiter);
 
   // ── POST /hermes/connect ────────────────────────────────────────────────────
-  // SDK calls this first to exchange apiKey+secret+userId for a Hermes JWT
+  // SDK calls this first — exchanges apiKey + secret + userId for a Hermes JWT
   hermesRouter.post("/connect", async (req: Request, res: Response) => {
     try {
-      const { apiKey, secret, userId, username, avatar, email } = req.body;
+      const { apiKey, secret, userId, username, avatar } = req.body;
 
       if (!apiKey || !secret || !userId) {
         return res.status(400).json({
@@ -44,7 +46,7 @@ export const initHermes = (io: Server, app: Application) => {
         });
       }
 
-      // Validate project credentials against main DB
+      // Validate project credentials against Projects collection
       const { valid, project, error } = await validateProjectCredentials(
         apiKey,
         secret,
@@ -53,44 +55,32 @@ export const initHermes = (io: Server, app: Application) => {
         return res.status(401).json({ success: false, message: error });
       }
 
-      // Find or create HermesUser linked to the external userId
-      let user = await User.findOne({ externalId: userId });
+      // Find user in main Users collection by their _id
+      const user = await User.findById(userId);
       if (!user) {
-        user = await User.create({
-          hermesId: uuidv4(),
-          externalId: userId,
-          username: username || `user_${userId.slice(-6)}`,
-          email: email || `${userId}@hermes.local`,
-          avatar,
-        });
-        logger.info(`New Hermes user registered: ${user.hermesId}`);
-      } else {
-        // Update profile info if changed
-        if (username) user.username = username;
-        if (avatar) user.avatar = avatar;
-        await user.save();
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found" });
       }
 
-      // Issue Hermes JWT
+      // Issue Hermes JWT using the existing User._id as identifier
       const token = signHermesToken({
-        hermesId: user.hermesId,
-        externalId: userId,
-        username: user.username,
+        userId: user._id.toString(),
+        displayName: user.displayName,
         projectId: project._id.toString(),
         apiKey,
       });
 
       logger.info(
-        `Hermes connect: ${user.hermesId} via project ${project.projectName}`,
+        `Hermes connect: ${user._id} via project "${project.projectName}"`,
       );
 
       res.json({
         success: true,
         token,
-        hermesId: user.hermesId,
         user: {
-          hermesId: user.hermesId,
-          username: user.username,
+          userId: user._id.toString(),
+          displayName: user.displayName,
           avatar: user.avatar,
           email: user.email,
         },
@@ -101,11 +91,13 @@ export const initHermes = (io: Server, app: Application) => {
     }
   });
 
-  // ── Mount sub-routers ────────────────────────────────────────────────────────
-  hermesRouter.use("/", healthRouter);
-  hermesRouter.use("/", historyRouter);
+  // ── Mount all sub-routers ───────────────────────────────────────────────────
+  hermesRouter.use("/", healthRouter); // GET /hermes/health
+  hermesRouter.use("/", metricsRouter); // GET /hermes/metrics
+  hermesRouter.use("/", historyRouter); // GET /hermes/history/:roomId
+  hermesRouter.use("/", uploadRouter); // POST /hermes/upload
 
-  // ── Mount all under /hermes ──────────────────────────────────────────────────
+  // ── Mount everything under /hermes ──────────────────────────────────────────
   app.use("/hermes", hermesRouter);
 
   logger.info("✅ Hermes Engine initialized on /hermes");

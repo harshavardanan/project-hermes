@@ -51,9 +51,9 @@ export async function start() {
 
   // ── Existing routes ─────────────────────────────────────────────────────────
   app.use("/api/docs", docRoutes);
+  app.use("/api", pricingRoutes);
   app.use("/auth", authRoutes);
   app.use("/api", projectRoutes);
-  app.use("/api", pricingRoutes);
 
   const server = http.createServer(app);
   const io = new Server(server, {

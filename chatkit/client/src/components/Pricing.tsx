@@ -29,38 +29,39 @@ const Pricing = () => {
 
   if (loading)
     return (
-      <div className="pt-40 text-center text-brand-primary animate-pulse font-black uppercase tracking-widest">
+      <div className="pt-40 text-center text-[var(--brand-primary)] animate-pulse font-black uppercase tracking-widest">
         Initialising Tiers...
       </div>
     );
 
   return (
-    <div className="bg-brand-bg min-h-screen pt-32 pb-20 px-6 font-sans">
+    <div className="bg-[var(--brand-bg)] min-h-screen pt-32 pb-20 px-6 font-sans">
       <div className="max-w-6xl mx-auto">
         {/* Header & Toggle */}
         <div className="text-center mb-16">
-          <div className="inline-block px-3 py-1 rounded-full bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-[10px] font-black uppercase tracking-widest mb-4">
-            Release 2.0 Live
+          <div className="inline-block px-3 py-1 rounded-full bg-[var(--brand-primary)]/10 border border-[var(--brand-primary)]/20 text-[var(--brand-primary)] text-[10px] font-black uppercase tracking-widest mb-4">
+            Network Protocol 2.0
           </div>
           <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter mb-4">
-            Choose Your <span className="text-brand-primary">Power</span>
+            Choose Your{" "}
+            <span className="text-[var(--brand-primary)]">Power</span>
           </h1>
-          <p className="text-brand-muted max-w-md mx-auto mb-10">
-            Scale your application with our high-performance SDK. Simple
-            pricing, no hidden fees.
+          <p className="text-[var(--brand-muted)] max-w-md mx-auto mb-10 font-medium">
+            Scale your application with the Hermes SDK. High-performance
+            throughput, zero bottlenecking.
           </p>
 
           {/* Billing Toggle */}
-          <div className="flex items-center justify-center gap-1 p-1 bg-brand-card border border-brand-border rounded-xl w-fit mx-auto">
+          <div className="flex items-center justify-center gap-1 p-1 bg-[var(--brand-card)] border border-[var(--brand-border)] rounded-xl w-fit mx-auto">
             <button
               onClick={() => setBillingCycle("monthly")}
-              className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${billingCycle === "monthly" ? "bg-brand-primary text-black" : "text-brand-muted hover:text-white"}`}
+              className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${billingCycle === "monthly" ? "bg-[var(--brand-primary)] text-black" : "text-[var(--brand-muted)] hover:text-white"}`}
             >
               Monthly
             </button>
             <button
               onClick={() => setBillingCycle("yearly")}
-              className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${billingCycle === "yearly" ? "bg-brand-primary text-black" : "text-brand-muted hover:text-white"}`}
+              className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${billingCycle === "yearly" ? "bg-[var(--brand-primary)] text-black" : "text-[var(--brand-muted)] hover:text-white"}`}
             >
               Yearly
             </button>
@@ -70,24 +71,24 @@ const Pricing = () => {
         {/* Pricing Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-24">
           {plans.map((plan) => {
-            const isPopular = plan.planId === "standard"; // Or your 'Startup' plan
+            const isPopular = plan.planId === "standard";
 
             return (
               <div
                 key={plan._id}
                 className={`relative flex flex-col p-8 rounded-[2rem] border transition-all duration-300 ${
                   isPopular
-                    ? "bg-brand-card border-brand-primary shadow-[0_0_40px_rgba(57,255,20,0.1)] scale-105 z-10"
-                    : "bg-brand-card border-brand-border hover:border-brand-primary/50"
+                    ? "bg-[var(--brand-card)] border-[var(--brand-primary)] shadow-[0_0_40px_rgba(255,140,0,0.1)] scale-105 z-10"
+                    : "bg-[var(--brand-card)] border-[var(--brand-border)] hover:border-[var(--brand-primary)]/50"
                 }`}
               >
                 {isPopular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-brand-primary text-black text-[10px] font-black px-4 py-1 rounded-full uppercase tracking-widest">
-                    Most Popular
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[var(--brand-primary)] text-black text-[10px] font-black px-4 py-1 rounded-full uppercase tracking-widest shadow-[0_0_15px_rgba(255,140,0,0.4)]">
+                    Optimal Choice
                   </div>
                 )}
 
-                <h3 className="text-2xl font-black text-white mb-2">
+                <h3 className="text-2xl font-black text-white mb-2 uppercase tracking-tighter">
                   {plan.name}
                 </h3>
                 <div className="flex items-baseline gap-1 mb-4">
@@ -97,27 +98,32 @@ const Pricing = () => {
                       ? plan.monthlyPrice
                       : Math.floor(plan.monthlyPrice * 0.8)}
                   </span>
-                  <span className="text-brand-muted font-bold">/mo</span>
+                  <span className="text-[var(--brand-muted)] font-bold">
+                    /mo
+                  </span>
                 </div>
-                <p className="text-brand-muted text-sm mb-8 font-medium">
+                <p className="text-[var(--brand-muted)] text-sm mb-8 font-medium italic">
                   {plan.planId === "free"
-                    ? "Perfect for side projects."
+                    ? "// Perfect for side projects."
                     : plan.planId === "standard"
-                      ? "Everything you need to scale."
-                      : "For high-volume production."}
+                      ? "// Everything you need to scale."
+                      : "// For high-volume production."}
                 </p>
 
                 <ul className="space-y-4 mb-10 flex-1">
                   <li className="flex items-center gap-3 text-sm font-bold text-white">
-                    <Check size={18} className="text-brand-primary" />
+                    <Check size={18} className="text-[var(--brand-primary)]" />
                     {plan.dailyLimit.toLocaleString()} Daily Tokens
                   </li>
                   {plan.features?.map((feature: string, idx: number) => (
                     <li
                       key={idx}
-                      className="flex items-center gap-3 text-sm font-medium text-brand-muted"
+                      className="flex items-center gap-3 text-sm font-medium text-[var(--brand-muted)]"
                     >
-                      <Check size={18} className="text-brand-primary" />
+                      <Check
+                        size={18}
+                        className="text-[var(--brand-primary)]"
+                      />
                       {feature}
                     </li>
                   ))}
@@ -126,8 +132,8 @@ const Pricing = () => {
                 <button
                   className={`w-full py-4 rounded-xl font-black uppercase tracking-widest transition-all active:scale-95 ${
                     isPopular
-                      ? "bg-brand-primary text-black shadow-[0_0_20px_rgba(57,255,20,0.4)] hover:brightness-110"
-                      : "bg-brand-bg text-white border border-brand-border hover:bg-brand-border"
+                      ? "bg-[var(--brand-primary)] text-black shadow-[0_0_20px_rgba(255,140,0,0.4)] hover:brightness-110"
+                      : "bg-[var(--brand-bg)] text-white border border-[var(--brand-border)] hover:bg-[var(--brand-border)]"
                   }`}
                 >
                   {plan.planId === "pro" ? "Contact Sales" : "Start Building"}
@@ -139,8 +145,9 @@ const Pricing = () => {
 
         {/* FAQ Section */}
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl font-black text-white text-center mb-10">
-            Frequently Asked Questions
+          <h2 className="text-3xl font-black text-white text-center mb-10 uppercase tracking-tighter">
+            Frequent{" "}
+            <span className="text-[var(--brand-primary)]">Queries</span>
           </h2>
           <div className="space-y-4">
             <FaqItem
@@ -158,7 +165,6 @@ const Pricing = () => {
   );
 };
 
-// FAQ Helper Component
 const FaqItem = ({
   question,
   answer,
@@ -168,19 +174,21 @@ const FaqItem = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   return (
-    <div className="bg-brand-card border border-brand-border rounded-2xl overflow-hidden">
+    <div className="bg-[var(--brand-card)] border border-[var(--brand-border)] rounded-2xl overflow-hidden transition-all hover:border-[var(--brand-primary)]/20">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full p-6 flex items-center justify-between text-left hover:bg-white/5 transition-colors"
       >
-        <span className="font-bold text-white">{question}</span>
+        <span className="font-bold text-white uppercase tracking-tight">
+          {question}
+        </span>
         <ChevronDown
           size={20}
-          className={`text-brand-muted transition-transform ${isOpen ? "rotate-180" : ""}`}
+          className={`text-[var(--brand-muted)] transition-transform ${isOpen ? "rotate-180 text-[var(--brand-primary)]" : ""}`}
         />
       </button>
       {isOpen && (
-        <div className="px-6 pb-6 text-brand-muted text-sm leading-relaxed">
+        <div className="px-6 pb-6 text-[var(--brand-muted)] text-sm leading-relaxed border-t border-[var(--brand-border)] pt-4">
           {answer}
         </div>
       )}
