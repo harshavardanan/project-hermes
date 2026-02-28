@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { HermesClient } from "../../core/HermesClient.js";
-import type { TypingEvent } from "../../types/index.js";
+import type { HermesClient } from "../../core/HermesClient";
+import type { TypingEvent } from "../../types/index";
 
 // ── useTyping ─────────────────────────────────────────────────────────────────
 // Tracks who is typing in a room + exposes startTyping/stopTyping actions.

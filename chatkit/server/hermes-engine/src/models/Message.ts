@@ -11,23 +11,23 @@ export type DeliveryStatus = "sent" | "delivered" | "seen";
 
 export interface IReaction {
   emoji: string;
-  users: Types.ObjectId[]; // ref to main User._id
+  users: Types.ObjectId[]; // ref HermesUser._id
 }
 
 export interface IMessage extends Document {
-  roomId: Types.ObjectId; // ref to HermesRoom._id
-  senderId: Types.ObjectId; // ref to main User._id
+  roomId: Types.ObjectId;
+  senderId: Types.ObjectId; // ref HermesUser._id
   type: MessageType;
   text?: string; // encrypted at rest
-  url?: string; // for link/media/doc
+  url?: string;
   fileName?: string;
-  fileSize?: number; // bytes
+  fileSize?: number;
   mimeType?: string;
-  thumbnail?: string; // video/image preview url
-  replyTo?: Types.ObjectId; // ref to another Message._id
+  thumbnail?: string;
+  replyTo?: Types.ObjectId;
   reactions: IReaction[];
   deliveryStatus: DeliveryStatus;
-  seenBy: Types.ObjectId[]; // ref to main User._id array
+  seenBy: Types.ObjectId[]; // ref HermesUser._id array
   isDeleted: boolean;
   deletedAt?: Date;
   editedAt?: Date;
@@ -38,21 +38,17 @@ export interface IMessage extends Document {
 const reactionSchema = new Schema<IReaction>(
   {
     emoji: { type: String, required: true },
-    users: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    users: [{ type: Schema.Types.ObjectId, ref: "HermesUser" }],
   },
   { _id: false },
 );
 
 const messageSchema = new Schema<IMessage>(
   {
-    roomId: {
-      type: Schema.Types.ObjectId,
-      ref: "HermesRoom",
-      required: true,
-    },
+    roomId: { type: Schema.Types.ObjectId, ref: "HermesRoom", required: true },
     senderId: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "HermesUser",
       required: true,
     },
     type: {
@@ -60,23 +56,20 @@ const messageSchema = new Schema<IMessage>(
       enum: ["text", "link", "image", "video", "audio", "document"],
       required: true,
     },
-    text: { type: String }, // stored encrypted
+    text: { type: String },
     url: { type: String },
     fileName: { type: String },
     fileSize: { type: Number },
     mimeType: { type: String },
     thumbnail: { type: String },
-    replyTo: {
-      type: Schema.Types.ObjectId,
-      ref: "HermesMessage",
-    },
+    replyTo: { type: Schema.Types.ObjectId, ref: "HermesMessage" },
     reactions: [reactionSchema],
     deliveryStatus: {
       type: String,
       enum: ["sent", "delivered", "seen"],
       default: "sent",
     },
-    seenBy: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    seenBy: [{ type: Schema.Types.ObjectId, ref: "HermesUser" }],
     isDeleted: { type: Boolean, default: false },
     deletedAt: { type: Date },
     editedAt: { type: Date },
@@ -86,6 +79,5 @@ const messageSchema = new Schema<IMessage>(
 
 messageSchema.index({ roomId: 1, createdAt: -1 });
 messageSchema.index({ senderId: 1 });
-messageSchema.index({ replyTo: 1 });
 
 export const Message = model<IMessage>("HermesMessage", messageSchema);

@@ -1,6 +1,6 @@
 import { useCallback } from "react";
-import type { HermesClient } from "../../core/HermesClient.js";
-import type { Reaction } from "../../types/index.js";
+import type { HermesClient } from "../../core/HermesClient";
+import type { Reaction } from "../../types/index";
 
 // ── useReactions ──────────────────────────────────────────────────────────────
 // Handles adding/toggling reactions on messages.

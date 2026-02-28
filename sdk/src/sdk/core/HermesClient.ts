@@ -1,5 +1,5 @@
 import { io, Socket } from "socket.io-client";
-import { EventEmitter } from "./EventEmitter.js";
+import { EventEmitter } from "./EventEmitter";
 import type {
   HermesConfig,
   HermesUser,
@@ -11,11 +11,17 @@ import type {
   CreateDirectRoomInput,
   CreateGroupRoomInput,
   UploadResult,
-} from "../types/index.js";
+} from "../types/index";
 
 // ── HermesClient ──────────────────────────────────────────────────────────────
-// The single entry point for all SDK functionality.
-// Every module, hook, and component depends on an instance of this.
+// Two ways to initialize:
+//
+// 1. Full credentials (Joe's backend dev testing):
+//    new HermesClient({ endpoint, apiKey, secret, userId, displayName })
+//
+// 2. Token only (production B2B SaaS — token fetched from Joe's backend):
+//    new HermesClient({ endpoint, token })
+
 export class HermesClient extends EventEmitter {
   private config: HermesConfig;
   private socket: Socket | null = null;
@@ -27,16 +33,32 @@ export class HermesClient extends EventEmitter {
   constructor(config: HermesConfig) {
     super();
     this.config = config;
+    // If token is pre-provided, store it immediately
+    if (config.token) {
+      this.token = config.token;
+    }
   }
 
   // ── Connect ─────────────────────────────────────────────────────────────────
-  // 1. Call /hermes/connect to get JWT
-  // 2. Connect socket with JWT
   async connect(): Promise<HermesUser> {
     this.status = "connecting";
 
     try {
-      // Step 1: Exchange credentials for JWT
+      // ── Mode 1: Token already provided (production flow) ──────────────────
+      // Joe's backend already called /hermes/connect and passed us the token
+      if (this.token) {
+        await this._connectSocket();
+        return this.user!;
+      }
+
+      // ── Mode 2: Full credentials (dev/testing flow) ────────────────────────
+      // Call /hermes/connect ourselves with apiKey + secret + userId
+      if (!this.config.apiKey || !this.config.secret || !this.config.userId) {
+        throw new Error(
+          "Either token or (apiKey + secret + userId) must be provided",
+        );
+      }
+
       const res = await fetch(`${this.config.endpoint}/hermes/connect`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -44,6 +66,9 @@ export class HermesClient extends EventEmitter {
           apiKey: this.config.apiKey,
           secret: this.config.secret,
           userId: this.config.userId,
+          displayName: this.config.displayName ?? this.config.userId,
+          avatar: this.config.avatar,
+          email: this.config.email,
         }),
       });
 
@@ -51,34 +76,41 @@ export class HermesClient extends EventEmitter {
       if (!data.success) throw new Error(data.message || "Auth failed");
 
       this.token = data.token;
-      this.user = data.user;
+      this.user = {
+        userId: data.user.hermesUserId,
+        displayName: data.user.displayName,
+        avatar: data.user.avatar,
+        email: data.user.email,
+      };
 
-      // Step 2: Connect to /hermes namespace with JWT
-      this.socket = io(`${this.config.endpoint}/hermes`, {
-        auth: { token: this.token },
-        transports: ["websocket"],
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-      });
-
-      // Step 3: Wire socket events
-      this._wireSocketEvents();
-
-      // Wait for socket to connect
-      await new Promise<void>((resolve, reject) => {
-        this.socket!.once("connect", resolve);
-        this.socket!.once("connect_error", reject);
-      });
-
-      this.status = "connected";
-      this.emit("connected");
+      await this._connectSocket();
       return this.user!;
     } catch (err) {
       this.status = "error";
       this.emit("error", err as Error);
       throw err;
     }
+  }
+
+  // ── Connect socket with stored token ───────────────────────────────────────
+  private async _connectSocket(): Promise<void> {
+    this.socket = io(`${this.config.endpoint}/hermes`, {
+      auth: { token: this.token },
+      transports: ["websocket"],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
+
+    this._wireSocketEvents();
+
+    await new Promise<void>((resolve, reject) => {
+      this.socket!.once("connect", resolve);
+      this.socket!.once("connect_error", (err) => reject(err));
+    });
+
+    this.status = "connected";
+    this.emit("connected");
   }
 
   // ── Disconnect ──────────────────────────────────────────────────────────────
@@ -90,7 +122,7 @@ export class HermesClient extends EventEmitter {
     this.emit("disconnected", "manual");
   }
 
-  // ── Wire all socket → EventEmitter events ───────────────────────────────────
+  // ── Wire socket → EventEmitter ─────────────────────────────────────────────
   private _wireSocketEvents(): void {
     const s = this.socket!;
 
@@ -132,8 +164,7 @@ export class HermesClient extends EventEmitter {
     s.on("reaction:updated", (event) => this.emit("reaction:updated", event));
   }
 
-  // ── Internal socket emit with ack ────────────────────────────────────────────
-  // All modules use this to emit socket events and get back a response
+  // ── Internal socket emit with ack ──────────────────────────────────────────
   _emit<T = any>(event: string, data: any): Promise<T> {
     return new Promise((resolve, reject) => {
       if (!this.socket?.connected) {
@@ -182,8 +213,9 @@ export class HermesClient extends EventEmitter {
 
   // ── Rooms ────────────────────────────────────────────────────────────────────
   async createDirectRoom(input: CreateDirectRoomInput): Promise<Room> {
+    // Server expects targetHermesUserId — the HermesUser._id of the target
     const res = await this._emit<{ room: Room }>("room:create:direct", {
-      targetUserId: input.targetUserId,
+      targetHermesUserId: input.targetUserId,
     });
     return res.room;
   }
@@ -210,12 +242,12 @@ export class HermesClient extends EventEmitter {
     await this._emit("room:member:remove", { roomId, targetId });
   }
 
-  // ── Presence ──────────────────────────────────────────────────────────────────
+  // ── Presence ────────────────────────────────────────────────────────────────
   pingPresence(roomId: string): void {
     this.socket?.emit("presence:ping", { roomId });
   }
 
-  // ── Typing ────────────────────────────────────────────────────────────────────
+  // ── Typing ──────────────────────────────────────────────────────────────────
   startTyping(roomId: string): void {
     this.socket?.emit("typing:start", { roomId });
   }
@@ -224,12 +256,12 @@ export class HermesClient extends EventEmitter {
     this.socket?.emit("typing:stop", { roomId });
   }
 
-  // ── Receipts ──────────────────────────────────────────────────────────────────
+  // ── Receipts ────────────────────────────────────────────────────────────────
   async markSeen(roomId: string, lastMessageId: string): Promise<void> {
     await this._emit("receipt:seen", { roomId, lastMessageId });
   }
 
-  // ── Reactions ─────────────────────────────────────────────────────────────────
+  // ── Reactions ───────────────────────────────────────────────────────────────
   async addReaction(
     messageId: string,
     roomId: string,
@@ -238,25 +270,22 @@ export class HermesClient extends EventEmitter {
     await this._emit("reaction:add", { messageId, roomId, emoji });
   }
 
-  // ── Upload ────────────────────────────────────────────────────────────────────
+  // ── Upload ──────────────────────────────────────────────────────────────────
   async uploadFile(file: File): Promise<UploadResult> {
     if (!this.token) throw new Error("Not connected");
-
     const formData = new FormData();
     formData.append("file", file);
-
     const res = await fetch(`${this.config.endpoint}/hermes/upload`, {
       method: "POST",
       headers: { Authorization: `Bearer ${this.token}` },
       body: formData,
     });
-
     const data = await res.json();
     if (!data.success) throw new Error(data.error || "Upload failed");
     return data as UploadResult;
   }
 
-  // ── Getters ───────────────────────────────────────────────────────────────────
+  // ── Getters ─────────────────────────────────────────────────────────────────
   get isConnected(): boolean {
     return this.status === "connected" && !!this.socket?.connected;
   }

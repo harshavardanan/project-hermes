@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
-import type { HermesClient } from "../../core/HermesClient.js";
-import type { UploadResult, Message } from "../../types/index.js";
+import type { HermesClient } from "../../core/HermesClient";
+import type { UploadResult, Message } from "../../types/index";
 
 // ── useUpload ─────────────────────────────────────────────────────────────────
 // Handles file uploads with progress state.

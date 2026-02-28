@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import type { HermesClient } from "../../core/HermesClient.js";
-import type { ReceiptEvent } from "../../types/index.js";
+import type { HermesClient } from "../../core/HermesClient";
+import type { ReceiptEvent } from "../../types/index";
 
 // ── useReadReceipts ───────────────────────────────────────────────────────────
 // Tracks who has seen which message in a room.

@@ -9,13 +9,12 @@ import {
 import { logger } from "../../utils/logger.js";
 
 export const handleMessaging = (socket: Socket, io: Server) => {
-  const { hermesId } = (socket as any).hermesUser;
+  const { hermesUserId } = (socket as any).hermesUser;
 
   // ── message:send ────────────────────────────────────────────────────────────
   socket.on("message:send", async (data, ack) => {
     try {
-      // Rate limit check
-      if (!checkSocketRateLimit(hermesId)) {
+      if (!checkSocketRateLimit(hermesUserId)) {
         return ack?.({ success: false, error: "Rate limit exceeded" });
       }
 
@@ -31,17 +30,14 @@ export const handleMessaging = (socket: Socket, io: Server) => {
         replyTo,
       } = data;
 
-      if (!roomId || !type) {
-        return ack?.({ success: false, error: "roomId and type are required" });
-      }
-
-      if (type === "text" && !text?.trim()) {
+      if (!roomId || !type)
+        return ack?.({ success: false, error: "roomId and type required" });
+      if (type === "text" && !text?.trim())
         return ack?.({ success: false, error: "Text cannot be empty" });
-      }
 
       const result = await sendMessage({
         roomId,
-        senderId: hermesId,
+        senderId: hermesUserId,
         type,
         text,
         url,
@@ -54,11 +50,8 @@ export const handleMessaging = (socket: Socket, io: Server) => {
 
       if (result.error) return ack?.({ success: false, error: result.error });
 
-      // Broadcast to everyone in the room (including sender)
       io.to(roomId).emit("message:receive", result.message);
-
       ack?.({ success: true, message: result.message });
-      logger.socket("MSG_SEND", hermesId, `room:${roomId}`);
     } catch (err) {
       logger.error("message:send error", err);
       ack?.({ success: false, error: "Failed to send message" });
@@ -69,7 +62,7 @@ export const handleMessaging = (socket: Socket, io: Server) => {
   socket.on("message:history", async (data, ack) => {
     try {
       const { roomId, before, limit } = data;
-      const result = await getHistory(roomId, hermesId, before, limit);
+      const result = await getHistory(roomId, hermesUserId, before, limit);
       if (result.error) return ack?.({ success: false, error: result.error });
       ack?.({ success: true, ...result });
     } catch (err) {
@@ -82,11 +75,9 @@ export const handleMessaging = (socket: Socket, io: Server) => {
   socket.on("message:delete", async (data, ack) => {
     try {
       const { messageId, roomId } = data;
-      const result = await deleteMessage(messageId, hermesId);
+      const result = await deleteMessage(messageId, hermesUserId);
       if (!result.success)
         return ack?.({ success: false, error: result.error });
-
-      // Notify room that message was deleted
       io.to(roomId).emit("message:deleted", { messageId, roomId });
       ack?.({ success: true });
     } catch (err) {
@@ -99,10 +90,8 @@ export const handleMessaging = (socket: Socket, io: Server) => {
   socket.on("message:edit", async (data, ack) => {
     try {
       const { messageId, roomId, text } = data;
-      const result = await editMessage(messageId, hermesId, text);
+      const result = await editMessage(messageId, hermesUserId, text);
       if (result.error) return ack?.({ success: false, error: result.error });
-
-      // Notify room of edit
       io.to(roomId).emit("message:edited", result.message);
       ack?.({ success: true, message: result.message });
     } catch (err) {

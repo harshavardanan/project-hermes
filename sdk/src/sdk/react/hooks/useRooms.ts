@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
-import type { HermesClient } from "../../core/HermesClient.js";
+import type { HermesClient } from "../../core/HermesClient";
 import type {
   Room,
   CreateDirectRoomInput,
   CreateGroupRoomInput,
-} from "../../types/index.js";
+} from "../../types/index";
 
 // ── useRooms ──────────────────────────────────────────────────────────────────
 // Manages the full room list for the current user.

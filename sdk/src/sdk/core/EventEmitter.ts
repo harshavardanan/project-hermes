@@ -1,4 +1,4 @@
-import type { HermesEvents } from "../types/index.js";
+import type { HermesEvents } from "../types/index";
 
 type EventKey = keyof HermesEvents;
 type EventCallback<K extends EventKey> = HermesEvents[K];

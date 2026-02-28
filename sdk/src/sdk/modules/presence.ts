@@ -1,5 +1,5 @@
-import type { HermesClient } from "../core/HermesClient.js";
-import type { PresenceEvent, LastSeenEvent } from "../types/index.js";
+import type { HermesClient } from "../core/HermesClient";
+import type { PresenceEvent, LastSeenEvent } from "../types/index";
 
 // ── Presence Module ───────────────────────────────────────────────────────────
 // Tracks who is online/offline across rooms.

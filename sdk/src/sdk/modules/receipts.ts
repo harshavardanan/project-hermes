@@ -1,5 +1,5 @@
-import type { HermesClient } from "../core/HermesClient.js";
-import type { ReceiptEvent } from "../types/index.js";
+import type { HermesClient } from "../core/HermesClient";
+import type { ReceiptEvent } from "../types/index";
 
 // ── Receipts Module ───────────────────────────────────────────────────────────
 // Handles read receipts — seen/delivered status.

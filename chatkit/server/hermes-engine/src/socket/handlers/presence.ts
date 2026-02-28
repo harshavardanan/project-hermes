@@ -4,37 +4,38 @@ import { logger } from "../../utils/logger.js";
 
 // ── Presence ──────────────────────────────────────────────────────────────────
 export const handlePresence = (socket: Socket, io: Server) => {
-  const { hermesId } = (socket as any).hermesUser;
+  const { hermesUserId } = (socket as any).hermesUser;
 
-  // Client can manually broadcast presence to a room
   socket.on("presence:ping", (data) => {
     const { roomId } = data;
-    if (roomId) {
-      socket.to(roomId).emit("user:online", { hermesId });
-    }
+    if (roomId) socket.to(roomId).emit("user:online", { userId: hermesUserId });
   });
 };
 
-// ── Typing indicators ─────────────────────────────────────────────────────────
+// ── Typing ────────────────────────────────────────────────────────────────────
 export const handleTyping = (socket: Socket, io: Server) => {
-  const { hermesId, username } = (socket as any).hermesUser;
+  const { hermesUserId, displayName } = (socket as any).hermesUser;
 
   socket.on("typing:start", (data) => {
     const { roomId } = data;
     if (!roomId) return;
-    socket.to(roomId).emit("typing:started", { hermesId, username, roomId });
+    socket
+      .to(roomId)
+      .emit("typing:started", { userId: hermesUserId, displayName, roomId });
   });
 
   socket.on("typing:stop", (data) => {
     const { roomId } = data;
     if (!roomId) return;
-    socket.to(roomId).emit("typing:stopped", { hermesId, username, roomId });
+    socket
+      .to(roomId)
+      .emit("typing:stopped", { userId: hermesUserId, displayName, roomId });
   });
 };
 
-// ── Read receipts ─────────────────────────────────────────────────────────────
+// ── Receipts ──────────────────────────────────────────────────────────────────
 export const handleReceipts = (socket: Socket, io: Server) => {
-  const { hermesId } = (socket as any).hermesUser;
+  const { hermesUserId } = (socket as any).hermesUser;
 
   socket.on("receipt:seen", async (data, ack) => {
     try {
@@ -46,12 +47,11 @@ export const handleReceipts = (socket: Socket, io: Server) => {
         });
       }
 
-      await markSeen(roomId, hermesId, lastMessageId);
+      await markSeen(roomId, hermesUserId, lastMessageId);
 
-      // Notify room that this user has seen up to this message
       socket.to(roomId).emit("receipt:updated", {
         roomId,
-        hermesId,
+        userId: hermesUserId,
         lastMessageId,
         seenAt: new Date(),
       });
@@ -66,7 +66,7 @@ export const handleReceipts = (socket: Socket, io: Server) => {
 
 // ── Reactions ─────────────────────────────────────────────────────────────────
 export const handleReactions = (socket: Socket, io: Server) => {
-  const { hermesId } = (socket as any).hermesUser;
+  const { hermesUserId } = (socket as any).hermesUser;
 
   socket.on("reaction:add", async (data, ack) => {
     try {
@@ -75,10 +75,9 @@ export const handleReactions = (socket: Socket, io: Server) => {
         return ack?.({ success: false, error: "messageId and emoji required" });
       }
 
-      const result = await addReaction(messageId, hermesId, emoji);
+      const result = await addReaction(messageId, hermesUserId, emoji);
       if (result.error) return ack?.({ success: false, error: result.error });
 
-      // Broadcast updated reactions to the whole room
       io.to(roomId).emit("reaction:updated", {
         messageId,
         roomId,

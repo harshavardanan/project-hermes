@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { HermesClient } from "../../core/HermesClient.js";
-import type { Message, SendMessageInput } from "../../types/index.js";
+import type { HermesClient } from "../../core/HermesClient";
+import type { Message, SendMessageInput } from "../../types/index";
 
 // ── useMessages ───────────────────────────────────────────────────────────────
 // Manages messages for a single room.

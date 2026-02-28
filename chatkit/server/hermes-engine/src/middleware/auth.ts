@@ -2,16 +2,16 @@ import type { Request, Response, NextFunction } from "express";
 import type { Socket } from "socket.io";
 import jwt from "jsonwebtoken";
 import { Project } from "../../../src/models/Projects.js";
-import User from "../../../src/models/Users.js";
+import { HermesUser } from "../models/HermesUser.js";
 import { logger } from "../utils/logger.js";
 
 const HERMES_SECRET = process.env.HERMES_JWT_SECRET as string;
 
 export interface HermesTokenPayload {
-  hermesId: string;
-  externalId: string;
-  username: string;
-  projectId: string;
+  hermesUserId: string; // HermesUser._id (our internal ID)
+  externalId: string; // Dan's ID in Joe's system
+  projectId: string; // Joe's project _id
+  displayName: string;
   apiKey: string;
 }
 
@@ -59,22 +59,20 @@ export const hermesSocketAuth = async (
       socket.handshake.auth?.token ||
       socket.handshake.headers?.authorization?.split(" ")[1];
 
-    if (!token) {
+    if (!token)
       return next(new Error("HERMES_AUTH_MISSING: No token provided"));
-    }
 
     const payload = verifyHermesToken(token);
 
-    // Attach payload to socket for use in handlers
+    // Verify this HermesUser still exists
+    const user = await HermesUser.findById(payload.hermesUserId);
+    if (!user) return next(new Error("HERMES_AUTH_INVALID: User not found"));
+
+    // Attach full payload + user to socket
     (socket as any).hermesUser = payload;
+    (socket as any).hermesUserDoc = user;
 
-    // Verify the user still exists in DB
-    const user = await User.findOne({ hermesId: payload.hermesId });
-    if (!user) {
-      return next(new Error("HERMES_AUTH_INVALID: User not found"));
-    }
-
-    logger.socket("AUTH_OK", payload.hermesId, `@${payload.username}`);
+    logger.socket("AUTH_OK", payload.hermesUserId, `@${payload.displayName}`);
     next();
   } catch (err) {
     logger.error("Socket auth failed", err);
@@ -83,19 +81,15 @@ export const hermesSocketAuth = async (
 };
 
 // ── Validate apiKey + secret against Projects collection ─────────────────────
-// Called on POST /hermes/connect to issue a Hermes JWT
 export const validateProjectCredentials = async (
   apiKey: string,
   secret: string,
 ): Promise<{ valid: boolean; project?: any; error?: string }> => {
   try {
     const project = await Project.findOne({ apiKey }).populate("plan");
-    if (!project) {
-      return { valid: false, error: "Invalid API key" };
-    }
-    if (project.secret !== secret) {
+    if (!project) return { valid: false, error: "Invalid API key" };
+    if (project.secret !== secret)
       return { valid: false, error: "Invalid secret" };
-    }
     return { valid: true, project };
   } catch (err) {
     logger.error("Credential validation failed", err);

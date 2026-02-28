@@ -1,5 +1,5 @@
-import type { HermesClient } from "../core/HermesClient.js";
-import type { UploadResult, Message } from "../types/index.js";
+import type { HermesClient } from "../core/HermesClient";
+import type { UploadResult, Message } from "../types/index";
 
 // ── Media Module ──────────────────────────────────────────────────────────────
 // Handles file uploads and sends them as messages in one step.

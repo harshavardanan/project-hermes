@@ -1,5 +1,5 @@
 import React from "react";
-import type { Reaction } from "../../types/index.js";
+import type { Reaction } from "../../types/index";
 
 interface ReactionPickerProps {
   onSelect: (emoji: string) => void;

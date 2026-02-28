@@ -35,6 +35,18 @@ export const initHermesSocket = (io: Server) => {
       handleReceipts(socket, hermes as any);
       handleReactions(socket, hermes as any);
 
+      socket.on("session:init", (data, callback) => {
+        // Your auth middleware should have already attached the user to the socket
+        const user = socket.data.user;
+        if (user) {
+          callback({ success: true, user });
+        } else {
+          callback({
+            success: false,
+            error: "User profile not found in session",
+          });
+        }
+      });
       // ── Ping/pong for status page latency check ───────────────────────────
       socket.on("ping", (data) => {
         socket.emit("pong", { timestamp: data?.timestamp ?? Date.now() });

@@ -1,3 +1,4 @@
+import { Types } from "mongoose";
 import { Message, type IMessage, type MessageType } from "../models/Message.js";
 import { Room } from "../models/Room.js";
 import { Member } from "../models/Member.js";
@@ -8,7 +9,7 @@ const PAGE_SIZE = 30;
 
 interface SendMessageInput {
   roomId: string;
-  senderId: string;
+  senderId: string; // HermesUser._id
   type: MessageType;
   text?: string;
   url?: string;
@@ -19,41 +20,52 @@ interface SendMessageInput {
   replyTo?: string;
 }
 
-// ── Send a message ────────────────────────────────────────────────────────────
+// ── Send message ──────────────────────────────────────────────────────────────
 export const sendMessage = async (
   input: SendMessageInput,
 ): Promise<{ message?: any; error?: string }> => {
   const { roomId, senderId } = input;
 
-  // Verify sender is in the room
   const room = await Room.findById(roomId);
   if (!room || room.isDeleted) return { error: "Room not found" };
-  if (!room.members.includes(senderId))
-    return { error: "Not a member of this room" };
 
-  // Encrypt text content
+  const isMember = room.members.some((m) => m.toString() === senderId);
+  if (!isMember) return { error: "Not a member of this room" };
+
   const encryptedText = input.text ? encrypt(input.text) : undefined;
 
   const message = await Message.create({
-    ...input,
+    roomId: new Types.ObjectId(roomId),
+    senderId: new Types.ObjectId(senderId),
+    type: input.type,
     text: encryptedText,
+    url: input.url,
+    fileName: input.fileName,
+    fileSize: input.fileSize,
+    mimeType: input.mimeType,
+    thumbnail: input.thumbnail,
+    replyTo: input.replyTo ? new Types.ObjectId(input.replyTo) : undefined,
     deliveryStatus: "sent",
-    seenBy: [senderId],
+    seenBy: [new Types.ObjectId(senderId)],
   });
 
   // Update room last activity
   await Room.findByIdAndUpdate(roomId, {
-    lastMessage: message.id,
+    lastMessage: message._id,
     lastActivity: new Date(),
   });
 
-  // Increment unread for all OTHER members
+  // Increment unread for all other active members
   await Member.updateMany(
-    { roomId, hermesId: { $ne: senderId }, isActive: true },
+    {
+      roomId: new Types.ObjectId(roomId),
+      hermesUserId: { $ne: new Types.ObjectId(senderId) },
+      isActive: true,
+    },
     { $inc: { unreadCount: 1 } },
   );
 
-  // Return decrypted for immediate delivery
+  // Return decrypted for delivery
   const plain = message.toObject();
   if (plain.text) plain.text = decrypt(plain.text);
 
@@ -61,18 +73,20 @@ export const sendMessage = async (
   return { message: plain };
 };
 
-// ── Get paginated message history ─────────────────────────────────────────────
+// ── Get paginated history ─────────────────────────────────────────────────────
 export const getHistory = async (
   roomId: string,
-  hermesId: string,
-  before?: string, // message _id cursor
+  hermesUserId: string,
+  before?: string,
   limit = PAGE_SIZE,
 ): Promise<{ messages?: any[]; hasMore?: boolean; error?: string }> => {
   const room = await Room.findById(roomId);
   if (!room || room.isDeleted) return { error: "Room not found" };
-  if (!room.members.includes(hermesId)) return { error: "Access denied" };
 
-  const query: any = { roomId, isDeleted: false };
+  const isMember = room.members.some((m) => m.toString() === hermesUserId);
+  if (!isMember) return { error: "Access denied" };
+
+  const query: any = { roomId: new Types.ObjectId(roomId), isDeleted: false };
   if (before) {
     const cursor = await Message.findById(before);
     if (cursor) query.createdAt = { $lt: cursor.createdAt };
@@ -85,7 +99,6 @@ export const getHistory = async (
   const hasMore = messages.length > limit;
   const result = messages.slice(0, limit).reverse();
 
-  // Decrypt text fields
   const decrypted = result.map((m) => {
     const obj = m.toObject();
     if (obj.text) {
@@ -101,36 +114,41 @@ export const getHistory = async (
   return { messages: decrypted, hasMore };
 };
 
-// ── Mark messages as seen ─────────────────────────────────────────────────────
+// ── Mark seen ─────────────────────────────────────────────────────────────────
 export const markSeen = async (
   roomId: string,
-  hermesId: string,
+  hermesUserId: string,
   lastMessageId: string,
 ): Promise<void> => {
-  // Mark all unseen messages in room as seen by this user
   await Message.updateMany(
     {
-      roomId,
-      seenBy: { $ne: hermesId },
+      roomId: new Types.ObjectId(roomId),
+      seenBy: { $ne: new Types.ObjectId(hermesUserId) },
       isDeleted: false,
     },
     {
-      $addToSet: { seenBy: hermesId },
+      $addToSet: { seenBy: new Types.ObjectId(hermesUserId) },
       $set: { deliveryStatus: "seen" },
     },
   );
 
-  // Reset unread count
   await Member.findOneAndUpdate(
-    { roomId, hermesId },
-    { unreadCount: 0, lastRead: lastMessageId, lastReadAt: new Date() },
+    {
+      roomId: new Types.ObjectId(roomId),
+      hermesUserId: new Types.ObjectId(hermesUserId),
+    },
+    {
+      unreadCount: 0,
+      lastRead: new Types.ObjectId(lastMessageId),
+      lastReadAt: new Date(),
+    },
   );
 };
 
-// ── Add reaction ──────────────────────────────────────────────────────────────
+// ── Add/toggle reaction ───────────────────────────────────────────────────────
 export const addReaction = async (
   messageId: string,
-  hermesId: string,
+  hermesUserId: string,
   emoji: string,
 ): Promise<{ message?: any; error?: string }> => {
   const message = await Message.findById(messageId);
@@ -138,17 +156,24 @@ export const addReaction = async (
 
   const existing = message.reactions.find((r) => r.emoji === emoji);
   if (existing) {
-    if (existing.users.includes(hermesId)) {
-      // Toggle off
-      existing.users = existing.users.filter((u) => u !== hermesId);
+    const hasReacted = existing.users.some(
+      (u) => u.toString() === hermesUserId,
+    );
+    if (hasReacted) {
+      existing.users = existing.users.filter(
+        (u) => u.toString() !== hermesUserId,
+      );
       if (existing.users.length === 0) {
         message.reactions = message.reactions.filter((r) => r.emoji !== emoji);
       }
     } else {
-      existing.users.push(hermesId);
+      existing.users.push(new Types.ObjectId(hermesUserId));
     }
   } else {
-    message.reactions.push({ emoji, users: [hermesId] });
+    message.reactions.push({
+      emoji,
+      users: [new Types.ObjectId(hermesUserId)],
+    });
   }
 
   await message.save();
@@ -158,12 +183,13 @@ export const addReaction = async (
 // ── Soft delete message ───────────────────────────────────────────────────────
 export const deleteMessage = async (
   messageId: string,
-  hermesId: string,
+  hermesUserId: string,
 ): Promise<{ success: boolean; error?: string }> => {
   const message = await Message.findById(messageId);
   if (!message) return { success: false, error: "Message not found" };
-  if (message.senderId !== hermesId)
+  if (message.senderId.toString() !== hermesUserId) {
     return { success: false, error: "Not your message" };
+  }
 
   message.isDeleted = true;
   message.deletedAt = new Date();
@@ -174,15 +200,16 @@ export const deleteMessage = async (
   return { success: true };
 };
 
-// ── Edit message text ─────────────────────────────────────────────────────────
+// ── Edit message ──────────────────────────────────────────────────────────────
 export const editMessage = async (
   messageId: string,
-  hermesId: string,
+  hermesUserId: string,
   newText: string,
 ): Promise<{ message?: any; error?: string }> => {
   const message = await Message.findById(messageId);
   if (!message || message.isDeleted) return { error: "Message not found" };
-  if (message.senderId !== hermesId) return { error: "Not your message" };
+  if (message.senderId.toString() !== hermesUserId)
+    return { error: "Not your message" };
   if (message.type !== "text") return { error: "Can only edit text messages" };
 
   message.text = encrypt(newText);
@@ -190,6 +217,6 @@ export const editMessage = async (
   await message.save();
 
   const obj = message.toObject();
-  obj.text = newText; // return decrypted
+  obj.text = newText;
   return { message: obj };
 };

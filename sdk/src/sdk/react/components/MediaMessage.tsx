@@ -1,5 +1,5 @@
 import React from "react";
-import type { Message } from "../../types/index.js";
+import type { Message } from "../../types/index";
 
 interface MediaMessageProps {
   message: Message;

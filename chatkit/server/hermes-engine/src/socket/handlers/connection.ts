@@ -1,46 +1,56 @@
 import type { Socket, Server } from "socket.io";
-import User from "../../../../src/models/Users.js";
+import { HermesUser } from "../../models/HermesUser.js";
 import { Member } from "../../models/Member.js";
+import { Types } from "mongoose";
 import { logger } from "../../utils/logger.js";
 
 export const handleConnection = async (socket: Socket, io: Server) => {
-  const { hermesId, username } = (socket as any).hermesUser;
+  const { hermesUserId, displayName } = (socket as any).hermesUser;
 
   // Mark user online
-  await User.findOneAndUpdate(
-    { hermesId },
-    { isOnline: true, lastSeen: new Date() },
-  );
-
-  // Join all the user's active rooms automatically
-  const memberships = await Member.find({ hermesId, isActive: true });
-  const roomIds = memberships.map((m) => m.roomId);
-  socket.join(roomIds);
-  socket.join(hermesId); // personal room for DMs/notifications
-
-  // Notify all rooms this user is in that they came online
-  roomIds.forEach((roomId) => {
-    socket.to(roomId).emit("user:online", { hermesId, username });
+  await HermesUser.findByIdAndUpdate(hermesUserId, {
+    isOnline: true,
+    lastSeen: new Date(),
   });
 
-  logger.socket("CONNECT", hermesId, `joined ${roomIds.length} rooms`);
+  // Join all active rooms
+  const memberships = await Member.find({
+    hermesUserId: new Types.ObjectId(hermesUserId),
+    isActive: true,
+  });
+
+  const roomIds = memberships.map((m) => m.roomId.toString());
+  socket.join(roomIds);
+  socket.join(hermesUserId); // personal room for direct notifications
+
+  // Notify rooms this user is online
+  roomIds.forEach((roomId) => {
+    socket
+      .to(roomId)
+      .emit("user:online", { userId: hermesUserId, displayName });
+  });
+
+  logger.socket(
+    "CONNECT",
+    hermesUserId,
+    `${displayName} — joined ${roomIds.length} rooms`,
+  );
 
   // ── Disconnect ──────────────────────────────────────────────────────────────
   socket.on("disconnect", async () => {
-    await User.findOneAndUpdate(
-      { hermesId },
-      { isOnline: false, lastSeen: new Date() },
-    );
+    await HermesUser.findByIdAndUpdate(hermesUserId, {
+      isOnline: false,
+      lastSeen: new Date(),
+    });
 
-    // Notify rooms user went offline
     roomIds.forEach((roomId) => {
       socket.to(roomId).emit("user:offline", {
-        hermesId,
-        username,
+        userId: hermesUserId,
+        displayName,
         lastSeen: new Date(),
       });
     });
 
-    logger.socket("DISCONNECT", hermesId);
+    logger.socket("DISCONNECT", hermesUserId, displayName);
   });
 };

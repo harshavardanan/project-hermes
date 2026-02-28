@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import type { Message, HermesUser, Reaction } from "../../types/index.js";
+import type { Message, HermesUser, Reaction } from "../../types/index";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

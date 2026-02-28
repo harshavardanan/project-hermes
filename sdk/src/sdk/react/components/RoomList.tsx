@@ -1,7 +1,5 @@
 import React from "react";
-import type { Room } from "../../types/index.js";
-
-// ── Types ─────────────────────────────────────────────────────────────────────
+import type { Room } from "../../types/index";
 
 interface RoomListProps {
   rooms: Room[];
@@ -18,8 +16,6 @@ interface RoomListProps {
   itemClassName?: string;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
 const formatLastActivity = (iso: string) => {
   const date = new Date(iso);
   const now = new Date();
@@ -27,7 +23,6 @@ const formatLastActivity = (iso: string) => {
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHours / 24);
-
   if (diffMins < 1) return "now";
   if (diffMins < 60) return `${diffMins}m`;
   if (diffHours < 24) return `${diffHours}h`;
@@ -37,7 +32,6 @@ const formatLastActivity = (iso: string) => {
 
 const getRoomName = (room: Room, currentUserId: string) => {
   if (room.type === "group") return room.name ?? "Group";
-  // For direct rooms show the other person's id (SDK user should override with renderRoomItem)
   const other = room.members.find((m) => m !== currentUserId);
   return other ?? "Direct Message";
 };
@@ -55,8 +49,6 @@ const getLastMessagePreview = (room: Room): string => {
   return "";
 };
 
-// ── Default room item ─────────────────────────────────────────────────────────
-
 const DefaultRoomItem: React.FC<{
   room: Room;
   isActive: boolean;
@@ -66,7 +58,6 @@ const DefaultRoomItem: React.FC<{
 }> = ({ room, isActive, currentUserId, renderAvatar, itemClassName }) => (
   <div
     className={`hermes-room-item ${isActive ? "hermes-room-item--active" : ""} ${itemClassName ?? ""}`}
-    data-active={isActive}
     style={{
       display: "flex",
       alignItems: "center",
@@ -77,8 +68,7 @@ const DefaultRoomItem: React.FC<{
       borderLeft: isActive ? "3px solid #0084ff" : "3px solid transparent",
     }}
   >
-    {/* Avatar */}
-    <div className="hermes-room-item__avatar" style={{ flexShrink: 0 }}>
+    <div style={{ flexShrink: 0 }}>
       {renderAvatar ? (
         renderAvatar(room)
       ) : (
@@ -99,12 +89,7 @@ const DefaultRoomItem: React.FC<{
         </div>
       )}
     </div>
-
-    {/* Info */}
-    <div
-      className="hermes-room-item__info"
-      style={{ flex: 1, overflow: "hidden" }}
-    >
+    <div style={{ flex: 1, overflow: "hidden" }}>
       <div
         style={{
           display: "flex",
@@ -113,7 +98,6 @@ const DefaultRoomItem: React.FC<{
         }}
       >
         <span
-          className="hermes-room-item__name"
           style={{
             fontWeight: 600,
             fontSize: 14,
@@ -125,13 +109,11 @@ const DefaultRoomItem: React.FC<{
           {getRoomName(room, currentUserId)}
         </span>
         <span
-          className="hermes-room-item__time"
           style={{ fontSize: 11, opacity: 0.5, flexShrink: 0, marginLeft: 4 }}
         >
           {formatLastActivity(room.lastActivity)}
         </span>
       </div>
-
       <div
         style={{
           display: "flex",
@@ -141,7 +123,6 @@ const DefaultRoomItem: React.FC<{
         }}
       >
         <span
-          className="hermes-room-item__preview"
           style={{
             fontSize: 13,
             opacity: 0.6,
@@ -154,7 +135,6 @@ const DefaultRoomItem: React.FC<{
         </span>
         {room.unreadCount > 0 && (
           <span
-            className="hermes-room-item__badge"
             style={{
               background: "#0084ff",
               color: "#fff",
@@ -174,8 +154,6 @@ const DefaultRoomItem: React.FC<{
   </div>
 );
 
-// ── RoomList ──────────────────────────────────────────────────────────────────
-
 export const RoomList: React.FC<RoomListProps> = ({
   rooms,
   activeRoomId,
@@ -190,17 +168,6 @@ export const RoomList: React.FC<RoomListProps> = ({
   className = "",
   itemClassName = "",
 }) => {
-  if (loading) {
-    return (
-      <div
-        className={`hermes-room-list hermes-room-list--loading ${className}`}
-        style={{ padding: 16, opacity: 0.5 }}
-      >
-        Loading rooms...
-      </div>
-    );
-  }
-
   return (
     <div
       className={`hermes-room-list ${className}`}
@@ -211,10 +178,9 @@ export const RoomList: React.FC<RoomListProps> = ({
         overflowY: "auto",
       }}
     >
-      {/* Header */}
+      {/* Buttons always visible */}
       {(onCreateDirect || onCreateGroup) && (
         <div
-          className="hermes-room-list__header"
           style={{
             display: "flex",
             gap: 8,
@@ -225,15 +191,16 @@ export const RoomList: React.FC<RoomListProps> = ({
           {onCreateDirect && (
             <button
               onClick={onCreateDirect}
-              className="hermes-room-list__new-direct"
               style={{
                 flex: 1,
-                background: "none",
-                border: "1px solid #e0e0e0",
+                background: "#0084ff",
+                color: "#fff",
+                border: "none",
                 borderRadius: 8,
-                padding: "6px 10px",
+                padding: "8px 10px",
                 cursor: "pointer",
-                fontSize: 12,
+                fontSize: 13,
+                fontWeight: 600,
               }}
             >
               + Direct
@@ -242,15 +209,15 @@ export const RoomList: React.FC<RoomListProps> = ({
           {onCreateGroup && (
             <button
               onClick={onCreateGroup}
-              className="hermes-room-list__new-group"
               style={{
                 flex: 1,
                 background: "none",
                 border: "1px solid #e0e0e0",
                 borderRadius: 8,
-                padding: "6px 10px",
+                padding: "8px 10px",
                 cursor: "pointer",
-                fontSize: 12,
+                fontSize: 13,
+                fontWeight: 600,
               }}
             >
               + Group
@@ -259,15 +226,26 @@ export const RoomList: React.FC<RoomListProps> = ({
         </div>
       )}
 
-      {/* Rooms */}
-      {rooms.length === 0 ? (
+      {loading && (
+        <div style={{ padding: "12px 16px", opacity: 0.5, fontSize: 13 }}>
+          Loading rooms...
+        </div>
+      )}
+
+      {!loading && rooms.length === 0 && (
         <div
-          className="hermes-room-list__empty"
-          style={{ textAlign: "center", padding: 24, opacity: 0.4 }}
+          style={{
+            textAlign: "center",
+            padding: 24,
+            opacity: 0.4,
+            fontSize: 13,
+          }}
         >
           {renderEmpty ? renderEmpty() : "No conversations yet."}
         </div>
-      ) : (
+      )}
+
+      {!loading &&
         rooms.map((room) => {
           const isActive = room._id === activeRoomId;
           return (
@@ -285,8 +263,7 @@ export const RoomList: React.FC<RoomListProps> = ({
               )}
             </div>
           );
-        })
-      )}
+        })}
     </div>
   );
 };

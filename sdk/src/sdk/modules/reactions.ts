@@ -1,5 +1,5 @@
-import type { HermesClient } from "../core/HermesClient.js";
-import type { ReactionEvent } from "../types/index.js";
+import type { HermesClient } from "../core/HermesClient";
+import type { ReactionEvent } from "../types/index";
 
 // ── Reactions Module ──────────────────────────────────────────────────────────
 // Usage:

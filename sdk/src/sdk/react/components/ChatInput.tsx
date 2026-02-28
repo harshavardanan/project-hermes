@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from "react";
-import type { Message, UploadResult } from "../../types/index.js";
+import type { Message, UploadResult } from "../../types/index";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

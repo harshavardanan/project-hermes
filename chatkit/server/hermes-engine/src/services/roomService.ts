@@ -1,90 +1,107 @@
+import { Types } from "mongoose";
 import { Room, type IRoom } from "../models/Room.js";
 import { Member } from "../models/Member.js";
 import { logger } from "../utils/logger.js";
 
-// ── Create a direct (1-1) room ────────────────────────────────────────────────
+// ── Create direct room ────────────────────────────────────────────────────────
 export const createDirectRoom = async (
-  hermesIdA: string,
-  hermesIdB: string,
+  hermesUserIdA: string,
+  hermesUserIdB: string,
+  projectId: string,
 ): Promise<IRoom> => {
-  // Check if DM already exists between these two users
+  // Check if DM already exists between these two users in this project
   const existing = await Room.findOne({
     type: "direct",
-    members: { $all: [hermesIdA, hermesIdB], $size: 2 },
+    projectId: new Types.ObjectId(projectId),
+    members: {
+      $all: [
+        new Types.ObjectId(hermesUserIdA),
+        new Types.ObjectId(hermesUserIdB),
+      ],
+      $size: 2,
+    },
     isDeleted: false,
   });
   if (existing) return existing;
 
   const room = await Room.create({
     type: "direct",
-    createdBy: hermesIdA,
-    members: [hermesIdA, hermesIdB],
+    projectId: new Types.ObjectId(projectId),
+    createdBy: new Types.ObjectId(hermesUserIdA),
+    members: [
+      new Types.ObjectId(hermesUserIdA),
+      new Types.ObjectId(hermesUserIdB),
+    ],
     admins: [],
     lastActivity: new Date(),
   });
 
-  // Create member entries for both
   await Member.insertMany([
-    { roomId: room.id, hermesId: hermesIdA },
-    { roomId: room.id, hermesId: hermesIdB },
+    { roomId: room._id, hermesUserId: new Types.ObjectId(hermesUserIdA) },
+    { roomId: room._id, hermesUserId: new Types.ObjectId(hermesUserIdB) },
   ]);
 
-  logger.info(
-    `Direct room created: ${room.id} between ${hermesIdA} & ${hermesIdB}`,
-  );
+  logger.info(`Direct room created: ${room._id}`);
   return room;
 };
 
-// ── Create a group room ───────────────────────────────────────────────────────
+// ── Create group room ─────────────────────────────────────────────────────────
 export const createGroupRoom = async (
   creatorId: string,
+  projectId: string,
   name: string,
   memberIds: string[],
   description?: string,
   avatar?: string,
 ): Promise<IRoom> => {
-  const allMembers = Array.from(new Set([creatorId, ...memberIds]));
+  const allMemberIds = Array.from(new Set([creatorId, ...memberIds]));
+  const memberObjectIds = allMemberIds.map((id) => new Types.ObjectId(id));
 
   const room = await Room.create({
     type: "group",
     name,
     description,
     avatar,
-    createdBy: creatorId,
-    members: allMembers,
-    admins: [creatorId],
+    projectId: new Types.ObjectId(projectId),
+    createdBy: new Types.ObjectId(creatorId),
+    members: memberObjectIds,
+    admins: [new Types.ObjectId(creatorId)],
     lastActivity: new Date(),
   });
 
   await Member.insertMany(
-    allMembers.map((id) => ({ roomId: room.id, hermesId: id })),
+    allMemberIds.map((id) => ({
+      roomId: room._id,
+      hermesUserId: new Types.ObjectId(id),
+    })),
   );
 
-  logger.info(`Group room created: "${name}" (${room.id}) by ${creatorId}`);
+  logger.info(`Group room created: "${name}" (${room._id})`);
   return room;
 };
 
-// ── Delete a group room ───────────────────────────────────────────────────────
+// ── Delete room ───────────────────────────────────────────────────────────────
 export const deleteRoom = async (
   roomId: string,
-  requesterId: string,
+  hermesUserId: string,
 ): Promise<{ success: boolean; error?: string }> => {
   const room = await Room.findById(roomId);
   if (!room) return { success: false, error: "Room not found" };
-  if (room.type === "group" && !room.admins.includes(requesterId)) {
+
+  const isAdmin = room.admins.some((a) => a.toString() === hermesUserId);
+  if (room.type === "group" && !isAdmin) {
     return { success: false, error: "Only admins can delete groups" };
   }
 
   room.isDeleted = true;
   await room.save();
-
   await Member.updateMany({ roomId }, { isActive: false });
 
-  logger.info(`Room deleted: ${roomId} by ${requesterId}`);
+  logger.info(`Room deleted: ${roomId}`);
   return { success: true };
 };
 
-// ── Add member to group ───────────────────────────────────────────────────────
+// ── Add member ────────────────────────────────────────────────────────────────
 export const addMember = async (
   roomId: string,
   requesterId: string,
@@ -95,16 +112,18 @@ export const addMember = async (
     return { success: false, error: "Room not found" };
   if (room.type !== "group")
     return { success: false, error: "Can only add members to groups" };
-  if (!room.admins.includes(requesterId))
-    return { success: false, error: "Only admins can add members" };
-  if (room.members.includes(newMemberId))
-    return { success: false, error: "Already a member" };
 
-  room.members.push(newMemberId);
+  const isAdmin = room.admins.some((a) => a.toString() === requesterId);
+  if (!isAdmin) return { success: false, error: "Only admins can add members" };
+
+  const alreadyMember = room.members.some((m) => m.toString() === newMemberId);
+  if (alreadyMember) return { success: false, error: "Already a member" };
+
+  room.members.push(new Types.ObjectId(newMemberId));
   await room.save();
 
   await Member.findOneAndUpdate(
-    { roomId, hermesId: newMemberId },
+    { roomId, hermesUserId: new Types.ObjectId(newMemberId) },
     { isActive: true, joinedAt: new Date() },
     { upsert: true, new: true },
   );
@@ -112,7 +131,7 @@ export const addMember = async (
   return { success: true };
 };
 
-// ── Remove member from group ──────────────────────────────────────────────────
+// ── Remove member ─────────────────────────────────────────────────────────────
 export const removeMember = async (
   roomId: string,
   requesterId: string,
@@ -121,35 +140,41 @@ export const removeMember = async (
   const room = await Room.findById(roomId);
   if (!room || room.isDeleted)
     return { success: false, error: "Room not found" };
-  if (!room.admins.includes(requesterId) && requesterId !== targetId) {
+
+  const isAdmin = room.admins.some((a) => a.toString() === requesterId);
+  if (!isAdmin && requesterId !== targetId) {
     return { success: false, error: "Not authorized" };
   }
 
-  room.members = room.members.filter((m) => m !== targetId);
-  room.admins = room.admins.filter((a) => a !== targetId);
+  room.members = room.members.filter((m) => m.toString() !== targetId);
+  room.admins = room.admins.filter((a) => a.toString() !== targetId);
   await room.save();
 
   await Member.findOneAndUpdate(
-    { roomId, hermesId: targetId },
+    { roomId, hermesUserId: new Types.ObjectId(targetId) },
     { isActive: false, leftAt: new Date() },
   );
 
   return { success: true };
 };
 
-// ── Get all rooms for a user ──────────────────────────────────────────────────
-export const getUserRooms = async (hermesId: string) => {
-  const memberships = await Member.find({ hermesId, isActive: true });
+// ── Get user rooms ────────────────────────────────────────────────────────────
+export const getUserRooms = async (hermesUserId: string) => {
+  const memberships = await Member.find({
+    hermesUserId: new Types.ObjectId(hermesUserId),
+    isActive: true,
+  });
+
   const roomIds = memberships.map((m) => m.roomId);
 
-  const rooms = await Room.find({
-    _id: { $in: roomIds },
-    isDeleted: false,
-  }).sort({ lastActivity: -1 });
+  const rooms = await Room.find({ _id: { $in: roomIds }, isDeleted: false })
+    .populate("lastMessage")
+    .sort({ lastActivity: -1 });
 
-  // Attach unread count from member record
   return rooms.map((room) => {
-    const membership = memberships.find((m) => m.roomId === room.id);
+    const membership = memberships.find(
+      (m) => m.roomId.toString() === room._id.toString(),
+    );
     return {
       ...room.toObject(),
       unreadCount: membership?.unreadCount ?? 0,
@@ -159,13 +184,16 @@ export const getUserRooms = async (hermesId: string) => {
   });
 };
 
-// ── Get single room (with access check) ──────────────────────────────────────
+// ── Get single room with access check ────────────────────────────────────────
 export const getRoom = async (
   roomId: string,
-  hermesId: string,
+  hermesUserId: string,
 ): Promise<{ room?: IRoom; error?: string }> => {
   const room = await Room.findById(roomId);
   if (!room || room.isDeleted) return { error: "Room not found" };
-  if (!room.members.includes(hermesId)) return { error: "Access denied" };
+
+  const isMember = room.members.some((m) => m.toString() === hermesUserId);
+  if (!isMember) return { error: "Access denied" };
+
   return { room };
 };

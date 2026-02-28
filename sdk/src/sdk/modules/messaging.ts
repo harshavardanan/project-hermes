@@ -1,9 +1,9 @@
-import type { HermesClient } from "../core/HermesClient.js";
+import type { HermesClient } from "../core/HermesClient";
 import type {
   Message,
   SendMessageInput,
   MessageHistoryResult,
-} from "../types/index.js";
+} from "../types/index";
 
 // ── Messaging Module ──────────────────────────────────────────────────────────
 // Wraps HermesClient messaging methods with extra convenience helpers.

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import type { HermesClient } from "../../core/HermesClient.js";
+import type { HermesClient } from "../../core/HermesClient";
 
 // ── usePresence ───────────────────────────────────────────────────────────────
 // Tracks online/offline status of users.
