@@ -11,10 +11,8 @@ import {
   Loader2,
   Copy,
   Check,
-  ChevronRight,
 } from "lucide-react";
 
-// --- MAIN COMPONENT ---
 const ProjectDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -41,6 +39,10 @@ const ProjectDetail = () => {
       }
     };
     fetchProject();
+
+    // Auto-refresh token usage every 5 seconds
+    const interval = setInterval(fetchProject, 5000);
+    return () => clearInterval(interval);
   }, [id]);
 
   const handleDelete = async () => {
@@ -64,12 +66,20 @@ const ProjectDetail = () => {
 
   if (!project)
     return (
-      <div className="p-20 text-center text-white">Project not found.</div>
+      <div className="p-20 text-center text-white font-black">
+        PROJECT NOT FOUND
+      </div>
     );
 
-  const dailyLimit = project.plan?.dailyLimit || 1000;
+  // --- DYNAMIC DATA MAPPING ---
+  // If backend populates plan, project.plan is an object. If not, these fallback to data defaults.
+  const dailyLimit = project.plan?.dailyLimit || 0;
   const usedTokens = project.usage?.dailyTokens || 0;
-  const usagePercent = (usedTokens / dailyLimit) * 100;
+  const totalAllTime = project.usage?.totalTokensAllTime || 0;
+  const usagePercent = dailyLimit > 0 ? (usedTokens / dailyLimit) * 100 : 0;
+
+  const currentPlanName = project.plan?.name || "Free";
+  const planPrice = project.plan?.monthlyPrice ?? 0;
 
   return (
     <div className="min-h-screen bg-brand-bg text-brand-text pt-24 pb-20 px-6 md:px-10">
@@ -110,7 +120,6 @@ const ProjectDetail = () => {
           </div>
         </header>
 
-        {/* --- CONTENT --- */}
         <div className="grid grid-cols-1 gap-8">
           {/* OVERVIEW TAB */}
           {activeTab === "overview" && (
@@ -123,25 +132,23 @@ const ProjectDetail = () => {
                 />
                 <StatCard
                   title="Current Tier"
-                  value={project.plan?.name || "Free"}
-                  detail={`$${project.plan?.monthlyPrice || 0}/mo`}
+                  value={currentPlanName}
+                  detail={`$${planPrice}/mo`}
                 />
                 <StatCard
                   title="Total Lifetime"
-                  value={
-                    project.usage?.totalTokensAllTime?.toLocaleString() || "0"
-                  }
+                  value={totalAllTime.toLocaleString()}
                   detail="Tokens total"
                 />
               </div>
 
-              <div className="bg-brand-card border border-brand-border p-8 rounded-brand relative overflow-hidden">
+              <div className="bg-brand-card border border-brand-border p-8 rounded-brand relative overflow-hidden shadow-2xl">
                 <div className="flex justify-between items-end mb-4">
                   <h3 className="text-sm font-black uppercase tracking-widest text-brand-muted">
                     Token Pulse (24h)
                   </h3>
                   <span
-                    className={`text-xl font-black ${usagePercent > 80 ? "text-red-500" : "text-brand-primary"}`}
+                    className={`text-xl font-black ${usagePercent > 90 ? "text-red-500" : "text-brand-primary"}`}
                   >
                     {usagePercent.toFixed(1)}%
                   </span>
@@ -161,27 +168,9 @@ const ProjectDetail = () => {
             </div>
           )}
 
-          {/* CREDENTIALS TAB - JSON VIEW */}
+          {/* CREDENTIALS TAB */}
           {activeTab === "credentials" && (
-            <div className="animate-in fade-in duration-300 space-y-6">
-              <div className="flex items-center justify-between px-2">
-                <div>
-                  <h3 className="text-xl font-black text-white uppercase tracking-tighter">
-                    SDK Configuration
-                  </h3>
-                  <p className="text-brand-muted text-xs mt-1">
-                    Inject this JSON into your{" "}
-                    <code className="text-brand-primary">
-                      hermes.config.json
-                    </code>
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 text-[10px] font-black text-brand-muted uppercase">
-                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  Production Ready
-                </div>
-              </div>
-
+            <div className="animate-in fade-in duration-300">
               <JsonConfigBox
                 data={{
                   projectId: project.projectId,
@@ -189,23 +178,10 @@ const ProjectDetail = () => {
                   secret: project.secret,
                   region: project.region,
                   endpoint: project.endpoint,
+                  plan: currentPlanName.toLowerCase(),
                   version: "v1.0.4",
                 }}
               />
-
-              <div className="bg-brand-primary/5 border border-brand-primary/20 p-4 rounded-xl flex gap-4 items-start">
-                <AlertTriangle
-                  className="text-brand-primary shrink-0"
-                  size={20}
-                />
-                <p className="text-[11px] text-brand-muted leading-relaxed">
-                  <strong className="text-brand-primary uppercase">
-                    Security Warning:
-                  </strong>{" "}
-                  Never commit your <code className="text-white">secret</code>{" "}
-                  key to public repositories.
-                </p>
-              </div>
             </div>
           )}
 
@@ -222,7 +198,7 @@ const ProjectDetail = () => {
                 <p className="text-brand-muted text-sm mb-6 max-w-xl">
                   Currently on the{" "}
                   <span className="text-brand-primary font-bold">
-                    {project.plan?.name}
+                    {currentPlanName}
                   </span>{" "}
                   plan.
                 </p>
@@ -230,17 +206,10 @@ const ProjectDetail = () => {
                   onClick={() => navigate("/pricing")}
                   className="bg-brand-primary text-black px-8 py-3 rounded-xl font-black uppercase text-xs tracking-widest hover:brightness-110 transition-all"
                 >
-                  View All Plans
+                  Change Plan
                 </button>
               </div>
-
               <div className="bg-red-500/5 border border-red-500/20 rounded-brand p-8">
-                <h3 className="text-xl font-bold text-red-500 mb-2">
-                  Danger Zone
-                </h3>
-                <p className="text-brand-muted text-sm mb-6">
-                  Permanently remove this project.
-                </p>
                 <button
                   onClick={() => setShowDeleteModal(true)}
                   className="bg-red-600 hover:bg-red-500 text-white px-8 py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-all"
@@ -253,16 +222,13 @@ const ProjectDetail = () => {
         </div>
       </div>
 
-      {/* --- DELETE MODAL --- */}
+      {/* DELETE MODAL (Same logic as before) */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 backdrop-blur-md bg-black/90">
           <div className="bg-brand-card border border-red-500/30 w-full max-w-md rounded-brand p-8 shadow-2xl animate-in zoom-in duration-200">
-            <div className="flex items-center gap-3 text-red-500 mb-4">
-              <AlertTriangle size={28} />
-              <h2 className="text-2xl font-black uppercase tracking-tighter">
-                Confirm Deletion
-              </h2>
-            </div>
+            <h2 className="text-2xl font-black text-red-500 uppercase mb-4">
+              Confirm Deletion
+            </h2>
             <p className="text-brand-muted text-sm mb-6">
               Type{" "}
               <span className="text-white font-black">
@@ -286,9 +252,9 @@ const ProjectDetail = () => {
               <button
                 disabled={deleteConfirm !== project.projectName}
                 onClick={handleDelete}
-                className="flex-1 bg-red-600 disabled:opacity-20 text-white py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-all"
+                className="flex-1 bg-red-600 disabled:opacity-20 text-white py-3 rounded-xl font-black uppercase text-xs tracking-widest"
               >
-                Delete Forever
+                Delete
               </button>
             </div>
           </div>
@@ -298,74 +264,19 @@ const ProjectDetail = () => {
   );
 };
 
-// --- HELPER COMPONENTS ---
+// --- SUBSIDIARY COMPONENTS ---
 
-const JsonConfigBox = ({ data }: { data: any }) => {
-  const [copied, setCopied] = useState(false);
-  const [showSecret, setShowSecret] = useState(false);
-
-  const displayData = {
-    ...data,
-    secret: showSecret ? data.secret : "••••••••••••••••••••••••••••••••",
-  };
-
-  const jsonString = JSON.stringify(displayData, null, 2);
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(JSON.stringify(data, null, 2));
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <div className="relative group bg-[#0a0a0a] border border-brand-border rounded-2xl overflow-hidden shadow-2xl">
-      <div className="flex items-center justify-between px-4 py-3 bg-brand-card/50 border-b border-brand-border">
-        <div className="flex gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-red-500/20 border border-red-500/40" />
-          <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/20 border border-yellow-500/40" />
-          <div className="w-2.5 h-2.5 rounded-full bg-green-500/20 border border-green-500/40" />
-        </div>
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => setShowSecret(!showSecret)}
-            className="text-[10px] font-black uppercase tracking-widest text-brand-muted hover:text-brand-primary transition-colors"
-          >
-            {showSecret ? "Mask Secret" : "Reveal Secret"}
-          </button>
-          <button
-            onClick={copyToClipboard}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand-primary/10 border border-brand-primary/20 text-brand-primary hover:bg-brand-primary hover:text-black transition-all"
-          >
-            {copied ? <Check size={14} /> : <Copy size={14} />}
-            <span className="text-[10px] font-black uppercase tracking-widest">
-              {copied ? "Copied" : "Copy JSON"}
-            </span>
-          </button>
-        </div>
-      </div>
-      <div className="p-6 overflow-x-auto">
-        <pre className="font-mono text-sm leading-relaxed">
-          {jsonString.split("\n").map((line, i) => (
-            <div key={i} className="flex">
-              <span className="w-8 shrink-0 text-brand-muted/30 select-none text-xs">
-                {i + 1}
-              </span>
-              <span
-                className={
-                  line.includes('":')
-                    ? "text-brand-primary"
-                    : "text-brand-muted"
-                }
-              >
-                {line}
-              </span>
-            </div>
-          ))}
-        </pre>
-      </div>
-    </div>
-  );
-};
+const StatCard = ({ title, value, detail }: any) => (
+  <div className="bg-brand-card border border-brand-border p-6 rounded-brand shadow-xl">
+    <p className="text-[10px] font-black text-brand-muted uppercase tracking-[0.2em] mb-3">
+      {title}
+    </p>
+    <p className="text-3xl font-black text-white mb-1 tracking-tighter">
+      {value}
+    </p>
+    <p className="text-xs text-brand-primary font-bold">{detail}</p>
+  </div>
+);
 
 const TabBtn = ({ active, onClick, icon, label }: any) => (
   <button
@@ -380,16 +291,49 @@ const TabBtn = ({ active, onClick, icon, label }: any) => (
   </button>
 );
 
-const StatCard = ({ title, value, detail }: any) => (
-  <div className="bg-brand-card border border-brand-border p-6 rounded-brand shadow-xl">
-    <p className="text-[10px] font-black text-brand-muted uppercase tracking-[0.2em] mb-3">
-      {title}
-    </p>
-    <p className="text-3xl font-black text-white mb-1 tracking-tighter">
-      {value}
-    </p>
-    <p className="text-xs text-brand-primary font-bold">{detail}</p>
-  </div>
-);
+const JsonConfigBox = ({ data }: { data: any }) => {
+  const [copied, setCopied] = useState(false);
+  const [showSecret, setShowSecret] = useState(false);
+  const displayData = {
+    ...data,
+    secret: showSecret ? data.secret : "••••••••••••••••••••••••••••••••",
+  };
+  const jsonString = JSON.stringify(displayData, null, 2);
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="relative group bg-[#0a0a0a] border border-brand-border rounded-2xl overflow-hidden shadow-2xl">
+      <div className="flex items-center justify-between px-4 py-3 bg-brand-card/50 border-b border-brand-border">
+        <div className="flex gap-4">
+          <button
+            onClick={() => setShowSecret(!showSecret)}
+            className="text-[10px] font-black uppercase tracking-widest text-brand-muted hover:text-brand-primary transition-colors"
+          >
+            {showSecret ? "Mask Secret" : "Reveal Secret"}
+          </button>
+          <button
+            onClick={copyToClipboard}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand-primary/10 border border-brand-primary/20 text-brand-primary hover:bg-brand-primary hover:text-black transition-all"
+          >
+            {copied ? <Check size={14} /> : <Copy size={14} />}
+            <span className="text-[10px] font-black uppercase tracking-widest">
+              {copied ? "Copied" : "Copy"}
+            </span>
+          </button>
+        </div>
+      </div>
+      <div className="p-6 overflow-x-auto">
+        <pre className="font-mono text-sm leading-relaxed text-brand-primary">
+          {jsonString}
+        </pre>
+      </div>
+    </div>
+  );
+};
 
 export default ProjectDetail;

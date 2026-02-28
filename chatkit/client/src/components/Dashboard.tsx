@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   Settings,
   HelpCircle,
+  Activity,
   X,
   Copy,
   Check,
@@ -17,13 +18,39 @@ const Dashboard = () => {
   // Form & Loading States
   const [projectName, setProjectName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
-  const [newProjectData, setNewProjectData] = useState(null);
+  const [newProjectData, setNewProjectData] = useState<any>(null);
   const [copied, setCopied] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0); // Used to reload Projects list
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // System Status States
+  const [engineHealth, setEngineHealth] = useState<any>(null);
+  const [engineMetrics, setEngineMetrics] = useState<any>(null);
+
+  // Fetch Health & Metrics when on the System Status tab
+  useEffect(() => {
+    if (activeTab === "System Status") {
+      const fetchStatus = async () => {
+        try {
+          const healthRes = await fetch("http://localhost:8080/hermes/health");
+          const metricsRes = await fetch(
+            "http://localhost:8080/hermes/metrics",
+          );
+
+          if (healthRes.ok) setEngineHealth(await healthRes.json());
+          if (metricsRes.ok) setEngineMetrics(await metricsRes.json());
+        } catch (error) {
+          console.error("Failed to fetch engine status", error);
+        }
+      };
+
+      fetchStatus();
+      const interval = setInterval(fetchStatus, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [activeTab]);
 
   const handleCreateProject = async () => {
     if (!projectName.trim()) return;
-
     setIsCreating(true);
     try {
       const response = await fetch("http://localhost:8080/api/projects", {
@@ -34,7 +61,6 @@ const Dashboard = () => {
       });
 
       if (!response.ok) throw new Error("Failed to create project");
-
       const data = await response.json();
       setNewProjectData(data);
     } catch (err) {
@@ -49,7 +75,7 @@ const Dashboard = () => {
     setShowForm(false);
     setNewProjectData(null);
     setProjectName("");
-    setRefreshKey((prev) => prev + 1); // Triggers re-fetch in Projects component
+    setRefreshKey((prev) => prev + 1);
   };
 
   const configSnippet = newProjectData
@@ -81,6 +107,12 @@ const hermesConfig = {
             onClick={() => setActiveTab("Projects")}
           />
           <SidebarItem
+            icon={<Activity size={20} />}
+            label="System Status"
+            active={activeTab === "System Status"}
+            onClick={() => setActiveTab("System Status")}
+          />
+          <SidebarItem
             icon={<Settings size={20} />}
             label="Settings"
             active={activeTab === "Settings"}
@@ -104,6 +136,64 @@ const hermesConfig = {
             <Projects key={refreshKey} onOpenForm={() => setShowForm(true)} />
           )}
 
+          {activeTab === "System Status" && (
+            <div className="animate-in fade-in duration-500">
+              <h1 className="text-3xl font-bold text-white tracking-tight mb-6">
+                Hermes Engine Status
+              </h1>
+
+              {/* STATUS CARDS */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="bg-brand-card p-6 rounded-2xl border border-brand-border">
+                  <h3 className="text-brand-muted font-bold mb-2">
+                    Engine Health
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`w-3 h-3 rounded-full ${engineHealth?.status === "ok" ? "bg-green-500" : "bg-red-500 animate-pulse"}`}
+                    ></div>
+                    <span className="text-2xl font-bold text-white capitalize">
+                      {engineHealth?.status || "Offline"}
+                    </span>
+                  </div>
+                  <p className="text-sm text-brand-muted mt-2">
+                    Uptime:{" "}
+                    {engineHealth?.uptime
+                      ? Math.floor(engineHealth.uptime / 60)
+                      : 0}{" "}
+                    minutes
+                  </p>
+                </div>
+
+                <div className="bg-brand-card p-6 rounded-2xl border border-brand-border">
+                  <h3 className="text-brand-muted font-bold mb-2">
+                    Resource Usage
+                  </h3>
+                  <p className="text-2xl font-bold text-white">
+                    {engineHealth?.memory?.used || 0} MB
+                  </p>
+                  <p className="text-sm text-brand-muted mt-2">
+                    CPU: {engineHealth?.cpu || 0}% | Total RAM:{" "}
+                    {engineHealth?.memory?.total || 0} MB
+                  </p>
+                </div>
+
+                <div className="bg-brand-card p-6 rounded-2xl border border-brand-border">
+                  <h3 className="text-brand-muted font-bold mb-2">
+                    Real-time Metrics
+                  </h3>
+                  <p className="text-2xl font-bold text-brand-primary">
+                    {engineMetrics?.activeConnections || 0} Active Users
+                  </p>
+                  <p className="text-sm text-brand-muted mt-2">
+                    {engineMetrics?.totalMessages || 0} Total Msgs |{" "}
+                    {engineMetrics?.messagesPerSecond || 0} msg/s
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {activeTab === "Settings" && (
             <div className="animate-in fade-in duration-500">
               <h1 className="text-3xl font-bold text-white tracking-tight mb-2">
@@ -119,7 +209,7 @@ const hermesConfig = {
 
       {/* --- FIREBASE-STYLE MODAL --- */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
           <div className="bg-brand-card border border-brand-border w-full max-w-2xl p-8 rounded-3xl relative shadow-2xl animate-in zoom-in-95 duration-200">
             <button
               onClick={closeAndRefresh}

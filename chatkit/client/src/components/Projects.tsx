@@ -78,7 +78,19 @@ const Projects = ({ onOpenForm }: ProjectsProps) => {
           </p>
         </div>
         <button
-          onClick={onOpenForm}
+          type="button" // Prevents accidental form submissions
+          onClick={(e) => {
+            e.preventDefault();
+            console.log("New Project button clicked!");
+            if (typeof onOpenForm === "function") {
+              onOpenForm();
+            } else {
+              console.error(
+                "❌ ERROR: onOpenForm prop is missing from Dashboard!",
+              );
+              alert("Prop is missing! Check your Dashboard component.");
+            }
+          }}
           className="bg-brand-primary hover:opacity-90 text-black px-6 py-2.5 rounded-xl font-bold transition-all shadow-[0_0_20px_rgba(57,255,20,0.4)]"
         >
           <Plus size={18} className="inline mr-1" /> New Project
