@@ -13,15 +13,6 @@ import type {
   UploadResult,
 } from "../types/index";
 
-// ── HermesClient ──────────────────────────────────────────────────────────────
-// Two ways to initialize:
-//
-// 1. Full credentials (Joe's backend dev testing):
-//    new HermesClient({ endpoint, apiKey, secret, userId, displayName })
-//
-// 2. Token only (production B2B SaaS — token fetched from Joe's backend):
-//    new HermesClient({ endpoint, token })
-
 export class HermesClient extends EventEmitter {
   private config: HermesConfig;
   private socket: Socket | null = null;
@@ -110,7 +101,7 @@ export class HermesClient extends EventEmitter {
     });
 
     this.status = "connected";
-    this.emit("connected");
+    this.emit("connected"); // ← this must fire AFTER status is set
   }
 
   // ── Disconnect ──────────────────────────────────────────────────────────────
@@ -170,7 +161,13 @@ export class HermesClient extends EventEmitter {
       if (!this.socket?.connected) {
         return reject(new Error("Not connected to Hermes engine"));
       }
+
+      const timer = setTimeout(() => {
+        reject(new Error(`Timed out waiting for "${event}"`));
+      }, 8000);
+
       this.socket.emit(event, data, (response: any) => {
+        clearTimeout(timer);
         if (response?.success === false) {
           reject(new Error(response.error || "Unknown error"));
         } else {
@@ -231,7 +228,7 @@ export class HermesClient extends EventEmitter {
 
   async getRooms(): Promise<Room[]> {
     const res = await this._emit<{ rooms: Room[] }>("room:list", {});
-    return res.rooms;
+    return res.rooms; // ← is this what you have?
   }
 
   async addMember(roomId: string, newMemberId: string): Promise<void> {

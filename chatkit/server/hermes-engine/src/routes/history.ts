@@ -14,11 +14,13 @@ router.get(
     try {
       const { roomId } = req.params;
       const { before, limit } = req.query;
-      const userId = (req as any).hermesUser.userId;
+
+      // 🚨 FIX: Matches the payload from auth.ts exactly
+      const hermesUserId = (req as any).hermesUser.hermesUserId;
 
       const result = await getHistory(
         roomId,
-        userId,
+        hermesUserId, // Pass the corrected ID here
         before as string | undefined,
         limit ? parseInt(limit as string) : undefined,
       );
@@ -28,7 +30,8 @@ router.get(
       }
 
       res.json({ success: true, ...result });
-    } catch {
+    } catch (err) {
+      console.error("History Fetch Error:", err);
       res
         .status(500)
         .json({ success: false, error: "Failed to fetch history" });

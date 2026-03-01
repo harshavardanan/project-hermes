@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { HermesClient } from "../../core/HermesClient";
 import type {
   Room,
@@ -6,49 +6,83 @@ import type {
   CreateGroupRoomInput,
 } from "../../types/index";
 
-// ── useRooms ──────────────────────────────────────────────────────────────────
-// Manages the full room list for the current user.
-// Real-time updates when rooms are created/deleted/updated.
-//
-// Usage:
-//   const { rooms, createDirect, createGroup, loading } = useRooms(client);
-
 export const useRooms = (client: HermesClient) => {
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const fetchedRef = useRef(false);
 
-  // ── Initial fetch ─────────────────────────────────────────────────────────
+  // ── Wait until socket is connected, then fetch ────────────────────────────
   const fetchRooms = useCallback(async () => {
-    if (!client.isConnected) return;
     setLoading(true);
     setError(null);
+    console.log(
+      "🔄 fetchRooms start — isConnected:",
+      client.isConnected,
+      "status:",
+      client.status,
+    );
+
+    // Poll isConnected every 100ms, timeout after 5s
+    await new Promise<void>((resolve, reject) => {
+      if (client.isConnected) return resolve();
+      let attempts = 0;
+      const interval = setInterval(() => {
+        attempts++;
+        if (client.isConnected) {
+          clearInterval(interval);
+          resolve();
+        } else if (attempts > 50) {
+          clearInterval(interval);
+          reject(new Error("Connection timeout"));
+        }
+      }, 100);
+    });
+
     try {
       const data = await client.getRooms();
+      console.log(
+        "✅ rooms loaded:",
+        data.length,
+        data.map((r: any) => ({
+          id: r._id,
+          name: r.name ?? r.type,
+          members: r.members.length,
+        })),
+      );
       setRooms(data);
+      fetchedRef.current = true;
     } catch (err: any) {
+      console.error("❌ fetchRooms failed:", err.message);
       setError(err.message);
     } finally {
       setLoading(false);
     }
   }, [client]);
 
+  // Fetch on mount + re-fetch on reconnect
   useEffect(() => {
     fetchRooms();
-  }, [fetchRooms]);
+    const onConnected = () => {
+      if (!fetchedRef.current) fetchRooms();
+    };
+    client.on("connected", onConnected);
+    return () => {
+      client.off("connected", onConnected);
+    };
+  }, [fetchRooms, client]);
 
   // ── Real-time updates ─────────────────────────────────────────────────────
   useEffect(() => {
     const onCreated = (room: Room) => {
       setRooms((prev) => {
         if (prev.find((r) => r._id === room._id)) return prev;
-        return [room, ...prev];
+        return [{ ...room, unreadCount: 0 }, ...prev];
       });
     };
 
-    const onDeleted = ({ roomId }: { roomId: string }) => {
+    const onDeleted = ({ roomId }: { roomId: string }) =>
       setRooms((prev) => prev.filter((r) => r._id !== roomId));
-    };
 
     const onMemberJoined = ({
       roomId,
@@ -56,13 +90,12 @@ export const useRooms = (client: HermesClient) => {
     }: {
       roomId: string;
       userId: string;
-    }) => {
+    }) =>
       setRooms((prev) =>
         prev.map((r) =>
           r._id === roomId ? { ...r, members: [...r.members, userId] } : r,
         ),
       );
-    };
 
     const onMemberLeft = ({
       roomId,
@@ -70,7 +103,7 @@ export const useRooms = (client: HermesClient) => {
     }: {
       roomId: string;
       userId: string;
-    }) => {
+    }) =>
       setRooms((prev) =>
         prev.map((r) =>
           r._id === roomId
@@ -78,10 +111,8 @@ export const useRooms = (client: HermesClient) => {
             : r,
         ),
       );
-    };
 
-    // Bump room to top when new message arrives
-    const onMessage = (msg: any) => {
+    const onMessage = (msg: any) =>
       setRooms((prev) => {
         const idx = prev.findIndex((r) => r._id === msg.roomId);
         if (idx === -1) return prev;
@@ -90,10 +121,8 @@ export const useRooms = (client: HermesClient) => {
           lastMessage: msg,
           lastActivity: msg.createdAt,
         };
-        const rest = prev.filter((r) => r._id !== msg.roomId);
-        return [updated, ...rest];
+        return [updated, ...prev.filter((r) => r._id !== msg.roomId)];
       });
-    };
 
     client.on("room:created", onCreated);
     client.on("room:deleted", onDeleted);
@@ -110,10 +139,14 @@ export const useRooms = (client: HermesClient) => {
     };
   }, [client]);
 
-  // ── Actions ───────────────────────────────────────────────────────────────
+  // ── Actions — add room to state immediately on creation ───────────────────
   const createDirect = useCallback(
     async (input: CreateDirectRoomInput) => {
       const room = await client.createDirectRoom(input);
+      setRooms((prev) => {
+        if (prev.find((r) => r._id === room._id)) return prev;
+        return [{ ...room, unreadCount: 0 }, ...prev];
+      });
       return room;
     },
     [client],
@@ -122,6 +155,10 @@ export const useRooms = (client: HermesClient) => {
   const createGroup = useCallback(
     async (input: CreateGroupRoomInput) => {
       const room = await client.createGroupRoom(input);
+      setRooms((prev) => {
+        if (prev.find((r) => r._id === room._id)) return prev;
+        return [{ ...room, unreadCount: 0 }, ...prev];
+      });
       return room;
     },
     [client],
@@ -136,16 +173,12 @@ export const useRooms = (client: HermesClient) => {
   );
 
   const addMember = useCallback(
-    async (roomId: string, userId: string) => {
-      await client.addMember(roomId, userId);
-    },
+    (roomId: string, userId: string) => client.addMember(roomId, userId),
     [client],
   );
 
   const removeMember = useCallback(
-    async (roomId: string, userId: string) => {
-      await client.removeMember(roomId, userId);
-    },
+    (roomId: string, userId: string) => client.removeMember(roomId, userId),
     [client],
   );
 

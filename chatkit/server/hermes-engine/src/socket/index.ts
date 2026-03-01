@@ -12,22 +12,18 @@ import {
 import { logger } from "../utils/logger.js";
 
 export const initHermesSocket = (io: Server) => {
-  // All Hermes socket traffic goes through the /hermes namespace
   const hermes = io.of("/hermes");
 
-  // ── Auth middleware on every connection ─────────────────────────────────────
   hermes.use(hermesSocketAuth);
 
-  // ── Connection handler ──────────────────────────────────────────────────────
   hermes.on("connection", async (socket) => {
-    const { hermesId } = (socket as any).hermesUser;
-    logger.info(`New connection: ${hermesId} [${socket.id}]`);
+    // 🚨 FIX: Use hermesUserId (matching the middleware and handlers)
+    const { hermesUserId } = (socket as any).hermesUser;
+    logger.info(`New connection: ${hermesUserId} [${socket.id}]`);
 
     try {
-      // Register connection and join rooms
       await handleConnection(socket, hermes as any);
 
-      // Wire all event handlers
       handleMessaging(socket, hermes as any);
       handleRooms(socket, hermes as any);
       handlePresence(socket, hermes as any);
@@ -36,32 +32,26 @@ export const initHermesSocket = (io: Server) => {
       handleReactions(socket, hermes as any);
 
       socket.on("session:init", (data, callback) => {
-        // Your auth middleware should have already attached the user to the socket
         const user = socket.data.user;
         if (user) {
           callback({ success: true, user });
         } else {
-          callback({
-            success: false,
-            error: "User profile not found in session",
-          });
+          callback({ success: false, error: "User profile not found" });
         }
       });
-      // ── Ping/pong for status page latency check ───────────────────────────
+
       socket.on("ping", (data) => {
         socket.emit("pong", { timestamp: data?.timestamp ?? Date.now() });
       });
 
-      // ── Error handler ─────────────────────────────────────────────────────
       socket.on("error", (err) => {
-        logger.error(`Socket error [${hermesId}]`, err);
+        logger.error(`Socket error [${hermesUserId}]`, err);
       });
     } catch (err) {
-      logger.error(`Connection setup failed [${hermesId}]`, err);
+      logger.error(`Connection setup failed [${hermesUserId}]`, err);
       socket.disconnect(true);
     }
   });
 
-  logger.info("Hermes Socket.io namespace /hermes initialized");
   return hermes;
 };

@@ -2,6 +2,7 @@ import { Types } from "mongoose";
 import { Message, type IMessage, type MessageType } from "../models/Message.js";
 import { Room } from "../models/Room.js";
 import { Member } from "../models/Member.js";
+import { Project } from "../../../src/models/Projects.js";
 import { encrypt, decrypt } from "../utils/encryption.js";
 import { logger } from "../utils/logger.js";
 
@@ -26,14 +27,35 @@ export const sendMessage = async (
 ): Promise<{ message?: any; error?: string }> => {
   const { roomId, senderId } = input;
 
-  const room = await Room.findById(roomId);
+  // 1. Fetch room and populate Project + Plan to check limits
+  const room = await Room.findById(roomId).populate({
+    path: "projectId",
+    populate: { path: "plan" },
+  });
+
   if (!room || room.isDeleted) return { error: "Room not found" };
+
+  // 2. 🛡️ TOKEN GUARD CLAUSE
+  const project = room.projectId as any;
+  if (project && project.plan) {
+    const dailyLimit = project.plan.dailyLimit || 0;
+    const usedToday = project.usage?.dailyTokens || 0;
+
+    // Check if user is over the limit
+    if (usedToday >= dailyLimit) {
+      console.log(
+        `[Hermes] 🛑 LIMIT HIT: Project ${project.projectName} (${usedToday}/${dailyLimit})`,
+      );
+      return { error: "TOKEN_LIMIT_EXCEEDED" };
+    }
+  }
 
   const isMember = room.members.some((m) => m.toString() === senderId);
   if (!isMember) return { error: "Not a member of this room" };
 
   const encryptedText = input.text ? encrypt(input.text) : undefined;
 
+  // 3. Create the message
   const message = await Message.create({
     roomId: new Types.ObjectId(roomId),
     senderId: new Types.ObjectId(senderId),
@@ -70,6 +92,29 @@ export const sendMessage = async (
   if (plain.text) plain.text = decrypt(plain.text);
 
   logger.socket("MSG_SENT", senderId, `room:${roomId} type:${input.type}`);
+
+  // 4. 🚀 ATOMIC TOKEN TRACKING
+  if (project?._id) {
+    try {
+      const charCount = input.text ? input.text.length : 0;
+      const tokensUsed = 5 + Math.ceil(charCount / 4);
+
+      // Use findByIdAndUpdate for atomic incrementing
+      await Project.findByIdAndUpdate(project._id, {
+        $inc: {
+          "usage.dailyTokens": tokensUsed,
+          "usage.totalTokensAllTime": tokensUsed,
+        },
+      }).exec();
+
+      console.log(
+        `[Hermes Engine] 🪙 Logged ${tokensUsed} tokens for ${project.projectName}`,
+      );
+    } catch (err) {
+      console.error("❌ Token tracking error:", err);
+    }
+  }
+
   return { message: plain };
 };
 

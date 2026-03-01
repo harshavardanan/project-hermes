@@ -8,9 +8,9 @@ import { logger } from "../utils/logger.js";
 const HERMES_SECRET = process.env.HERMES_JWT_SECRET as string;
 
 export interface HermesTokenPayload {
-  hermesUserId: string; // HermesUser._id (our internal ID)
-  externalId: string; // Dan's ID in Joe's system
-  projectId: string; // Joe's project _id
+  hermesUserId: string; // Internal ID
+  externalId: string; // Third-party ID
+  projectId: string; // Associated Project
   displayName: string;
   apiKey: string;
 }
@@ -25,7 +25,7 @@ export const verifyHermesToken = (token: string): HermesTokenPayload => {
   return jwt.verify(token, HERMES_SECRET) as HermesTokenPayload;
 };
 
-// ── REST middleware: verify JWT on protected HTTP routes ──────────────────────
+// ── REST middleware: verify JWT on protected HTTP routes (Fixes history.ts) ───
 export const hermesAuth = async (
   req: Request,
   res: Response,
@@ -40,9 +40,13 @@ export const hermesAuth = async (
     }
     const token = authHeader.split(" ")[1];
     const payload = verifyHermesToken(token);
+
+    // Attach the payload to the request object for use in controllers
     (req as any).hermesUser = payload;
+
     next();
-  } catch {
+  } catch (err) {
+    logger.error("REST auth failed", err);
     return res
       .status(401)
       .json({ success: false, message: "Invalid or expired token" });
@@ -55,28 +59,41 @@ export const hermesSocketAuth = async (
   next: (err?: Error) => void,
 ) => {
   try {
-    const token =
-      socket.handshake.auth?.token ||
-      socket.handshake.headers?.authorization?.split(" ")[1];
+    const authHeader =
+      socket.handshake.auth?.token || socket.handshake.headers?.authorization;
 
-    if (!token)
-      return next(new Error("HERMES_AUTH_MISSING: No token provided"));
+    if (!authHeader) return next(new Error("HERMES_AUTH_MISSING"));
+
+    // Handle both "Bearer <token>" and raw token strings
+    const token = authHeader.startsWith("Bearer ")
+      ? authHeader.split(" ")[1]
+      : authHeader;
 
     const payload = verifyHermesToken(token);
 
-    // Verify this HermesUser still exists
+    // Verify this HermesUser still exists in DB
     const user = await HermesUser.findById(payload.hermesUserId);
-    if (!user) return next(new Error("HERMES_AUTH_INVALID: User not found"));
+    if (!user) return next(new Error("HERMES_USER_NOT_FOUND"));
 
-    // Attach full payload + user to socket
-    (socket as any).hermesUser = payload;
+    // 🚨 SYNCED ATTACHMENT: Ensures handleRooms and initHermesSocket see the same ID
+    const userData = {
+      hermesUserId: payload.hermesUserId,
+      projectId: payload.projectId,
+      displayName: payload.displayName,
+      externalId: payload.externalId,
+    };
+
+    (socket as any).hermesUser = userData;
     (socket as any).hermesUserDoc = user;
+
+    // Also attach to standard socket.data for session:init
+    socket.data.user = userData;
 
     logger.socket("AUTH_OK", payload.hermesUserId, `@${payload.displayName}`);
     next();
   } catch (err) {
     logger.error("Socket auth failed", err);
-    next(new Error("HERMES_AUTH_FAILED: Invalid token"));
+    next(new Error("HERMES_AUTH_INVALID"));
   }
 };
 

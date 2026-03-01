@@ -532,19 +532,19 @@ export default function App() {
           avatar: data.user.avatar,
           email: data.user.email,
         };
-
-        // ── Step 4: Init SDK with token only (production pattern) ─────────────
-        // Notice: no apiKey or secret passed to the SDK
         activeClient = new HermesClient({
           endpoint: ENDPOINT,
           token: data.token,
         });
-
-        // Manually set the user on the client before connecting
         activeClient.user = user;
-
-        // ── Step 5: Connect the socket ────────────────────────────────────────
         await activeClient.connect();
+        console.log(
+          "Connected! isConnected:",
+          activeClient.isConnected,
+          "status:",
+          activeClient.status,
+        );
+        setClient(activeClient);
 
         setCurrentUser(user);
         setClient(activeClient);

@@ -43,23 +43,8 @@ const ProjectSchema = new Schema<IProject>({
   createdAt: { type: Date, default: Date.now },
 });
 
-// Use a standard function, NOT an arrow function
-ProjectSchema.pre("validate", async function () {
-  if (this.plan) return;
-  try {
-    const PlanModel = mongoose.model("Plan");
-    const freePlan = await PlanModel.findOne({ planId: "free" });
-    if (freePlan) {
-      this.plan = freePlan._id as Types.ObjectId;
-    } else {
-      console.warn("⚠️ 'free' planId not found in DB.");
-    }
-  } catch (err) {
-    console.error("❌ Middleware Error:", err);
-    throw err;
-  }
-});
-
+// --- Middleware to Auto-Populate Plan ---
+// This ensures that whenever you find a project, the limits/price are attached.
 ProjectSchema.pre("findOne", function () {
   this.populate("plan");
 });
@@ -68,4 +53,8 @@ ProjectSchema.pre("find", function () {
   this.populate("plan");
 });
 
-export const Project = model<IProject>("Project", ProjectSchema);
+// --- Model Export ---
+// We check if the model already exists to prevent "OverwriteModelError"
+// which happens frequently with hot-reloading in dev.
+export const Project =
+  mongoose.models.Project || model<IProject>("Project", ProjectSchema);

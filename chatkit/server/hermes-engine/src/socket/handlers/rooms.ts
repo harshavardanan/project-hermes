@@ -116,10 +116,13 @@ export const handleRooms = (socket: Socket, io: Server) => {
 
   // ── room:list ───────────────────────────────────────────────────────────────
   socket.on("room:list", async (_, ack) => {
+    console.log("📋 room:list hit for hermesUserId:", hermesUserId);
     try {
       const rooms = await getUserRooms(hermesUserId);
+      console.log("📋 getUserRooms returned:", rooms.length);
       ack?.({ success: true, rooms });
     } catch (err) {
+      console.error("📋 getUserRooms threw:", err);
       logger.error("room:list error", err);
       ack?.({ success: false, error: "Failed to fetch rooms" });
     }
