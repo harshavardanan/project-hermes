@@ -37,3 +37,9 @@ memberSchema.index({ roomId: 1, hermesUserId: 1 }, { unique: true });
 memberSchema.index({ hermesUserId: 1, isActive: 1 });
 
 export const Member = model<IMember>("HermesMember", memberSchema);
+
+// 👇 ADD THIS AT THE VERY BOTTOM 👇
+// This forces MongoDB to delete the old broken index.
+Member.collection.dropIndex("roomId_1_userId_1").catch((err) => {
+  console.log(err);
+});

@@ -11,9 +11,23 @@ import { logger } from "../../utils/logger.js";
 
 export const handleRooms = (socket: Socket, io: Server) => {
   const { hermesUserId, displayName, projectId } = (socket as any).hermesUser;
-
+  if (!hermesUserId) {
+    console.error(
+      "❌ handleRooms: hermesUserId is undefined!",
+      (socket as any).hermesUser,
+    );
+    return;
+  }
   // ── room:create:direct ──────────────────────────────────────────────────────
-  socket.on("room:create:direct", async (data, ack) => {
+  socket.on("room:create:direct", async (...args) => {
+    // Dynamically find the callback, even if the frontend sends an empty object
+    const ack =
+      typeof args[args.length - 1] === "function"
+        ? args[args.length - 1]
+        : undefined;
+    const data =
+      args.length > 1 && typeof args[0] !== "function" ? args[0] : {};
+
     try {
       const { targetHermesUserId } = data;
       if (!targetHermesUserId)
@@ -28,6 +42,7 @@ export const handleRooms = (socket: Socket, io: Server) => {
       socket.join(room.id);
       io.to(targetHermesUserId).socketsJoin(room.id);
       io.to(room.id).emit("room:created", room);
+
       ack?.({ success: true, room });
       logger.socket("ROOM_DM", hermesUserId, `with ${targetHermesUserId}`);
     } catch (err) {
@@ -37,7 +52,14 @@ export const handleRooms = (socket: Socket, io: Server) => {
   });
 
   // ── room:create:group ───────────────────────────────────────────────────────
-  socket.on("room:create:group", async (data, ack) => {
+  socket.on("room:create:group", async (...args) => {
+    const ack =
+      typeof args[args.length - 1] === "function"
+        ? args[args.length - 1]
+        : undefined;
+    const data =
+      args.length > 1 && typeof args[0] !== "function" ? args[0] : {};
+
     try {
       const { name, memberIds, description, avatar } = data;
       if (!name) return ack?.({ success: false, error: "Group name required" });
@@ -67,12 +89,22 @@ export const handleRooms = (socket: Socket, io: Server) => {
   });
 
   // ── room:delete ─────────────────────────────────────────────────────────────
-  socket.on("room:delete", async (data, ack) => {
+  socket.on("room:delete", async (...args) => {
+    const ack =
+      typeof args[args.length - 1] === "function"
+        ? args[args.length - 1]
+        : undefined;
+    const data =
+      args.length > 1 && typeof args[0] !== "function" ? args[0] : {};
+
     try {
       const { roomId } = data;
+      if (!roomId) return ack?.({ success: false, error: "roomId required" });
+
       const result = await deleteRoom(roomId, hermesUserId);
       if (!result.success)
         return ack?.({ success: false, error: result.error });
+
       io.to(roomId).emit("room:deleted", { roomId });
       io.socketsLeave(roomId);
       ack?.({ success: true });
@@ -82,47 +114,29 @@ export const handleRooms = (socket: Socket, io: Server) => {
     }
   });
 
-  // ── room:member:add ─────────────────────────────────────────────────────────
-  socket.on("room:member:add", async (data, ack) => {
-    try {
-      const { roomId, newMemberId } = data;
-      const result = await addMember(roomId, hermesUserId, newMemberId);
-      if (!result.success)
-        return ack?.({ success: false, error: result.error });
-      io.to(newMemberId).socketsJoin(roomId);
-      io.to(roomId).emit("room:member:joined", { roomId, userId: newMemberId });
-      ack?.({ success: true });
-    } catch (err) {
-      logger.error("room:member:add error", err);
-      ack?.({ success: false, error: "Failed to add member" });
-    }
-  });
-
-  // ── room:member:remove ──────────────────────────────────────────────────────
-  socket.on("room:member:remove", async (data, ack) => {
-    try {
-      const { roomId, targetId } = data;
-      const result = await removeMember(roomId, hermesUserId, targetId);
-      if (!result.success)
-        return ack?.({ success: false, error: result.error });
-      io.to(targetId).socketsLeave(roomId);
-      io.to(roomId).emit("room:member:left", { roomId, userId: targetId });
-      ack?.({ success: true });
-    } catch (err) {
-      logger.error("room:member:remove error", err);
-      ack?.({ success: false, error: "Failed to remove member" });
-    }
-  });
-
   // ── room:list ───────────────────────────────────────────────────────────────
-  socket.on("room:list", async (_, ack) => {
-    console.log("📋 room:list hit for hermesUserId:", hermesUserId);
+  socket.on("room:list", async (...args) => {
+    // 🚨 BULLETPROOF ACK EXTRACTION
+    const ack =
+      typeof args[args.length - 1] === "function"
+        ? args[args.length - 1]
+        : undefined;
+
+    console.log(`📋 room:list hit for User ID: ${hermesUserId}`);
+
     try {
+      if (!hermesUserId) {
+        console.error("❌ room:list failed: hermesUserId is undefined");
+        return ack?.({ success: false, error: "Unauthenticated socket" });
+      }
+
       const rooms = await getUserRooms(hermesUserId);
-      console.log("📋 getUserRooms returned:", rooms.length);
-      ack?.({ success: true, rooms });
+      console.log(`✅ getUserRooms returned ${rooms?.length || 0} rooms`);
+
+      // Always guarantee we return an array, fixing the React mapping issue
+      ack?.({ success: true, rooms: rooms || [] });
     } catch (err) {
-      console.error("📋 getUserRooms threw:", err);
+      console.error("❌ getUserRooms threw an error:", err);
       logger.error("room:list error", err);
       ack?.({ success: false, error: "Failed to fetch rooms" });
     }

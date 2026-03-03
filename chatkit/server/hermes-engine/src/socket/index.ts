@@ -17,8 +17,8 @@ export const initHermesSocket = (io: Server) => {
   hermes.use(hermesSocketAuth);
 
   hermes.on("connection", async (socket) => {
-    // 🚨 FIX: Use hermesUserId (matching the middleware and handlers)
-    const { hermesUserId } = (socket as any).hermesUser;
+    // ✅ Use hermesUserId — matches what auth middleware sets
+    const { hermesUserId, displayName } = (socket as any).hermesUser;
     logger.info(`New connection: ${hermesUserId} [${socket.id}]`);
 
     try {
@@ -30,15 +30,6 @@ export const initHermesSocket = (io: Server) => {
       handleTyping(socket, hermes as any);
       handleReceipts(socket, hermes as any);
       handleReactions(socket, hermes as any);
-
-      socket.on("session:init", (data, callback) => {
-        const user = socket.data.user;
-        if (user) {
-          callback({ success: true, user });
-        } else {
-          callback({ success: false, error: "User profile not found" });
-        }
-      });
 
       socket.on("ping", (data) => {
         socket.emit("pong", { timestamp: data?.timestamp ?? Date.now() });
@@ -53,5 +44,6 @@ export const initHermesSocket = (io: Server) => {
     }
   });
 
+  logger.info("Hermes Socket.io namespace /hermes initialized");
   return hermes;
 };

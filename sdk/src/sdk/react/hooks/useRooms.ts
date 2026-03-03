@@ -16,12 +16,6 @@ export const useRooms = (client: HermesClient) => {
   const fetchRooms = useCallback(async () => {
     setLoading(true);
     setError(null);
-    console.log(
-      "🔄 fetchRooms start — isConnected:",
-      client.isConnected,
-      "status:",
-      client.status,
-    );
 
     // Poll isConnected every 100ms, timeout after 5s
     await new Promise<void>((resolve, reject) => {
@@ -41,19 +35,11 @@ export const useRooms = (client: HermesClient) => {
 
     try {
       const data = await client.getRooms();
-      console.log(
-        "✅ rooms loaded:",
-        data.length,
-        data.map((r: any) => ({
-          id: r._id,
-          name: r.name ?? r.type,
-          members: r.members.length,
-        })),
-      );
+      console.log("[useRooms] fetched:", data.length, "rooms");
       setRooms(data);
       fetchedRef.current = true;
     } catch (err: any) {
-      console.error("❌ fetchRooms failed:", err.message);
+      console.error("[useRooms] fetch error:", err.message);
       setError(err.message);
     } finally {
       setLoading(false);

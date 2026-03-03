@@ -24,19 +24,10 @@ export const initHermes = (io: Server, app: Application) => {
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
   });
-
-  // ── Socket namespace ────────────────────────────────────────────────────────
   initHermesSocket(io);
 
-  // ── REST router ─────────────────────────────────────────────────────────────
   const hermesRouter = Router();
   hermesRouter.use(hermesApiLimiter);
-
-  // ── POST /hermes/connect ────────────────────────────────────────────────────
-  // Joe's backend calls this on behalf of Dan/John/Romeo
-  // apiKey + secret = Joe's credentials
-  // userId = Dan's ID in Joe's own database
-  // displayName, avatar, email = Dan's profile info from Joe's database
   hermesRouter.post("/connect", async (req: Request, res: Response) => {
     try {
       const { apiKey, secret, userId, displayName, avatar, email } = req.body;
@@ -111,7 +102,27 @@ export const initHermes = (io: Server, app: Application) => {
       res.status(500).json({ success: false, message: "Connection failed" });
     }
   });
+  // ── GET /hermes/users ─────────────────────────────────────────────────────
+  hermesRouter.get(
+    "/users",
+    hermesAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const { projectId } = (req as any).hermesUser;
 
+        const users = await HermesUser.find({ projectId })
+          .select("_id externalId displayName avatar isOnline lastSeen")
+          .sort({ displayName: 1 });
+
+        res.json({ success: true, users });
+      } catch (err) {
+        logger.error("Hermes users list error", err);
+        res
+          .status(500)
+          .json({ success: false, message: "Failed to fetch users" });
+      }
+    },
+  );
   // ── Sub-routers ─────────────────────────────────────────────────────────────
   hermesRouter.use("/", healthRouter);
   hermesRouter.use("/", metricsRouter);

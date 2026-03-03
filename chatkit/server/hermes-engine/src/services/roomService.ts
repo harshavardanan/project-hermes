@@ -1,4 +1,3 @@
-import { Types } from "mongoose";
 import { Room, type IRoom } from "../models/Room.js";
 import { Member } from "../models/Member.js";
 import { logger } from "../utils/logger.js";
@@ -12,33 +11,28 @@ export const createDirectRoom = async (
   // Check if DM already exists between these two users in this project
   const existing = await Room.findOne({
     type: "direct",
-    projectId: new Types.ObjectId(projectId),
+    projectId: projectId, // Mongoose auto-casts this
     members: {
-      $all: [
-        new Types.ObjectId(hermesUserIdA),
-        new Types.ObjectId(hermesUserIdB),
-      ],
+      $all: [hermesUserIdA, hermesUserIdB], // Mongoose auto-casts these
       $size: 2,
     },
     isDeleted: false,
   });
+
   if (existing) return existing;
 
   const room = await Room.create({
     type: "direct",
-    projectId: new Types.ObjectId(projectId),
-    createdBy: new Types.ObjectId(hermesUserIdA),
-    members: [
-      new Types.ObjectId(hermesUserIdA),
-      new Types.ObjectId(hermesUserIdB),
-    ],
+    projectId: projectId,
+    createdBy: hermesUserIdA,
+    members: [hermesUserIdA, hermesUserIdB],
     admins: [],
     lastActivity: new Date(),
   });
 
   await Member.insertMany([
-    { roomId: room._id, hermesUserId: new Types.ObjectId(hermesUserIdA) },
-    { roomId: room._id, hermesUserId: new Types.ObjectId(hermesUserIdB) },
+    { roomId: room._id, hermesUserId: hermesUserIdA },
+    { roomId: room._id, hermesUserId: hermesUserIdB },
   ]);
 
   logger.info(`Direct room created: ${room._id}`);
@@ -54,25 +48,25 @@ export const createGroupRoom = async (
   description?: string,
   avatar?: string,
 ): Promise<IRoom> => {
+  // Ensure unique members including the creator
   const allMemberIds = Array.from(new Set([creatorId, ...memberIds]));
-  const memberObjectIds = allMemberIds.map((id) => new Types.ObjectId(id));
 
   const room = await Room.create({
     type: "group",
     name,
     description,
     avatar,
-    projectId: new Types.ObjectId(projectId),
-    createdBy: new Types.ObjectId(creatorId),
-    members: memberObjectIds,
-    admins: [new Types.ObjectId(creatorId)],
+    projectId: projectId,
+    createdBy: creatorId,
+    members: allMemberIds,
+    admins: [creatorId],
     lastActivity: new Date(),
   });
 
   await Member.insertMany(
     allMemberIds.map((id) => ({
       roomId: room._id,
-      hermesUserId: new Types.ObjectId(id),
+      hermesUserId: id,
     })),
   );
 
@@ -119,11 +113,11 @@ export const addMember = async (
   const alreadyMember = room.members.some((m) => m.toString() === newMemberId);
   if (alreadyMember) return { success: false, error: "Already a member" };
 
-  room.members.push(new Types.ObjectId(newMemberId));
+  room.members.push(newMemberId as any);
   await room.save();
 
   await Member.findOneAndUpdate(
-    { roomId, hermesUserId: new Types.ObjectId(newMemberId) },
+    { roomId, hermesUserId: newMemberId },
     { isActive: true, joinedAt: new Date() },
     { upsert: true, new: true },
   );
@@ -151,7 +145,7 @@ export const removeMember = async (
   await room.save();
 
   await Member.findOneAndUpdate(
-    { roomId, hermesUserId: new Types.ObjectId(targetId) },
+    { roomId, hermesUserId: targetId },
     { isActive: false, leftAt: new Date() },
   );
 
@@ -160,28 +154,38 @@ export const removeMember = async (
 
 // ── Get user rooms ────────────────────────────────────────────────────────────
 export const getUserRooms = async (hermesUserId: string) => {
-  const memberships = await Member.find({
-    hermesUserId: new Types.ObjectId(hermesUserId),
-    isActive: true,
-  });
+  try {
+    const memberships = await Member.find({
+      hermesUserId: hermesUserId,
+      isActive: true,
+    });
 
-  const roomIds = memberships.map((m) => m.roomId);
+    if (!memberships.length) return [];
 
-  const rooms = await Room.find({ _id: { $in: roomIds }, isDeleted: false })
-    .populate("lastMessage")
-    .sort({ lastActivity: -1 });
+    const roomIds = memberships.map((m) => m.roomId);
 
-  return rooms.map((room) => {
-    const membership = memberships.find(
-      (m) => m.roomId.toString() === room._id.toString(),
-    );
-    return {
-      ...room.toObject(),
-      unreadCount: membership?.unreadCount ?? 0,
-      isMuted: membership?.isMuted ?? false,
-      isPinned: membership?.isPinned ?? false,
-    };
-  });
+    const rooms = await Room.find({ _id: { $in: roomIds }, isDeleted: false })
+      .populate("lastMessage")
+      .sort({ lastActivity: -1 });
+
+    return rooms.map((room) => {
+      const obj = room.toObject();
+      const membership = memberships.find(
+        (m) => m.roomId.toString() === room._id.toString(),
+      );
+
+      return {
+        ...obj,
+        id: obj._id,
+        unreadCount: membership?.unreadCount ?? 0,
+        isMuted: membership?.isMuted ?? false,
+        isPinned: membership?.isPinned ?? false,
+      };
+    });
+  } catch (err) {
+    console.error("[roomService] Error in getUserRooms:", err);
+    throw err;
+  }
 };
 
 // ── Get single room with access check ────────────────────────────────────────
