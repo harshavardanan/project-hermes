@@ -6,7 +6,7 @@ import {
   Navigate,
   useLocation,
 } from "react-router-dom";
-import Dashboard from "./components/Dashboard";
+import Dashboard from "./components/Dashboard/Dashboard";
 import Home from "./components/Home";
 import Pricing from "./components/Pricing";
 import Documentation from "./components/Documentation";
@@ -80,6 +80,7 @@ const App: React.FC = () => {
     fetch("http://localhost:8080/auth/me", { credentials: "include" })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
+        if (data?.token) sessionStorage.setItem("hermes_token", data.token);
         setUser(data);
         setLoading(false);
       })

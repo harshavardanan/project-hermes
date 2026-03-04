@@ -1,260 +1,1571 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   BarChart3,
   Settings,
-  Trash2,
   Key,
   Globe,
-  AlertTriangle,
   Zap,
   Loader2,
   Copy,
   Check,
+  Users,
+  MessageSquare,
+  Activity,
+  Shield,
+  Clock,
+  TrendingUp,
+  AlertTriangle,
+  ChevronRight,
+  Cpu,
+  Database,
+  Radio,
 } from "lucide-react";
 
+const BASE = "http://localhost:8080";
+
+// ── Tiny sparkline ────────────────────────────────────────────────────────────
+const Spark = ({
+  data,
+  color = "#39ff14",
+}: {
+  data: number[];
+  color?: string;
+}) => {
+  if (data.length < 2) return <div style={{ height: 32 }} />;
+  const max = Math.max(...data, 1);
+  const W = 80,
+    H = 32;
+  const pts = data
+    .map((v, i) => `${(i / (data.length - 1)) * W},${H - (v / max) * H * 0.85}`)
+    .join(" ");
+  return (
+    <svg
+      width={W}
+      height={H}
+      viewBox={`0 0 ${W} ${H}`}
+      style={{ display: "block" }}
+    >
+      <polyline
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        points={pts}
+        style={{ opacity: 0.8 }}
+      />
+    </svg>
+  );
+};
+
+// ── Usage bar ─────────────────────────────────────────────────────────────────
+const UsageBar = ({
+  pct,
+  color = "#39ff14",
+}: {
+  pct: number;
+  color?: string;
+}) => (
+  <div
+    style={{
+      height: 4,
+      borderRadius: 2,
+      background: "rgba(255,255,255,0.06)",
+      overflow: "hidden",
+    }}
+  >
+    <div
+      style={{
+        height: "100%",
+        width: `${Math.min(pct, 100)}%`,
+        borderRadius: 2,
+        background: color,
+        boxShadow: `0 0 8px ${color}60`,
+        transition: "width 1s ease",
+      }}
+    />
+  </div>
+);
+
+// ── Stat card ─────────────────────────────────────────────────────────────────
+const StatCard = ({
+  icon,
+  label,
+  value,
+  sub,
+  trend,
+  spark,
+  accent = "#39ff14",
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  sub?: string;
+  trend?: string;
+  spark?: number[];
+  accent?: string;
+}) => (
+  <div
+    style={{
+      background: "var(--brand-card)",
+      border: "1px solid rgba(255,255,255,0.06)",
+      borderRadius: 12,
+      padding: "20px 20px 16px",
+      display: "flex",
+      flexDirection: "column",
+      gap: 4,
+      position: "relative",
+      overflow: "hidden",
+    }}
+  >
+    <div
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 2,
+        background: `linear-gradient(90deg, ${accent}60, transparent)`,
+      }}
+    />
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+      }}
+    >
+      <div style={{ color: "rgba(255,255,255,0.35)", marginBottom: 8 }}>
+        {icon}
+      </div>
+      {spark && <Spark data={spark} color={accent} />}
+    </div>
+    <div
+      style={{
+        fontSize: 11,
+        color: "rgba(255,255,255,0.4)",
+        letterSpacing: "0.15em",
+        textTransform: "uppercase",
+        fontFamily: "var(--font-mono)",
+      }}
+    >
+      {label}
+    </div>
+    <div
+      style={{
+        fontSize: 26,
+        fontWeight: 800,
+        color: "#f0f0f0",
+        lineHeight: 1.1,
+        fontFamily: "var(--font-mono)",
+        letterSpacing: "-0.02em",
+      }}
+    >
+      {value}
+    </div>
+    <div
+      style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}
+    >
+      {sub && (
+        <span
+          style={{
+            fontSize: 11,
+            color: "rgba(255,255,255,0.35)",
+            fontFamily: "var(--font-mono)",
+          }}
+        >
+          {sub}
+        </span>
+      )}
+      {trend && (
+        <span
+          style={{
+            fontSize: 10,
+            color: accent,
+            fontFamily: "var(--font-mono)",
+            letterSpacing: "0.1em",
+          }}
+        >
+          {trend}
+        </span>
+      )}
+    </div>
+  </div>
+);
+
+// ── Sidebar nav item ──────────────────────────────────────────────────────────
+const NavItem = ({
+  icon,
+  label,
+  active,
+  onClick,
+  badge,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  badge?: string;
+}) => (
+  <button
+    onClick={onClick}
+    style={{
+      width: "100%",
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "10px 14px",
+      borderRadius: 8,
+      border: "none",
+      cursor: "pointer",
+      background: active ? "rgba(57,255,20,0.08)" : "transparent",
+      borderLeft: `2px solid ${active ? "#39ff14" : "transparent"}`,
+      color: active ? "#39ff14" : "rgba(255,255,255,0.45)",
+      fontFamily: "var(--font-mono)",
+      fontSize: 12,
+      fontWeight: 600,
+      letterSpacing: "0.08em",
+      textTransform: "uppercase",
+      transition: "all 0.15s",
+      textAlign: "left",
+    }}
+  >
+    <span style={{ flexShrink: 0 }}>{icon}</span>
+    <span style={{ flex: 1 }}>{label}</span>
+    {badge && (
+      <span
+        style={{
+          fontSize: 9,
+          padding: "2px 6px",
+          borderRadius: 10,
+          background: "rgba(57,255,20,0.15)",
+          color: "#39ff14",
+          fontWeight: 700,
+          letterSpacing: "0.1em",
+        }}
+      >
+        {badge}
+      </span>
+    )}
+    {active && <ChevronRight size={12} style={{ opacity: 0.5 }} />}
+  </button>
+);
+
+// ── Copy field ────────────────────────────────────────────────────────────────
+const CopyField = ({
+  label,
+  value,
+  masked,
+}: {
+  label: string;
+  value: string;
+  masked?: boolean;
+}) => {
+  const [copied, setCopied] = useState(false);
+  const [revealed, setRevealed] = useState(false);
+  const display = masked && !revealed ? "•".repeat(32) : value;
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div
+        style={{
+          fontSize: 10,
+          color: "rgba(255,255,255,0.35)",
+          letterSpacing: "0.2em",
+          textTransform: "uppercase",
+          fontFamily: "var(--font-mono)",
+          marginBottom: 6,
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          background: "rgba(0,0,0,0.3)",
+          border: "1px solid rgba(255,255,255,0.08)",
+          borderRadius: 8,
+          padding: "10px 14px",
+        }}
+      >
+        <code
+          style={{
+            flex: 1,
+            fontFamily: "var(--font-mono)",
+            fontSize: 12,
+            color: masked && !revealed ? "rgba(255,255,255,0.2)" : "#39ff14",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {display}
+        </code>
+        {masked && (
+          <button
+            onClick={() => setRevealed((r) => !r)}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: "0 4px",
+              color: "rgba(255,255,255,0.3)",
+              fontSize: 10,
+              fontFamily: "var(--font-mono)",
+              letterSpacing: "0.1em",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {revealed ? "HIDE" : "SHOW"}
+          </button>
+        )}
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(value);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+          }}
+          style={{
+            background: copied
+              ? "rgba(57,255,20,0.15)"
+              : "rgba(255,255,255,0.05)",
+            border: `1px solid ${copied ? "rgba(57,255,20,0.3)" : "rgba(255,255,255,0.1)"}`,
+            borderRadius: 6,
+            padding: "4px 8px",
+            cursor: "pointer",
+            color: copied ? "#39ff14" : "rgba(255,255,255,0.4)",
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            transition: "all 0.2s",
+            flexShrink: 0,
+          }}
+        >
+          {copied ? <Check size={12} /> : <Copy size={12} />}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ── Main ──────────────────────────────────────────────────────────────────────
 const ProjectDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [tab, setTab] = useState("overview");
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteModal, setDeleteModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  // Simulated historical data for sparklines (replace with real API data if available)
+  const [tokenHistory, setTokenHistory] = useState<number[]>([]);
+  const [userHistory, setUserHistory] = useState<number[]>([]);
+  const [msgHistory, setMsgHistory] = useState<number[]>([]);
+
+  const fetchProject = async () => {
+    try {
+      const res = await fetch(`${BASE}/api/projects/${id}`, {
+        credentials: "include",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setProject(data);
+        // Append to history arrays for sparklines
+        setTokenHistory((h) => [...h.slice(-19), data.usage?.dailyTokens ?? 0]);
+        setUserHistory((h) => [...h.slice(-19), data.stats?.totalUsers ?? 0]);
+        setMsgHistory((h) => [...h.slice(-19), data.stats?.totalMessages ?? 0]);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchProject = async () => {
-      try {
-        const res = await fetch(`http://localhost:8080/api/projects/${id}`, {
-          credentials: "include",
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setProject(data);
-        }
-      } catch (err) {
-        console.error("Fetch error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchProject();
-
-    // Auto-refresh token usage every 5 seconds
-    const interval = setInterval(fetchProject, 5000);
-    return () => clearInterval(interval);
+    const iv = setInterval(fetchProject, 5000);
+    return () => clearInterval(iv);
   }, [id]);
 
   const handleDelete = async () => {
     if (deleteConfirm !== project.projectName) return;
-    const res = await fetch(`http://localhost:8080/api/projects/${id}`, {
+    setDeleting(true);
+    const res = await fetch(`${BASE}/api/projects/${id}`, {
       method: "DELETE",
       credentials: "include",
     });
     if (res.ok) navigate("/dashboard");
+    setDeleting(false);
   };
 
   if (loading)
     return (
       <div className="min-h-screen bg-brand-bg flex flex-col items-center justify-center text-brand-primary">
-        <Loader2 className="animate-spin mb-4" size={40} />
-        <span className="font-black uppercase tracking-widest text-xs">
-          Accessing Hermes Vault...
+        <Loader2 className="animate-spin mb-4" size={32} />
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            letterSpacing: "0.25em",
+            opacity: 0.6,
+          }}
+        >
+          LOADING PROJECT...
         </span>
       </div>
     );
 
   if (!project)
     return (
-      <div className="p-20 text-center text-white font-black">
-        PROJECT NOT FOUND
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            color: "rgba(255,255,255,0.3)",
+            fontSize: 13,
+            letterSpacing: "0.2em",
+          }}
+        >
+          [404] PROJECT NOT FOUND
+        </div>
       </div>
     );
 
-  // --- DYNAMIC DATA MAPPING ---
-  // If backend populates plan, project.plan is an object. If not, these fallback to data defaults.
-  const dailyLimit = project.plan?.dailyLimit || 0;
-  const usedTokens = project.usage?.dailyTokens || 0;
-  const totalAllTime = project.usage?.totalTokensAllTime || 0;
-  const usagePercent = dailyLimit > 0 ? (usedTokens / dailyLimit) * 100 : 0;
-
-  const currentPlanName = project.plan?.name || "Free";
+  // ── Derived values ──────────────────────────────────────────────────────────
+  const dailyLimit = project.plan?.dailyLimit ?? 0;
+  const usedTokens = project.usage?.dailyTokens ?? 0;
+  const totalAllTime = project.usage?.totalTokensAllTime ?? 0;
+  const usagePct = dailyLimit > 0 ? (usedTokens / dailyLimit) * 100 : 0;
+  const planName = project.plan?.name ?? "Free";
   const planPrice = project.plan?.monthlyPrice ?? 0;
+  const totalUsers =
+    project.stats?.totalUsers ?? project.usage?.totalUsers ?? 0;
+  const activeUsers =
+    project.stats?.activeUsers ?? project.usage?.activeUsers ?? 0;
+  const totalMessages =
+    project.stats?.totalMessages ?? project.usage?.totalMessages ?? 0;
+  const totalRooms =
+    project.stats?.totalRooms ?? project.usage?.totalRooms ?? 0;
+  const avgLatency = project.stats?.avgLatency ?? 0;
+  const uptime = project.stats?.uptime ?? 99.9;
+  const createdAt = project.createdAt
+    ? new Date(project.createdAt).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : "—";
+
+  const navItems = [
+    { id: "overview", label: "Overview", icon: <BarChart3 size={14} /> },
+    { id: "analytics", label: "Analytics", icon: <TrendingUp size={14} /> },
+    {
+      id: "users",
+      label: "Users",
+      icon: <Users size={14} />,
+      badge: totalUsers > 0 ? String(totalUsers) : undefined,
+    },
+    { id: "credentials", label: "Credentials", icon: <Key size={14} /> },
+    { id: "settings", label: "Settings", icon: <Settings size={14} /> },
+  ];
+
+  const usageColor =
+    usagePct > 90 ? "#ff4444" : usagePct > 70 ? "#f0a500" : "#39ff14";
 
   return (
-    <div className="min-h-screen bg-brand-bg text-brand-text pt-24 pb-20 px-6 md:px-10">
-      <div className="max-w-6xl mx-auto">
-        {/* --- HEADER --- */}
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
-          <div>
-            <div className="flex items-center gap-3 text-brand-primary mb-2">
-              <Globe size={18} />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em]">
-                {project.region}
-              </span>
-            </div>
-            <h1 className="text-4xl font-black text-white tracking-tighter">
-              {project.projectName}
-            </h1>
-          </div>
+    <div
+      style={{
+        display: "flex",
+        minHeight: "100vh",
+        background: "var(--brand-bg)",
+        color: "var(--brand-text)",
+        paddingTop: 64,
+      }}
+    >
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+        :root { --font-mono: 'JetBrains Mono', monospace; }
+        .pd-section { animation: pd-fadein 0.3s ease; }
+        @keyframes pd-fadein { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+        .pd-row:hover { background: rgba(255,255,255,0.03) !important; }
+      `}</style>
 
-          <div className="flex bg-brand-card border border-brand-border p-1 rounded-xl shadow-lg">
-            <TabBtn
-              active={activeTab === "overview"}
-              onClick={() => setActiveTab("overview")}
-              icon={<BarChart3 size={16} />}
-              label="Overview"
-            />
-            <TabBtn
-              active={activeTab === "credentials"}
-              onClick={() => setActiveTab("credentials")}
-              icon={<Key size={16} />}
-              label="Credentials"
-            />
-            <TabBtn
-              active={activeTab === "settings"}
-              onClick={() => setActiveTab("settings")}
-              icon={<Settings size={16} />}
-              label="Settings"
-            />
+      {/* ── Left sidebar ── */}
+      <aside
+        style={{
+          width: 220,
+          flexShrink: 0,
+          borderRight: "1px solid rgba(255,255,255,0.05)",
+          background: "rgba(255,255,255,0.01)",
+          position: "sticky",
+          top: 64,
+          height: "calc(100vh - 64px)",
+          display: "flex",
+          flexDirection: "column",
+          padding: "28px 12px 20px",
+        }}
+      >
+        {/* Project identity */}
+        <div
+          style={{
+            padding: "0 6px 20px",
+            borderBottom: "1px solid rgba(255,255,255,0.05)",
+            marginBottom: 16,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              marginBottom: 6,
+            }}
+          >
+            <Globe size={12} style={{ color: "#39ff14", flexShrink: 0 }} />
+            <span
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 9,
+                color: "rgba(255,255,255,0.3)",
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+              }}
+            >
+              {project.region}
+            </span>
           </div>
-        </header>
+          <div
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 13,
+              fontWeight: 700,
+              color: "#f0f0f0",
+              letterSpacing: "0.02em",
+              wordBreak: "break-all",
+              lineHeight: 1.3,
+            }}
+          >
+            {project.projectName}
+          </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              marginTop: 8,
+            }}
+          >
+            <div
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: "#39ff14",
+                boxShadow: "0 0 6px #39ff14",
+              }}
+            />
+            <span
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 9,
+                color: "#39ff14",
+                letterSpacing: "0.15em",
+              }}
+            >
+              ACTIVE
+            </span>
+          </div>
+        </div>
 
-        <div className="grid grid-cols-1 gap-8">
-          {/* OVERVIEW TAB */}
-          {activeTab === "overview" && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Nav */}
+        <nav
+          style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}
+        >
+          {navItems.map((n) => (
+            <NavItem
+              key={n.id}
+              icon={n.icon}
+              label={n.label}
+              active={tab === n.id}
+              onClick={() => setTab(n.id)}
+              badge={n.badge}
+            />
+          ))}
+        </nav>
+
+        {/* Plan badge */}
+        <div
+          style={{
+            marginTop: "auto",
+            padding: "12px 14px",
+            background: "rgba(57,255,20,0.05)",
+            border: "1px solid rgba(57,255,20,0.15)",
+            borderRadius: 8,
+          }}
+        >
+          <div
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 9,
+              color: "rgba(255,255,255,0.3)",
+              letterSpacing: "0.2em",
+              marginBottom: 4,
+            }}
+          >
+            PLAN
+          </div>
+          <div
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 13,
+              fontWeight: 700,
+              color: "#39ff14",
+            }}
+          >
+            {planName.toUpperCase()}
+          </div>
+          <div
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 10,
+              color: "rgba(255,255,255,0.35)",
+              marginTop: 2,
+            }}
+          >
+            {planPrice > 0 ? `$${planPrice}/mo` : "Free tier"}
+          </div>
+        </div>
+      </aside>
+
+      {/* ── Main content ── */}
+      <main style={{ flex: 1, overflowY: "auto", padding: "32px 40px 60px" }}>
+        <div style={{ maxWidth: 900 }}>
+          {/* ── OVERVIEW ── */}
+          {tab === "overview" && (
+            <div className="pd-section">
+              <SectionHeader
+                title="Overview"
+                sub={`Project created ${createdAt}`}
+              />
+
+              {/* Primary stats grid */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(4, 1fr)",
+                  gap: 12,
+                  marginBottom: 24,
+                }}
+              >
                 <StatCard
-                  title="Daily Consumption"
-                  value={usedTokens.toLocaleString()}
-                  detail={`Limit: ${dailyLimit.toLocaleString()}`}
+                  icon={<Users size={16} />}
+                  label="Total Users"
+                  value={totalUsers.toLocaleString()}
+                  sub={`${activeUsers} active now`}
+                  trend="↑ live"
+                  spark={userHistory}
+                  accent="#39ff14"
                 />
                 <StatCard
-                  title="Current Tier"
-                  value={currentPlanName}
-                  detail={`$${planPrice}/mo`}
+                  icon={<MessageSquare size={16} />}
+                  label="Messages Sent"
+                  value={totalMessages.toLocaleString()}
+                  sub="all time"
+                  spark={msgHistory}
+                  accent="#00c8ff"
                 />
                 <StatCard
-                  title="Total Lifetime"
-                  value={totalAllTime.toLocaleString()}
-                  detail="Tokens total"
+                  icon={<Radio size={16} />}
+                  label="Active Rooms"
+                  value={totalRooms.toLocaleString()}
+                  sub="open channels"
+                  accent="#a78bfa"
+                />
+                <StatCard
+                  icon={<Activity size={16} />}
+                  label="Uptime"
+                  value={`${uptime}%`}
+                  sub="last 30 days"
+                  accent="#39ff14"
                 />
               </div>
 
-              <div className="bg-brand-card border border-brand-border p-8 rounded-brand relative overflow-hidden shadow-2xl">
-                <div className="flex justify-between items-end mb-4">
-                  <h3 className="text-sm font-black uppercase tracking-widest text-brand-muted">
-                    Token Pulse (24h)
-                  </h3>
-                  <span
-                    className={`text-xl font-black ${usagePercent > 90 ? "text-red-500" : "text-brand-primary"}`}
+              {/* Token usage */}
+              <div
+                style={{
+                  background: "var(--brand-card)",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                  borderRadius: 12,
+                  padding: 24,
+                  marginBottom: 16,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    marginBottom: 20,
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: 11,
+                        color: "rgba(255,255,255,0.4)",
+                        letterSpacing: "0.2em",
+                        textTransform: "uppercase",
+                        marginBottom: 4,
+                      }}
+                    >
+                      Daily Token Consumption
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "baseline",
+                        gap: 8,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: 28,
+                          fontWeight: 800,
+                          color: "#f0f0f0",
+                        }}
+                      >
+                        {usedTokens.toLocaleString()}
+                      </span>
+                      <span
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: 12,
+                          color: "rgba(255,255,255,0.3)",
+                        }}
+                      >
+                        / {dailyLimit.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: 22,
+                      fontWeight: 800,
+                      color: usageColor,
+                    }}
                   >
-                    {usagePercent.toFixed(1)}%
+                    {usagePct.toFixed(1)}%
+                  </div>
+                </div>
+                <UsageBar pct={usagePct} color={usageColor} />
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginTop: 10,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: 10,
+                      color: "rgba(255,255,255,0.25)",
+                    }}
+                  >
+                    {usagePct >= 100
+                      ? "⚠ Limit exceeded — requests being throttled"
+                      : "Resets at midnight UTC"}
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: 10,
+                      color: "rgba(255,255,255,0.25)",
+                    }}
+                  >
+                    {(dailyLimit - usedTokens).toLocaleString()} remaining
                   </span>
                 </div>
-                <div className="w-full h-4 bg-brand-bg rounded-full border border-brand-border overflow-hidden">
-                  <div
-                    className="h-full bg-brand-primary transition-all duration-1000 shadow-[0_0_20px_rgba(57,255,20,0.5)]"
-                    style={{ width: `${Math.min(usagePercent, 100)}%` }}
-                  />
-                </div>
-                <p className="mt-4 text-xs text-brand-muted font-medium">
-                  {usagePercent >= 100
-                    ? "⚠️ Limit exceeded. API requests are being throttled."
-                    : "System operational. Usage resets at midnight UTC."}
-                </p>
               </div>
-            </div>
-          )}
 
-          {/* CREDENTIALS TAB */}
-          {activeTab === "credentials" && (
-            <div className="animate-in fade-in duration-300">
-              <JsonConfigBox
-                data={{
-                  projectId: project.projectId,
-                  apiKey: project.apiKey,
-                  secret: project.secret,
-                  region: project.region,
-                  endpoint: project.endpoint,
-                  plan: currentPlanName.toLowerCase(),
-                  version: "v1.0.4",
+              {/* Secondary stats row */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gap: 12,
                 }}
-              />
+              >
+                {[
+                  {
+                    icon: <Cpu size={14} />,
+                    label: "Avg Latency",
+                    value: avgLatency ? `${avgLatency}ms` : "—",
+                    sub: "last 1h",
+                  },
+                  {
+                    icon: <Database size={14} />,
+                    label: "Total Lifetime",
+                    value: totalAllTime.toLocaleString(),
+                    sub: "tokens consumed",
+                  },
+                  {
+                    icon: <Clock size={14} />,
+                    label: "Created",
+                    value: createdAt,
+                    sub: project.region,
+                  },
+                ].map(({ icon, label, value, sub }) => (
+                  <div
+                    key={label}
+                    style={{
+                      background: "rgba(255,255,255,0.02)",
+                      border: "1px solid rgba(255,255,255,0.05)",
+                      borderRadius: 10,
+                      padding: "16px 18px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 14,
+                    }}
+                  >
+                    <div
+                      style={{ color: "rgba(255,255,255,0.25)", flexShrink: 0 }}
+                    >
+                      {icon}
+                    </div>
+                    <div>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: 9,
+                          color: "rgba(255,255,255,0.3)",
+                          letterSpacing: "0.2em",
+                          textTransform: "uppercase",
+                          marginBottom: 4,
+                        }}
+                      >
+                        {label}
+                      </div>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: 14,
+                          fontWeight: 700,
+                          color: "#e0e0e0",
+                        }}
+                      >
+                        {value}
+                      </div>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: 10,
+                          color: "rgba(255,255,255,0.25)",
+                          marginTop: 2,
+                        }}
+                      >
+                        {sub}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
-          {/* SETTINGS TAB */}
-          {activeTab === "settings" && (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              <div className="bg-brand-card border border-brand-border rounded-brand p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <Zap className="text-brand-primary" size={24} />
-                  <h3 className="text-xl font-black text-white uppercase">
-                    Subscription Plan
-                  </h3>
+          {/* ── ANALYTICS ── */}
+          {tab === "analytics" && (
+            <div className="pd-section">
+              <SectionHeader
+                title="Analytics"
+                sub="Usage trends and performance metrics"
+              />
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 16,
+                  marginBottom: 16,
+                }}
+              >
+                <ChartCard
+                  title="Token Usage (24h)"
+                  data={tokenHistory}
+                  color="#39ff14"
+                  value={`${usedTokens.toLocaleString()} tokens`}
+                />
+                <ChartCard
+                  title="Messages / interval"
+                  data={msgHistory}
+                  color="#00c8ff"
+                  value={`${totalMessages.toLocaleString()} total`}
+                />
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 16,
+                }}
+              >
+                <ChartCard
+                  title="Active Users"
+                  data={userHistory}
+                  color="#a78bfa"
+                  value={`${activeUsers} online`}
+                />
+                <div
+                  style={{
+                    background: "var(--brand-card)",
+                    border: "1px solid rgba(255,255,255,0.06)",
+                    borderRadius: 12,
+                    padding: 20,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: 10,
+                      color: "rgba(255,255,255,0.35)",
+                      letterSpacing: "0.2em",
+                      textTransform: "uppercase",
+                      marginBottom: 16,
+                    }}
+                  >
+                    Plan Limits
+                  </div>
+                  {[
+                    {
+                      label: "Daily Tokens",
+                      used: usedTokens,
+                      max: dailyLimit,
+                      color: usageColor,
+                    },
+                    {
+                      label: "Active Users",
+                      used: activeUsers,
+                      max: project.plan?.maxUsers ?? 100,
+                      color: "#a78bfa",
+                    },
+                    {
+                      label: "Rooms",
+                      used: totalRooms,
+                      max: project.plan?.maxRooms ?? 500,
+                      color: "#00c8ff",
+                    },
+                  ].map(({ label, used, max, color }) => (
+                    <div key={label} style={{ marginBottom: 14 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          marginBottom: 6,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontFamily: "var(--font-mono)",
+                            fontSize: 10,
+                            color: "rgba(255,255,255,0.4)",
+                          }}
+                        >
+                          {label}
+                        </span>
+                        <span
+                          style={{
+                            fontFamily: "var(--font-mono)",
+                            fontSize: 10,
+                            color,
+                          }}
+                        >
+                          {used.toLocaleString()} / {max.toLocaleString()}
+                        </span>
+                      </div>
+                      <UsageBar
+                        pct={max > 0 ? (used / max) * 100 : 0}
+                        color={color}
+                      />
+                    </div>
+                  ))}
                 </div>
-                <p className="text-brand-muted text-sm mb-6 max-w-xl">
-                  Currently on the{" "}
-                  <span className="text-brand-primary font-bold">
-                    {currentPlanName}
-                  </span>{" "}
-                  plan.
+              </div>
+            </div>
+          )}
+
+          {/* ── USERS ── */}
+          {tab === "users" && (
+            <div className="pd-section">
+              <SectionHeader
+                title="Users"
+                sub="All registered Hermes users under this project"
+              />
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3,1fr)",
+                  gap: 12,
+                  marginBottom: 24,
+                }}
+              >
+                {[
+                  {
+                    label: "Total Users",
+                    value: totalUsers,
+                    icon: <Users size={14} />,
+                    color: "#39ff14",
+                  },
+                  {
+                    label: "Active Now",
+                    value: activeUsers,
+                    icon: <Radio size={14} />,
+                    color: "#00c8ff",
+                  },
+                  {
+                    label: "Rooms Open",
+                    value: totalRooms,
+                    icon: <MessageSquare size={14} />,
+                    color: "#a78bfa",
+                  },
+                ].map(({ label, value, icon, color }) => (
+                  <div
+                    key={label}
+                    style={{
+                      background: "var(--brand-card)",
+                      border: "1px solid rgba(255,255,255,0.06)",
+                      borderRadius: 10,
+                      padding: "16px 20px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: 8,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: 9,
+                          color: "rgba(255,255,255,0.3)",
+                          letterSpacing: "0.2em",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {label}
+                      </span>
+                      <span style={{ color: "rgba(255,255,255,0.2)" }}>
+                        {icon}
+                      </span>
+                    </div>
+                    <span
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: 24,
+                        fontWeight: 800,
+                        color,
+                      }}
+                    >
+                      {value.toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div
+                style={{
+                  background: "var(--brand-card)",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                  borderRadius: 12,
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    padding: "12px 20px",
+                    borderBottom: "1px solid rgba(255,255,255,0.05)",
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr 1fr 1fr",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 9,
+                    color: "rgba(255,255,255,0.25)",
+                    letterSpacing: "0.2em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  <span>User</span>
+                  <span>Status</span>
+                  <span>Last Seen</span>
+                  <span>Messages</span>
+                </div>
+                {(project.users ?? []).length === 0 ? (
+                  <div
+                    style={{
+                      padding: "40px 20px",
+                      textAlign: "center",
+                      fontFamily: "var(--font-mono)",
+                      fontSize: 11,
+                      color: "rgba(255,255,255,0.2)",
+                      letterSpacing: "0.15em",
+                    }}
+                  >
+                    No users yet — users appear here once they connect via the
+                    SDK
+                  </div>
+                ) : (
+                  (project.users ?? []).map((u: any, i: number) => (
+                    <div
+                      key={i}
+                      className="pd-row"
+                      style={{
+                        padding: "12px 20px",
+                        borderBottom: "1px solid rgba(255,255,255,0.03)",
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr 1fr 1fr",
+                        alignItems: "center",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: 6,
+                            background: "rgba(57,255,20,0.1)",
+                            border: "1px solid rgba(57,255,20,0.2)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontFamily: "var(--font-mono)",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: "#39ff14",
+                          }}
+                        >
+                          {u.displayName?.[0]?.toUpperCase() ?? "?"}
+                        </div>
+                        <span
+                          style={{
+                            fontFamily: "var(--font-mono)",
+                            fontSize: 12,
+                            color: "#d0d0d0",
+                          }}
+                        >
+                          {u.displayName}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: "50%",
+                            background: u.isOnline
+                              ? "#39ff14"
+                              : "rgba(255,255,255,0.2)",
+                            boxShadow: u.isOnline ? "0 0 6px #39ff14" : "none",
+                          }}
+                        />
+                        <span
+                          style={{
+                            fontFamily: "var(--font-mono)",
+                            fontSize: 10,
+                            color: u.isOnline
+                              ? "#39ff14"
+                              : "rgba(255,255,255,0.3)",
+                          }}
+                        >
+                          {u.isOnline ? "Online" : "Offline"}
+                        </span>
+                      </div>
+                      <span
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: 10,
+                          color: "rgba(255,255,255,0.3)",
+                        }}
+                      >
+                        {u.lastSeen
+                          ? new Date(u.lastSeen).toLocaleString()
+                          : "—"}
+                      </span>
+                      <span
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: 11,
+                          color: "rgba(255,255,255,0.5)",
+                        }}
+                      >
+                        {u.messageCount ?? "—"}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── CREDENTIALS ── */}
+          {tab === "credentials" && (
+            <div className="pd-section">
+              <SectionHeader
+                title="Credentials"
+                sub="Keep your API secret secure — never expose it client-side"
+              />
+              <div
+                style={{
+                  background: "var(--brand-card)",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                  borderRadius: 12,
+                  padding: 28,
+                  marginBottom: 16,
+                }}
+              >
+                <CopyField label="Project ID" value={project.projectId} />
+                <CopyField label="API Key" value={project.apiKey} />
+                <CopyField label="API Secret" value={project.secret} masked />
+                <CopyField label="Endpoint" value={project.endpoint} />
+                <CopyField label="Region" value={project.region} />
+              </div>
+
+              <div
+                style={{
+                  padding: "14px 18px",
+                  background: "rgba(240,165,0,0.06)",
+                  border: "1px solid rgba(240,165,0,0.2)",
+                  borderRadius: 8,
+                  display: "flex",
+                  gap: 12,
+                  alignItems: "flex-start",
+                }}
+              >
+                <AlertTriangle
+                  size={14}
+                  style={{ color: "#f0a500", flexShrink: 0, marginTop: 1 }}
+                />
+                <span
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 11,
+                    color: "rgba(240,165,0,0.8)",
+                    lineHeight: 1.6,
+                  }}
+                >
+                  The API Secret is shown once. Rotate it in Settings if
+                  compromised. Never commit secrets to version control.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* ── SETTINGS ── */}
+          {tab === "settings" && (
+            <div className="pd-section">
+              <SectionHeader
+                title="Settings"
+                sub="Manage your project configuration"
+              />
+
+              {/* Plan */}
+              <SettingsCard title="Subscription Plan" icon={<Zap size={16} />}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: 13,
+                        color: "#39ff14",
+                        fontWeight: 700,
+                        marginBottom: 4,
+                      }}
+                    >
+                      {planName.toUpperCase()}
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: 11,
+                        color: "rgba(255,255,255,0.35)",
+                      }}
+                    >
+                      {planPrice > 0 ? `$${planPrice}/month` : "Free tier"}
+                      {" · "}
+                      {dailyLimit.toLocaleString()} daily tokens
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => navigate("/pricing")}
+                    style={{
+                      background: "#39ff14",
+                      color: "#000",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: "8px 20px",
+                      borderRadius: 8,
+                      fontFamily: "var(--font-mono)",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: "0.1em",
+                    }}
+                  >
+                    UPGRADE
+                  </button>
+                </div>
+              </SettingsCard>
+
+              {/* Security */}
+              <SettingsCard title="Security" icon={<Shield size={16} />}>
+                <div
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 11,
+                    color: "rgba(255,255,255,0.4)",
+                    marginBottom: 14,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  Rotate your API secret if it has been compromised or exposed.
+                  All existing connections will be invalidated immediately.
+                </div>
+                <button
+                  style={{
+                    background: "transparent",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    color: "rgba(255,255,255,0.6)",
+                    cursor: "pointer",
+                    padding: "8px 18px",
+                    borderRadius: 8,
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    letterSpacing: "0.1em",
+                  }}
+                >
+                  ROTATE SECRET
+                </button>
+              </SettingsCard>
+
+              {/* Danger zone */}
+              <div
+                style={{
+                  background: "rgba(255,68,68,0.04)",
+                  border: "1px solid rgba(255,68,68,0.15)",
+                  borderRadius: 12,
+                  padding: 24,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 8,
+                  }}
+                >
+                  <AlertTriangle size={15} style={{ color: "#ff4444" }} />
+                  <span
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: "#ff4444",
+                      letterSpacing: "0.15em",
+                    }}
+                  >
+                    DANGER ZONE
+                  </span>
+                </div>
+                <p
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 11,
+                    color: "rgba(255,255,255,0.35)",
+                    marginBottom: 16,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  Permanently deletes this project and all associated data. This
+                  action cannot be undone.
                 </p>
                 <button
-                  onClick={() => navigate("/pricing")}
-                  className="bg-brand-primary text-black px-8 py-3 rounded-xl font-black uppercase text-xs tracking-widest hover:brightness-110 transition-all"
+                  onClick={() => setDeleteModal(true)}
+                  style={{
+                    background: "rgba(255,68,68,0.1)",
+                    border: "1px solid rgba(255,68,68,0.3)",
+                    color: "#ff4444",
+                    cursor: "pointer",
+                    padding: "8px 20px",
+                    borderRadius: 8,
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    letterSpacing: "0.1em",
+                  }}
                 >
-                  Change Plan
-                </button>
-              </div>
-              <div className="bg-red-500/5 border border-red-500/20 rounded-brand p-8">
-                <button
-                  onClick={() => setShowDeleteModal(true)}
-                  className="bg-red-600 hover:bg-red-500 text-white px-8 py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-all"
-                >
-                  Terminate Project
+                  TERMINATE PROJECT
                 </button>
               </div>
             </div>
           )}
         </div>
-      </div>
+      </main>
 
-      {/* DELETE MODAL (Same logic as before) */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 backdrop-blur-md bg-black/90">
-          <div className="bg-brand-card border border-red-500/30 w-full max-w-md rounded-brand p-8 shadow-2xl animate-in zoom-in duration-200">
-            <h2 className="text-2xl font-black text-red-500 uppercase mb-4">
-              Confirm Deletion
-            </h2>
-            <p className="text-brand-muted text-sm mb-6">
+      {/* ── Delete modal ── */}
+      {deleteModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 120,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(0,0,0,0.85)",
+            backdropFilter: "blur(8px)",
+            padding: 16,
+          }}
+        >
+          <div
+            style={{
+              background: "var(--brand-card)",
+              border: "1px solid rgba(255,68,68,0.25)",
+              borderRadius: 16,
+              padding: 32,
+              width: "100%",
+              maxWidth: 440,
+            }}
+          >
+            <div
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 16,
+                fontWeight: 800,
+                color: "#ff4444",
+                letterSpacing: "0.1em",
+                marginBottom: 8,
+              }}
+            >
+              TERMINATE PROJECT
+            </div>
+            <p
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 11,
+                color: "rgba(255,255,255,0.4)",
+                marginBottom: 20,
+                lineHeight: 1.7,
+              }}
+            >
               Type{" "}
-              <span className="text-white font-black">
-                "{project.projectName}"
-              </span>{" "}
-              to delete:
+              <strong style={{ color: "#fff" }}>{project.projectName}</strong>{" "}
+              to confirm deletion. All data will be permanently erased.
             </p>
             <input
               type="text"
               value={deleteConfirm}
               onChange={(e) => setDeleteConfirm(e.target.value)}
-              className="w-full bg-brand-bg border border-brand-border rounded-xl px-4 py-4 text-white mb-6 focus:ring-1 focus:ring-red-500 outline-none font-mono"
+              placeholder={project.projectName}
+              style={{
+                width: "100%",
+                background: "rgba(0,0,0,0.3)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: 8,
+                padding: "10px 14px",
+                fontFamily: "var(--font-mono)",
+                fontSize: 12,
+                color: "#fff",
+                outline: "none",
+                marginBottom: 20,
+                boxSizing: "border-box",
+              }}
             />
-            <div className="flex gap-4">
+            <div style={{ display: "flex", gap: 10 }}>
               <button
-                onClick={() => setShowDeleteModal(false)}
-                className="flex-1 bg-brand-border text-white py-3 rounded-xl font-bold"
+                onClick={() => {
+                  setDeleteModal(false);
+                  setDeleteConfirm("");
+                }}
+                style={{
+                  flex: 1,
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  color: "rgba(255,255,255,0.6)",
+                  cursor: "pointer",
+                  padding: "10px",
+                  borderRadius: 8,
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 11,
+                  fontWeight: 600,
+                }}
               >
-                Cancel
+                CANCEL
               </button>
               <button
-                disabled={deleteConfirm !== project.projectName}
+                disabled={deleteConfirm !== project.projectName || deleting}
                 onClick={handleDelete}
-                className="flex-1 bg-red-600 disabled:opacity-20 text-white py-3 rounded-xl font-black uppercase text-xs tracking-widest"
+                style={{
+                  flex: 1,
+                  background:
+                    deleteConfirm === project.projectName
+                      ? "rgba(255,68,68,0.2)"
+                      : "rgba(255,68,68,0.05)",
+                  border: `1px solid ${
+                    deleteConfirm === project.projectName
+                      ? "rgba(255,68,68,0.5)"
+                      : "rgba(255,68,68,0.15)"
+                  }`,
+                  color:
+                    deleteConfirm === project.projectName
+                      ? "#ff4444"
+                      : "rgba(255,68,68,0.3)",
+                  cursor:
+                    deleteConfirm === project.projectName
+                      ? "pointer"
+                      : "not-allowed",
+                  padding: "10px",
+                  borderRadius: 8,
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                }}
               >
-                Delete
+                {deleting ? (
+                  <Loader2
+                    size={12}
+                    style={{ animation: "spin 1s linear infinite" }}
+                  />
+                ) : null}
+                DELETE
               </button>
             </div>
           </div>
@@ -264,74 +1575,193 @@ const ProjectDetail = () => {
   );
 };
 
-// --- SUBSIDIARY COMPONENTS ---
-
-const StatCard = ({ title, value, detail }: any) => (
-  <div className="bg-brand-card border border-brand-border p-6 rounded-brand shadow-xl">
-    <p className="text-[10px] font-black text-brand-muted uppercase tracking-[0.2em] mb-3">
+// ── Helper sub-components ─────────────────────────────────────────────────────
+const SectionHeader = ({ title, sub }: { title: string; sub?: string }) => (
+  <div style={{ marginBottom: 24 }}>
+    <h2
+      style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: 18,
+        fontWeight: 800,
+        color: "#f0f0f0",
+        letterSpacing: "0.05em",
+        margin: 0,
+      }}
+    >
       {title}
-    </p>
-    <p className="text-3xl font-black text-white mb-1 tracking-tighter">
-      {value}
-    </p>
-    <p className="text-xs text-brand-primary font-bold">{detail}</p>
+    </h2>
+    {sub && (
+      <p
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          color: "rgba(255,255,255,0.3)",
+          marginTop: 4,
+          letterSpacing: "0.05em",
+        }}
+      >
+        {sub}
+      </p>
+    )}
   </div>
 );
 
-const TabBtn = ({ active, onClick, icon, label }: any) => (
-  <button
-    onClick={onClick}
-    className={`flex items-center gap-2 px-6 py-2.5 rounded-lg transition-all font-black uppercase text-[10px] tracking-widest ${
-      active
-        ? "bg-brand-primary text-black shadow-lg"
-        : "text-brand-muted hover:text-white"
-    }`}
+const SettingsCard = ({
+  title,
+  icon,
+  children,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) => (
+  <div
+    style={{
+      background: "var(--brand-card)",
+      border: "1px solid rgba(255,255,255,0.06)",
+      borderRadius: 12,
+      padding: 24,
+      marginBottom: 12,
+    }}
   >
-    {icon} {label}
-  </button>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: 16,
+      }}
+    >
+      <span style={{ color: "rgba(255,255,255,0.4)" }}>{icon}</span>
+      <span
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 12,
+          fontWeight: 700,
+          color: "#d0d0d0",
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+        }}
+      >
+        {title}
+      </span>
+    </div>
+    {children}
+  </div>
 );
 
-const JsonConfigBox = ({ data }: { data: any }) => {
-  const [copied, setCopied] = useState(false);
-  const [showSecret, setShowSecret] = useState(false);
-  const displayData = {
-    ...data,
-    secret: showSecret ? data.secret : "••••••••••••••••••••••••••••••••",
-  };
-  const jsonString = JSON.stringify(displayData, null, 2);
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(JSON.stringify(data, null, 2));
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+const ChartCard = ({
+  title,
+  data,
+  color,
+  value,
+}: {
+  title: string;
+  data: number[];
+  color: string;
+  value: string;
+}) => {
+  const max = Math.max(...data, 1);
+  const W = 400,
+    H = 80;
+  const pts =
+    data.length > 1
+      ? data
+          .map(
+            (v, i) =>
+              `${(i / (data.length - 1)) * W},${H - (v / max) * H * 0.85}`,
+          )
+          .join(" ")
+      : "";
 
   return (
-    <div className="relative group bg-[#0a0a0a] border border-brand-border rounded-2xl overflow-hidden shadow-2xl">
-      <div className="flex items-center justify-between px-4 py-3 bg-brand-card/50 border-b border-brand-border">
-        <div className="flex gap-4">
-          <button
-            onClick={() => setShowSecret(!showSecret)}
-            className="text-[10px] font-black uppercase tracking-widest text-brand-muted hover:text-brand-primary transition-colors"
-          >
-            {showSecret ? "Mask Secret" : "Reveal Secret"}
-          </button>
-          <button
-            onClick={copyToClipboard}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand-primary/10 border border-brand-primary/20 text-brand-primary hover:bg-brand-primary hover:text-black transition-all"
-          >
-            {copied ? <Check size={14} /> : <Copy size={14} />}
-            <span className="text-[10px] font-black uppercase tracking-widest">
-              {copied ? "Copied" : "Copy"}
-            </span>
-          </button>
+    <div
+      style={{
+        background: "var(--brand-card)",
+        border: "1px solid rgba(255,255,255,0.06)",
+        borderRadius: 12,
+        padding: 20,
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          marginBottom: 12,
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10,
+            color: "rgba(255,255,255,0.35)",
+            letterSpacing: "0.2em",
+            textTransform: "uppercase",
+          }}
+        >
+          {title}
+        </div>
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 13,
+            fontWeight: 700,
+            color,
+          }}
+        >
+          {value}
         </div>
       </div>
-      <div className="p-6 overflow-x-auto">
-        <pre className="font-mono text-sm leading-relaxed text-brand-primary">
-          {jsonString}
-        </pre>
-      </div>
+      {data.length > 1 ? (
+        <svg
+          width="100%"
+          height={H}
+          viewBox={`0 0 ${W} ${H}`}
+          preserveAspectRatio="none"
+        >
+          <defs>
+            <linearGradient
+              id={`cg-${color.replace("#", "")}`}
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="1"
+            >
+              <stop offset="0%" stopColor={color} stopOpacity="0.2" />
+              <stop offset="100%" stopColor={color} stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <polyline
+            fill={`url(#cg-${color.replace("#", "")})`}
+            stroke="none"
+            points={`0,${H} ${pts} ${W},${H}`}
+          />
+          <polyline
+            fill="none"
+            stroke={color}
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            points={pts}
+          />
+        </svg>
+      ) : (
+        <div
+          style={{
+            height: H,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontFamily: "var(--font-mono)",
+            fontSize: 10,
+            color: "rgba(255,255,255,0.15)",
+          }}
+        >
+          Collecting data...
+        </div>
+      )}
     </div>
   );
 };

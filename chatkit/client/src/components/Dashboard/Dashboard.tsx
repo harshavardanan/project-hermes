@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   LayoutDashboard,
   Settings,
@@ -9,45 +9,17 @@ import {
   Check,
   Loader2,
 } from "lucide-react";
-import Projects from "./Projects";
+import Projects from "../Projects";
+import SystemStatus from "./SystemStatus";
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("Projects");
   const [showForm, setShowForm] = useState(false);
-
-  // Form & Loading States
   const [projectName, setProjectName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [newProjectData, setNewProjectData] = useState<any>(null);
   const [copied, setCopied] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-
-  // System Status States
-  const [engineHealth, setEngineHealth] = useState<any>(null);
-  const [engineMetrics, setEngineMetrics] = useState<any>(null);
-
-  // Fetch Health & Metrics when on the System Status tab
-  useEffect(() => {
-    if (activeTab === "System Status") {
-      const fetchStatus = async () => {
-        try {
-          const healthRes = await fetch("http://localhost:8080/hermes/health");
-          const metricsRes = await fetch(
-            "http://localhost:8080/hermes/metrics",
-          );
-
-          if (healthRes.ok) setEngineHealth(await healthRes.json());
-          if (metricsRes.ok) setEngineMetrics(await metricsRes.json());
-        } catch (error) {
-          console.error("Failed to fetch engine status", error);
-        }
-      };
-
-      fetchStatus();
-      const interval = setInterval(fetchStatus, 10000);
-      return () => clearInterval(interval);
-    }
-  }, [activeTab]);
 
   const handleCreateProject = async () => {
     if (!projectName.trim()) return;
@@ -59,7 +31,6 @@ const Dashboard = () => {
         body: JSON.stringify({ projectName }),
         credentials: "include",
       });
-
       if (!response.ok) throw new Error("Failed to create project");
       const data = await response.json();
       setNewProjectData(data);
@@ -97,7 +68,7 @@ const hermesConfig = {
 
   return (
     <div className="flex min-h-screen bg-brand-bg text-brand-text">
-      {/* --- SIDEBAR --- */}
+      {/* ── Sidebar ── */}
       <aside className="w-64 border-r border-brand-border bg-brand-bg fixed h-full pt-20 z-40">
         <div className="px-4 space-y-2 mt-4">
           <SidebarItem
@@ -129,70 +100,14 @@ const hermesConfig = {
         </div>
       </aside>
 
-      {/* --- MAIN CONTENT --- */}
+      {/* ── Main ── */}
       <main className="flex-1 ml-64 pt-24 p-10">
         <div className="max-w-5xl mx-auto">
           {activeTab === "Projects" && (
             <Projects key={refreshKey} onOpenForm={() => setShowForm(true)} />
           )}
 
-          {activeTab === "System Status" && (
-            <div className="animate-in fade-in duration-500">
-              <h1 className="text-3xl font-bold text-white tracking-tight mb-6">
-                Hermes Engine Status
-              </h1>
-
-              {/* STATUS CARDS */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-brand-card p-6 rounded-2xl border border-brand-border">
-                  <h3 className="text-brand-muted font-bold mb-2">
-                    Engine Health
-                  </h3>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={`w-3 h-3 rounded-full ${engineHealth?.status === "ok" ? "bg-green-500" : "bg-red-500 animate-pulse"}`}
-                    ></div>
-                    <span className="text-2xl font-bold text-white capitalize">
-                      {engineHealth?.status || "Offline"}
-                    </span>
-                  </div>
-                  <p className="text-sm text-brand-muted mt-2">
-                    Uptime:{" "}
-                    {engineHealth?.uptime
-                      ? Math.floor(engineHealth.uptime / 60)
-                      : 0}{" "}
-                    minutes
-                  </p>
-                </div>
-
-                <div className="bg-brand-card p-6 rounded-2xl border border-brand-border">
-                  <h3 className="text-brand-muted font-bold mb-2">
-                    Resource Usage
-                  </h3>
-                  <p className="text-2xl font-bold text-white">
-                    {engineHealth?.memory?.used || 0} MB
-                  </p>
-                  <p className="text-sm text-brand-muted mt-2">
-                    CPU: {engineHealth?.cpu || 0}% | Total RAM:{" "}
-                    {engineHealth?.memory?.total || 0} MB
-                  </p>
-                </div>
-
-                <div className="bg-brand-card p-6 rounded-2xl border border-brand-border">
-                  <h3 className="text-brand-muted font-bold mb-2">
-                    Real-time Metrics
-                  </h3>
-                  <p className="text-2xl font-bold text-brand-primary">
-                    {engineMetrics?.activeConnections || 0} Active Users
-                  </p>
-                  <p className="text-sm text-brand-muted mt-2">
-                    {engineMetrics?.totalMessages || 0} Total Msgs |{" "}
-                    {engineMetrics?.messagesPerSecond || 0} msg/s
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+          {activeTab === "System Status" && <SystemStatus />}
 
           {activeTab === "Settings" && (
             <div className="animate-in fade-in duration-500">
@@ -207,7 +122,7 @@ const hermesConfig = {
         </div>
       </main>
 
-      {/* --- FIREBASE-STYLE MODAL --- */}
+      {/* ── Create Project Modal ── */}
       {showForm && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
           <div className="bg-brand-card border border-brand-border w-full max-w-2xl p-8 rounded-3xl relative shadow-2xl animate-in zoom-in-95 duration-200">
@@ -219,7 +134,6 @@ const hermesConfig = {
             </button>
 
             {!newProjectData ? (
-              /* STEP 1: ENTER NAME */
               <div className="space-y-6">
                 <div>
                   <h2 className="text-3xl font-bold text-white mb-2">
@@ -230,7 +144,6 @@ const hermesConfig = {
                     credentials.
                   </p>
                 </div>
-
                 <div>
                   <label className="block text-sm font-bold text-brand-muted mb-3">
                     Project Name
@@ -242,9 +155,11 @@ const hermesConfig = {
                     onChange={(e) => setProjectName(e.target.value)}
                     placeholder="e.g. My Awesome Chat App"
                     className="w-full bg-brand-bg border-2 border-brand-border rounded-2xl px-6 py-4 text-xl focus:border-brand-primary outline-none text-white transition-all"
+                    onKeyDown={(e) =>
+                      e.key === "Enter" && handleCreateProject()
+                    }
                   />
                 </div>
-
                 <button
                   onClick={handleCreateProject}
                   disabled={isCreating || !projectName.trim()}
@@ -260,7 +175,6 @@ const hermesConfig = {
                 </button>
               </div>
             ) : (
-              /* STEP 2: SUCCESS & CODE SNIPPET */
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-8 h-8 bg-brand-primary rounded-full flex items-center justify-center text-black font-bold text-sm">
@@ -273,7 +187,6 @@ const hermesConfig = {
                 <p className="text-brand-muted mb-6">
                   Use this configuration to initialize your Hermes SDK client.
                 </p>
-
                 <div className="relative group">
                   <pre className="bg-black/50 p-6 rounded-2xl border border-brand-border overflow-x-auto text-sm font-mono text-brand-primary leading-relaxed">
                     <code>{configSnippet}</code>
@@ -285,14 +198,12 @@ const hermesConfig = {
                     {copied ? <Check size={18} /> : <Copy size={18} />}
                   </button>
                 </div>
-
                 <div className="mt-6 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
                   <p className="text-xs text-yellow-500 font-medium italic">
                     Note: This is the only time the API Secret will be
                     displayed. Please save it securely.
                   </p>
                 </div>
-
                 <button
                   onClick={closeAndRefresh}
                   className="mt-8 w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-gray-200 transition-all"

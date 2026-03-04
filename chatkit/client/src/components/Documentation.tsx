@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+import Image from "@tiptap/extension-image";
 import { common, createLowlight } from "lowlight";
 import { Search, ChevronRight, X } from "lucide-react";
 
@@ -35,18 +36,22 @@ const DocumentationPage: React.FC = () => {
     new Set(),
   );
 
-  // ── Editor ───────────────────────────────────────────────────────────────
+  // ── Editor (read-only) ───────────────────────────────────────────────────
   const editor = useEditor({
     editable: false,
     content: "",
     extensions: [
       StarterKit.configure({ codeBlock: false }),
       CodeBlockLowlight.configure({ lowlight }),
+      Image.configure({
+        inline: false,
+        HTMLAttributes: { class: "doc-image" },
+      }),
     ],
     immediatelyRender: false,
   });
 
-  // ── Fetch list ───────────────────────────────────────────────────────────
+  // ── Fetch doc list ───────────────────────────────────────────────────────
   useEffect(() => {
     fetch(`${API}/list`)
       .then((res) => res.json())
@@ -208,7 +213,6 @@ const DocumentationPage: React.FC = () => {
 
           {Object.entries(groupedDocs).map(([cat, catDocs]) => (
             <div key={cat} className="mb-3">
-              {/* Category header */}
               <button
                 onClick={() => toggleCategory(cat)}
                 className="w-full flex items-center justify-between px-2 py-1.5 mb-1 text-[10px] font-mono font-bold uppercase tracking-widest hover:opacity-80 transition-opacity"
@@ -221,7 +225,6 @@ const DocumentationPage: React.FC = () => {
                 />
               </button>
 
-              {/* Docs */}
               {!collapsedCategories.has(cat) &&
                 catDocs.map((item) => (
                   <Link
@@ -255,7 +258,7 @@ const DocumentationPage: React.FC = () => {
 
       {/* ── Main Content ─────────────────────────────────────────────────── */}
       <main
-        className="flex-1 overflow-y-auto bg-[#050505]"
+        className="flex-1 overflow-y-auto"
         style={{ backgroundColor: "var(--brand-bg)" }}
       >
         <div className="max-w-3xl mx-auto px-8 lg:px-16 pt-10 pb-24">
@@ -276,7 +279,7 @@ const DocumentationPage: React.FC = () => {
             </div>
           )}
 
-          {/* Content Wrapper */}
+          {/* Content */}
           {!loading && !notFound && docData && (
             <>
               {/* Breadcrumb */}
@@ -323,7 +326,7 @@ const DocumentationPage: React.FC = () => {
             </>
           )}
 
-          {/* Editor Area */}
+          {/* Editor */}
           <div
             className="prose prose-invert max-w-none"
             style={{
@@ -336,29 +339,153 @@ const DocumentationPage: React.FC = () => {
       </main>
 
       <style>{`
+        /* ── Base ── */
         .ProseMirror { outline: none; }
-        .ProseMirror h1 { font-size: 2.5rem; font-weight: 800; color: var(--brand-text); margin-top: 3rem; margin-bottom: 1rem; }
-        .ProseMirror h2 { font-size: 1.8rem; color: var(--brand-text); margin-top: 3.5rem; margin-bottom: 1.25rem; font-weight: 800; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem; }
-        .ProseMirror p { font-size: 1.1rem; line-height: 1.8; color: #a1a1aa; margin-bottom: 1.5rem; }
-        .ProseMirror ul { padding-left: 1.5rem; list-style: disc; color: #a1a1aa; margin-bottom: 1.5rem; }
-        .ProseMirror ul li { margin-bottom: 0.4rem; }
+        .ProseMirror h1 { font-size: 2.5rem; font-weight: 800; color: var(--brand-text); margin-top: 3rem; margin-bottom: 1rem; line-height: 1.15; }
+        .ProseMirror h2 { font-size: 1.8rem; font-weight: 800; color: var(--brand-text); margin-top: 3.5rem; margin-bottom: 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem; }
+        .ProseMirror h3 { font-size: 1.3rem; font-weight: 700; color: var(--brand-text); margin-top: 2.5rem; margin-bottom: 1rem; }
+        .ProseMirror p  { font-size: 1.05rem; line-height: 1.85; color: #a1a1aa; margin-bottom: 1.25rem; }
+        .ProseMirror ul { padding-left: 1.5rem; list-style: disc;    color: #a1a1aa; margin-bottom: 1.5rem; }
+        .ProseMirror ol { padding-left: 1.5rem; list-style: decimal; color: #a1a1aa; margin-bottom: 1.5rem; }
+        .ProseMirror li { margin-bottom: 0.4rem; line-height: 1.7; }
         .ProseMirror strong { color: #e4e4e7; }
-        .ProseMirror em { color: #d4d4d8; font-style: italic; }
-        .ProseMirror s { color: #71717a; }
-        .ProseMirror pre { background: #000 !important; border: 1px solid rgba(255,255,255,0.05); padding: 1.25rem; border-radius: 6px; margin: 2rem 0; font-family: 'JetBrains Mono', monospace; overflow-x: auto; }
-        .ProseMirror code { color: var(--brand-primary); background: rgba(57, 255, 20, 0.05); padding: 0.2rem 0.4rem; border-radius: 3px; font-size: 0.85em; }
-        .ProseMirror pre code { background: none; padding: 0; color: inherit; }
-        
-        /* Highlighting tied to theme */
-        .hljs-keyword { color: #ff79c6; }
-        .hljs-string { color: #f1fa8c; }
-        .hljs-function { color: var(--brand-primary); }
-        .hljs-comment { color: #6272a4; font-style: italic; }
-        .hljs-number { color: #bd93f9; }
-        .hljs-operator { color: #ff79c6; }
+        .ProseMirror em     { color: #d4d4d8; font-style: italic; }
+        .ProseMirror s      { color: #71717a; }
+        .ProseMirror hr     { border: none; border-top: 1px solid rgba(255,255,255,0.07); margin: 2.5rem 0; }
+
+        /* ── Blockquote ── */
+        .ProseMirror blockquote {
+          border-left: 3px solid var(--brand-primary);
+          padding: 0.75rem 1.25rem; margin: 1.5rem 0;
+          background: rgba(57,255,20,0.04); border-radius: 0 8px 8px 0;
+          color: #a1a1aa; font-style: italic;
+        }
+
+        /* ── Inline code ── */
+        .ProseMirror code {
+          color: var(--brand-primary);
+          background: rgba(57,255,20,0.07);
+          padding: 0.18rem 0.45rem; border-radius: 5px;
+          font-size: 0.85em;
+          font-family: 'JetBrains Mono', 'Fira Code', monospace;
+          border: 1px solid rgba(57,255,20,0.15);
+        }
+
+        /* ── Code blocks ── */
+        .ProseMirror pre {
+          position: relative;
+          background: #0d1117 !important;
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 12px; margin: 2rem 0;
+          overflow: hidden;
+          box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+        }
+        /* traffic-light header */
+        .ProseMirror pre::before {
+          content: "● ● ●"; display: block;
+          padding: 10px 16px 8px; font-size: 10px; letter-spacing: 4px;
+          color: rgba(255,255,255,0.15);
+          border-bottom: 1px solid rgba(255,255,255,0.05);
+          background: rgba(255,255,255,0.02); font-family: monospace;
+        }
+        .ProseMirror pre code {
+          background: none !important; border: none !important; padding: 0 !important;
+          color: #e6edf3;
+          font-family: 'JetBrains Mono', 'Fira Code', monospace;
+          font-size: 0.88rem; line-height: 1.75;
+          display: block; padding: 1rem 1.25rem 1.25rem !important;
+          overflow-x: auto;
+        }
+
+        /* copy button injected by CopyButtonInjector */
+        .copy-code-btn {
+          position: absolute; top: 6px; right: 10px;
+          background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 6px; padding: 3px 8px; cursor: pointer;
+          font-size: 10px; font-family: 'JetBrains Mono', monospace;
+          color: rgba(255,255,255,0.35);
+          display: flex; align-items: center; gap: 4px;
+          transition: all 0.2s; opacity: 0;
+        }
+        .ProseMirror pre:hover .copy-code-btn { opacity: 1; }
+        .copy-code-btn:hover  { background: rgba(57,255,20,0.1); border-color: rgba(57,255,20,0.3); color: var(--brand-primary); }
+        .copy-code-btn.copied { background: rgba(57,255,20,0.12); border-color: rgba(57,255,20,0.4); color: var(--brand-primary); opacity: 1; }
+
+        /* ── Images — centered, styled ── */
+        .ProseMirror img.doc-image,
+        .ProseMirror img {
+          display: block;
+          margin: 2rem auto;
+          max-width: 100%;
+          height: auto;
+          border-radius: 10px;
+          border: 1px solid rgba(255,255,255,0.08);
+          box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+          transition: box-shadow 0.2s, transform 0.2s;
+        }
+        .ProseMirror img:hover {
+          box-shadow: 0 12px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.1);
+          transform: translateY(-1px);
+        }
+
+        /* ── Syntax highlighting ── */
+        .hljs-keyword, .hljs-selector-tag, .hljs-built_in { color: #ff79c6; }
+        .hljs-string, .hljs-attr    { color: #f1fa8c; }
+        .hljs-function, .hljs-title { color: var(--brand-primary); }
+        .hljs-comment, .hljs-quote  { color: #6272a4; font-style: italic; }
+        .hljs-number, .hljs-literal { color: #bd93f9; }
+        .hljs-variable, .hljs-template-variable { color: #ffb86c; }
+        .hljs-type, .hljs-class     { color: #8be9fd; }
+        .hljs-operator, .hljs-punctuation { color: #a0aec0; }
+        .hljs-tag    { color: #ff5555; }
+        .hljs-params { color: #ffb86c; }
+
+        /* ── Scrollbar ── */
+        .ProseMirror ::-webkit-scrollbar { height: 4px; }
+        .ProseMirror ::-webkit-scrollbar-track { background: transparent; }
+        .ProseMirror ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
       `}</style>
+
+      <CopyButtonInjector />
     </div>
   );
+};
+
+// ── Copy Button Injector ──────────────────────────────────────────────────────
+const CopyButtonInjector = () => {
+  useEffect(() => {
+    const inject = (pre: HTMLElement) => {
+      if (pre.querySelector(".copy-code-btn")) return;
+      const btn = document.createElement("button");
+      btn.className = "copy-code-btn";
+      btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg> Copy`;
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const code = pre.querySelector("code")?.textContent ?? "";
+        navigator.clipboard.writeText(code).then(() => {
+          btn.className = "copy-code-btn copied";
+          btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
+          setTimeout(() => {
+            btn.className = "copy-code-btn";
+            btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg> Copy`;
+          }, 2000);
+        });
+      });
+      pre.appendChild(btn);
+    };
+
+    document.querySelectorAll<HTMLElement>(".ProseMirror pre").forEach(inject);
+    const observer = new MutationObserver(() => {
+      document
+        .querySelectorAll<HTMLElement>(".ProseMirror pre")
+        .forEach(inject);
+    });
+    const pm = document.querySelector(".ProseMirror");
+    if (pm) observer.observe(pm, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
+  return null;
 };
 
 export default DocumentationPage;
