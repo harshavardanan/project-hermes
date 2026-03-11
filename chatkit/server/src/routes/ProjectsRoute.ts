@@ -2,6 +2,9 @@ import express from "express";
 import type { Request, Response } from "express";
 import { Project } from "../models/Projects.js";
 import { Plan } from "../models/Plans.js";
+import { HermesUser } from "../../hermes-engine/src/models/HermesUser.js"; // 🚨 Ensure this path matches your folder structure
+import { Room } from "../../hermes-engine/src/models/Room.js"; // 🚨 Ensure this path matches your folder structure
+import { Message } from "../../hermes-engine/src/models/Message.js"; // 🚨 Ensure this path matches your folder structure
 import crypto from "crypto";
 import { isAuthenticated } from "../middleware/auth.js";
 
@@ -13,7 +16,16 @@ router.use(isAuthenticated);
 router.get("/projects", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any)._id;
-    // We populate the plan here too so the dashboard list shows correct limits
+
+    // 🛡️ LAZY RESET: Reset tokens for dashboard list view
+    const todayStart = new Date();
+    todayStart.setUTCHours(0, 0, 0, 0);
+
+    await Project.updateMany(
+      { userId, "usage.lastResetDate": { $lt: todayStart } },
+      { $set: { "usage.dailyTokens": 0, "usage.lastResetDate": new Date() } },
+    );
+
     const projects = await Project.find({ userId })
       .populate("plan")
       .sort({ createdAt: -1 });
@@ -27,14 +39,73 @@ router.get("/projects", async (req: Request, res: Response) => {
 router.get("/projects/:id", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any)._id;
+
+    // 1. 🛡️ LAZY RESET
+    const todayStart = new Date();
+    todayStart.setUTCHours(0, 0, 0, 0);
+
+    await Project.updateOne(
+      {
+        _id: req.params.id,
+        userId,
+        "usage.lastResetDate": { $lt: todayStart },
+      },
+      { $set: { "usage.dailyTokens": 0, "usage.lastResetDate": new Date() } },
+    );
+
+    // 2. Fetch Project
     const project = await Project.findOne({
       _id: req.params.id,
       userId,
     }).populate("plan");
 
     if (!project) return res.status(404).json({ error: "Project not found" });
-    res.json(project);
+
+    const projectId = project._id;
+
+    // 3. 🚀 FETCH LIVE STATS for Overview Tab
+    const totalUsersCount = await HermesUser.countDocuments({ projectId });
+    const activeUsersCount = await HermesUser.countDocuments({
+      projectId,
+      isOnline: true,
+    });
+    const totalRoomsCount = await Room.countDocuments({
+      projectId,
+      isDeleted: false,
+    });
+
+    const rooms = await Room.find({ projectId }, { _id: 1 });
+    const roomIds = rooms.map((r) => r._id);
+    const totalMessagesCount = await Message.countDocuments({
+      roomId: { $in: roomIds },
+      isDeleted: false,
+    });
+
+    // 4. 👥 FETCH USERS LIST for Users Tab
+    const usersList = await HermesUser.find({ projectId })
+      .select("displayName isOnline lastSeen")
+      .sort({ lastSeen: -1 })
+      .limit(100);
+
+    // 5. ATTACH EVERYTHING TO RESPONSE
+    const projectData = project.toObject();
+
+    // Attach Stats
+    projectData.stats = {
+      totalUsers: totalUsersCount,
+      activeUsers: activeUsersCount,
+      totalRooms: totalRoomsCount,
+      totalMessages: totalMessagesCount,
+      avgLatency: 12, // Hardcoded simulation for UI
+      uptime: 99.9, // Hardcoded simulation for UI
+    };
+
+    // Attach Users List
+    projectData.users = usersList;
+
+    res.json(projectData);
   } catch (err) {
+    console.error("❌ Error fetching project details:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -69,7 +140,6 @@ router.post("/projects", async (req: Request, res: Response) => {
     });
 
     await newProject.save();
-    // Return the project with the plan details populated for the immediate UI update
     const populated = await newProject.populate("plan");
     res.status(201).json(populated);
   } catch (err: any) {
@@ -88,6 +158,8 @@ router.delete("/projects/:id", async (req: Request, res: Response) => {
 
     if (!deleteProject)
       return res.status(404).json({ error: "Project not found" });
+
+    // Optional: You could also delete associated HermesUsers, Rooms, and Messages here
 
     res.status(200).json({ message: "Project deleted successfully" });
   } catch (err: any) {
@@ -108,8 +180,6 @@ router.post(
       const now = new Date();
       const todayStart = new Date(now.setUTCHours(0, 0, 0, 0));
 
-      // This uses a MongoDB pipeline to check the date and increment OR reset tokens
-      // in a single, un-interruptible database operation.
       let project = await Project.findOneAndUpdate(
         {
           $or: [
@@ -125,8 +195,8 @@ router.post(
               "usage.dailyTokens": {
                 $cond: {
                   if: { $lt: ["$usage.lastResetDate", todayStart] },
-                  then: tokens, // Reset: it's a new day
-                  else: { $add: ["$usage.dailyTokens", tokens] }, // Increment: same day
+                  then: tokens,
+                  else: { $add: ["$usage.dailyTokens", tokens] },
                 },
               },
               "usage.totalTokensAllTime": {
@@ -137,15 +207,11 @@ router.post(
           },
         ],
         { new: true },
-      ).populate("plan"); // Populate so dashboard gets refreshed limit info too
+      ).populate("plan");
 
       if (!project) {
         return res.status(404).json({ error: "Project not found" });
       }
-
-      console.log(
-        `[Telemetry] ✅ ${project.projectName}: Daily ${project.usage.dailyTokens} | Total ${project.usage.totalTokensAllTime}`,
-      );
 
       res.status(200).json({
         success: true,

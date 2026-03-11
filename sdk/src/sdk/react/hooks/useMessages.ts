@@ -2,22 +2,17 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import type { HermesClient } from "../../core/HermesClient";
 import type { Message, SendMessageInput } from "../../types/index";
 
-// ── useMessages ───────────────────────────────────────────────────────────────
-// Manages messages for a single room.
-// Handles real-time updates, pagination, send, edit, delete.
-//
-// Usage:
-//   const { messages, sendMessage, loadMore, hasMore, loading } = useMessages(client, roomId);
-
 export const useMessages = (client: HermesClient, roomId: string | null) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [typingUsers, setTypingUsers] = useState<
+    { userId: string; displayName: string }[]
+  >([]);
   const oldestMessageId = useRef<string | undefined>(undefined);
 
-  // ── Load initial history ──────────────────────────────────────────────────
   useEffect(() => {
     if (!roomId || !client.isConnected) return;
 
@@ -38,14 +33,12 @@ export const useMessages = (client: HermesClient, roomId: string | null) => {
       .finally(() => setLoading(false));
   }, [roomId, client.isConnected]);
 
-  // ── Real-time incoming messages ───────────────────────────────────────────
   useEffect(() => {
     if (!roomId) return;
 
     const onReceive = (msg: Message) => {
       if (msg.roomId !== roomId) return;
       setMessages((prev) => {
-        // Avoid duplicates
         if (prev.find((m) => m._id === msg._id)) return prev;
         return [...prev, msg];
       });
@@ -79,7 +72,6 @@ export const useMessages = (client: HermesClient, roomId: string | null) => {
     };
   }, [roomId, client]);
 
-  // ── Reaction updates ──────────────────────────────────────────────────────
   useEffect(() => {
     const onReaction = ({ messageId, reactions }: any) => {
       setMessages((prev) =>
@@ -90,7 +82,33 @@ export const useMessages = (client: HermesClient, roomId: string | null) => {
     return () => client.off("reaction:updated", onReaction);
   }, [client]);
 
-  // ── Load more (pagination) ────────────────────────────────────────────────
+  useEffect(() => {
+    if (!roomId) return;
+
+    const onStarted = ({ userId, displayName, roomId: rid }: any) => {
+      if (rid !== roomId) return;
+      setTypingUsers((prev) => [
+        ...prev.filter((u) => u.userId !== userId),
+        { userId, displayName },
+      ]);
+    };
+
+    const onStopped = ({ userId, roomId: rid }: any) => {
+      if (rid !== roomId) return;
+      setTypingUsers((prev) => prev.filter((u) => u.userId !== userId));
+    };
+
+    client.on("typing:started", onStarted);
+    client.on("typing:stopped", onStopped);
+
+    return () => {
+      client.off("typing:started", onStarted);
+      client.off("typing:stopped", onStopped);
+      // Clear typing state when leaving room
+      setTypingUsers([]);
+    };
+  }, [roomId, client]);
+
   const loadMore = useCallback(async () => {
     if (!roomId || loadingMore || !hasMore) return;
     setLoadingMore(true);
@@ -109,7 +127,6 @@ export const useMessages = (client: HermesClient, roomId: string | null) => {
     }
   }, [roomId, loadingMore, hasMore, client]);
 
-  // ── Send ──────────────────────────────────────────────────────────────────
   const sendMessage = useCallback(
     async (input: Omit<SendMessageInput, "roomId">) => {
       if (!roomId) throw new Error("No room selected");
@@ -118,7 +135,6 @@ export const useMessages = (client: HermesClient, roomId: string | null) => {
     [roomId, client],
   );
 
-  // ── Edit ──────────────────────────────────────────────────────────────────
   const editMessage = useCallback(
     async (messageId: string, text: string) => {
       if (!roomId) throw new Error("No room selected");
@@ -127,7 +143,6 @@ export const useMessages = (client: HermesClient, roomId: string | null) => {
     [roomId, client],
   );
 
-  // ── Delete ────────────────────────────────────────────────────────────────
   const deleteMessage = useCallback(
     async (messageId: string) => {
       if (!roomId) throw new Error("No room selected");
@@ -136,7 +151,6 @@ export const useMessages = (client: HermesClient, roomId: string | null) => {
     [roomId, client],
   );
 
-  // ── React ─────────────────────────────────────────────────────────────────
   const addReaction = useCallback(
     async (messageId: string, emoji: string) => {
       if (!roomId) throw new Error("No room selected");
@@ -151,6 +165,7 @@ export const useMessages = (client: HermesClient, roomId: string | null) => {
     loadingMore,
     hasMore,
     error,
+    typingUsers,
     sendMessage,
     editMessage,
     deleteMessage,

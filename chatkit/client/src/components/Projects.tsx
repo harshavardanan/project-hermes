@@ -2,6 +2,15 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Globe, Terminal, Loader2, ChevronRight, Plus } from "lucide-react";
 
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+
 interface ProjectsProps {
   onOpenForm: () => void;
 }
@@ -14,6 +23,7 @@ const Projects = ({ onOpenForm }: ProjectsProps) => {
   const fetchProjects = async () => {
     try {
       setLoading(true);
+
       const response = await fetch("http://localhost:8080/api/projects", {
         credentials: "include",
       });
@@ -21,6 +31,7 @@ const Projects = ({ onOpenForm }: ProjectsProps) => {
       if (!response.ok) {
         if (response.status === 401)
           throw new Error("Session expired. Please login again.");
+
         throw new Error("Failed to load projects.");
       }
 
@@ -37,134 +48,147 @@ const Projects = ({ onOpenForm }: ProjectsProps) => {
     fetchProjects();
   }, []);
 
+  /* ---------------- LOADING ---------------- */
+
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center p-20 text-brand-muted">
-        <Loader2 className="animate-spin mb-4 text-brand-primary" size={32} />
-        <p className="font-bold tracking-widest text-xs uppercase">
-          Syncing Workspace...
+      <div className="flex flex-col items-center justify-center py-32 text-slate-400 animate-in fade-in duration-500">
+        <Loader2 className="animate-spin mb-4 text-brand-primary" size={36} />
+        <p className="font-bold text-xs uppercase tracking-widest text-slate-500">
+          Loading Projects...
         </p>
       </div>
     );
   }
+
+  /* ---------------- ERROR ---------------- */
 
   if (error) {
     return (
-      <div className="p-10 bg-red-500/5 border border-red-500/20 rounded-2xl text-red-500 text-center">
-        <p className="font-black uppercase tracking-tighter text-2xl">
-          Sync Error
-        </p>
-        <p className="text-sm opacity-70 mt-2">{error}</p>
-        <button
+      <Card className="p-10 text-center bg-[#111] border-red-500/20 max-w-md mx-auto mt-10">
+        <CardTitle className="text-red-400">Error Loading Projects</CardTitle>
+        <CardDescription className="mt-3 text-slate-400 text-sm">
+          {error}
+        </CardDescription>
+        <Button
+          variant="outline"
+          className="mt-6 border-white/10 text-white hover:bg-white/10"
           onClick={() => window.location.reload()}
-          className="mt-4 text-xs underline font-bold"
         >
           Try Again
-        </button>
-      </div>
+        </Button>
+      </Card>
     );
   }
 
+  /* ---------------- UI ---------------- */
+
   return (
-    <div className="space-y-6">
-      <header className="flex justify-between items-center mb-12">
+    <div className="space-y-8 animate-in fade-in duration-500">
+      {/* ── HEADER ── */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">
-            Project Workspace
+          <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-white">
+            Projects
           </h1>
-          <p className="text-brand-muted mt-1">
-            Manage your credentials in the{" "}
-            <span className="text-brand-primary font-bold">Neon</span> zone.
+          <p className="text-slate-400 text-base mt-1">
+            Manage your Hermes SDK projects and environments.
           </p>
         </div>
-        <button
-          type="button" // Prevents accidental form submissions
-          onClick={(e) => {
-            e.preventDefault();
-            console.log("New Project button clicked!");
-            if (typeof onOpenForm === "function") {
-              onOpenForm();
-            } else {
-              console.error(
-                "❌ ERROR: onOpenForm prop is missing from Dashboard!",
-              );
-              alert("Prop is missing! Check your Dashboard component.");
-            }
-          }}
-          className="bg-brand-primary hover:opacity-90 text-black px-6 py-2.5 rounded-xl font-bold transition-all shadow-[0_0_20px_rgba(57,255,20,0.4)]"
+        <Button
+          onClick={onOpenForm}
+          className="bg-brand-primary text-black hover:brightness-110 shadow-lg shadow-brand-primary/20 font-bold transition-all"
         >
-          <Plus size={18} className="inline mr-1" /> New Project
-        </button>
-      </header>
-
-      <div className="flex items-center justify-between px-2">
-        <h2 className="text-[10px] font-black text-brand-muted uppercase tracking-[0.3em]">
-          Active Projects ({projects.length})
-        </h2>
+          <Plus size={16} className="mr-2" />
+          New Project
+        </Button>
       </div>
 
+      {/* ── PROJECT COUNT ── */}
+      <div className="flex items-center gap-3">
+        <div className="h-px bg-white/10 flex-1"></div>
+        <div className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+          Active Projects
+          <span className="bg-white/10 text-white py-0.5 px-2 rounded-full text-[10px]">
+            {projects.length}
+          </span>
+        </div>
+        <div className="h-px bg-white/10 flex-1"></div>
+      </div>
+
+      {/* ── GRID ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {projects.length === 0 ? (
-          <div className="col-span-full p-20 text-center border-2 border-dashed border-brand-border rounded-2xl text-brand-muted">
-            <Globe className="mx-auto mb-4 opacity-20" size={48} />
-            <p className="font-bold text-white">No active projects found.</p>
-            <p className="text-sm mt-1">
-              Create your first SDK project to get started.
-            </p>
-            <button
+          <Card className="col-span-full text-center p-16 bg-[#111] border-white/10 shadow-sm flex flex-col items-center">
+            <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mb-6 border border-white/5">
+              <Globe className="text-slate-500" size={32} strokeWidth={1.5} />
+            </div>
+            <CardTitle className="text-2xl text-white tracking-tight">
+              No projects yet
+            </CardTitle>
+            <CardDescription className="mt-3 text-slate-400 max-w-sm mx-auto text-base">
+              Create your first Hermes project to generate secure API keys and
+              start building your chat app.
+            </CardDescription>
+            <Button
+              className="mt-8 bg-brand-primary text-black hover:brightness-110 font-bold transition-all"
               onClick={onOpenForm}
-              className="mt-6 text-brand-primary font-bold text-sm hover:underline"
             >
-              Get Started &rarr;
-            </button>
-          </div>
+              <Plus size={16} className="mr-2" />
+              Create Project
+            </Button>
+          </Card>
         ) : (
           projects.map((p) => (
             <Link
-              to={`/dashboard/projects/${p._id}`}
               key={p._id}
-              className="group block"
+              to={`/dashboard/projects/${p._id}`}
+              className="group block h-full"
             >
-              <div className="relative h-full p-6 rounded-2xl bg-brand-card border border-brand-border transition-all duration-300 group-hover:border-brand-primary/50 group-hover:shadow-[0_0_30px_rgba(57,255,20,0.05)] overflow-hidden">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-brand-primary/5 blur-[40px] -mr-12 -mt-12 group-hover:bg-brand-primary/10 transition-all" />
+              <Card className="bg-[#111] border-white/10 shadow-sm transition-all duration-300 hover:border-brand-primary/50 hover:shadow-lg hover:shadow-brand-primary/10 h-full flex flex-col overflow-hidden relative">
+                {/* Subtle top glow effect on hover */}
+                <div className="absolute top-0 left-0 w-full h-1 bg-brand-primary/0 group-hover:bg-brand-primary/80 transition-colors duration-300" />
 
-                <div className="flex justify-between items-start mb-6">
-                  <div className="p-2 bg-brand-primary/10 rounded-lg text-brand-primary border border-brand-primary/20">
-                    <Terminal size={18} />
+                <CardHeader className="flex flex-row items-start justify-between pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-brand-primary/10 border border-brand-primary/20 text-brand-primary group-hover:bg-brand-primary group-hover:text-black transition-colors duration-300 shadow-sm">
+                      <Terminal size={18} />
+                    </div>
+                    <CardTitle className="text-lg text-white group-hover:text-brand-primary transition-colors tracking-tight">
+                      {p.projectName}
+                    </CardTitle>
                   </div>
-                  <div className="text-[10px] font-black text-brand-muted bg-brand-bg px-2 py-1 rounded border border-brand-border uppercase tracking-widest">
-                    {p.region || "Global"}
-                  </div>
-                </div>
+                  <ChevronRight
+                    size={20}
+                    className="opacity-0 -translate-x-3 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 text-brand-primary"
+                  />
+                </CardHeader>
 
-                <div className="space-y-1">
-                  <h3 className="text-xl font-black text-white group-hover:text-brand-primary transition-colors flex items-center gap-2">
-                    {p.projectName}
-                    <ChevronRight
-                      size={16}
-                      className="opacity-0 group-hover:opacity-100 translate-x-[-10px] group-hover:translate-x-0 transition-all text-brand-primary"
-                    />
-                  </h3>
-                  <p className="text-[10px] font-mono text-brand-muted uppercase tracking-tighter">
-                    ID: {p.projectId ? p.projectId.substring(0, 12) : "Unknown"}
-                    ...
-                  </p>
-                </div>
-
-                <div className="mt-8 pt-6 border-t border-brand-border flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-brand-primary uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-                    Manage Project
-                  </span>
-                  <div className="flex gap-1">
-                    {[1, 2, 3].map((i) => (
-                      <div
-                        key={i}
-                        className="w-1 h-1 rounded-full bg-brand-border group-hover:bg-brand-primary/30 transition-colors"
-                      />
-                    ))}
+                <CardContent className="space-y-5 mt-auto pb-6">
+                  {/* Project ID Block */}
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                      Project ID
+                    </span>
+                    <p className="text-xs text-slate-400 font-mono bg-black/50 p-2.5 rounded-lg border border-white/5 truncate">
+                      {p.projectId || "Unknown"}
+                    </p>
                   </div>
-                </div>
-              </div>
+
+                  {/* Region Badge */}
+                  <div className="flex justify-between items-center pt-2">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                      Edge Region
+                    </span>
+                    <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-2.5 py-1 rounded-md">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.8)]"></div>
+                      <span className="text-xs text-slate-300 font-medium">
+                        {p.region || "Global"}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </Link>
           ))
         )}

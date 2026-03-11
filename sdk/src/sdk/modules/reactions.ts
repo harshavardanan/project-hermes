@@ -1,11 +1,6 @@
 import type { HermesClient } from "../core/HermesClient";
 import type { ReactionEvent } from "../types/index";
 
-// ── Reactions Module ──────────────────────────────────────────────────────────
-// Usage:
-//   const reactions = new Reactions(client);
-//   await reactions.add("messageId", "roomId", "👍");
-
 export class Reactions {
   constructor(private client: HermesClient) {}
 

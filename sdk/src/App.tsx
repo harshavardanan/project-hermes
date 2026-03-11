@@ -14,8 +14,8 @@ import { OnlineBadge } from "./sdk/react/components/OnlineBadge";
 import type { Room, HermesUser, Message } from "./sdk/types/index";
 
 const ENDPOINT = "http://localhost:8080";
-const API_KEY = "800627BD692EC003DD0CA114AD72FD10875DB343";
-const SECRET = "teA9gQUouAtHAckqisyC3o4oVqySXg";
+const API_KEY = "EA279B99DAC56FA1EDC180B121BD816AE303E1E8";
+const SECRET = "PGjvKe3yj2PB9bX5TkdVBtShDG1shQ";
 
 // NEON GREEN & BLACK THEME MATCHING HERO
 const C = {

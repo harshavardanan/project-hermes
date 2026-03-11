@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   BarChart3,
@@ -27,12 +27,12 @@ const BASE = "http://localhost:8080";
 // ── Tiny sparkline ────────────────────────────────────────────────────────────
 const Spark = ({
   data,
-  color = "#39ff14",
+  color = "#39FF14",
 }: {
   data: number[];
   color?: string;
 }) => {
-  if (data.length < 2) return <div style={{ height: 32 }} />;
+  if (data.length < 2) return <div className="h-8" />;
   const max = Math.max(...data, 1);
   const W = 80,
     H = 32;
@@ -40,12 +40,7 @@ const Spark = ({
     .map((v, i) => `${(i / (data.length - 1)) * W},${H - (v / max) * H * 0.85}`)
     .join(" ");
   return (
-    <svg
-      width={W}
-      height={H}
-      viewBox={`0 0 ${W} ${H}`}
-      style={{ display: "block" }}
-    >
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="block">
       <polyline
         fill="none"
         stroke={color}
@@ -53,7 +48,7 @@ const Spark = ({
         strokeLinecap="round"
         strokeLinejoin="round"
         points={pts}
-        style={{ opacity: 0.8 }}
+        className="opacity-80"
       />
     </svg>
   );
@@ -62,27 +57,18 @@ const Spark = ({
 // ── Usage bar ─────────────────────────────────────────────────────────────────
 const UsageBar = ({
   pct,
-  color = "#39ff14",
+  color = "#39FF14",
 }: {
   pct: number;
   color?: string;
 }) => (
-  <div
-    style={{
-      height: 4,
-      borderRadius: 2,
-      background: "rgba(255,255,255,0.06)",
-      overflow: "hidden",
-    }}
-  >
+  <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
     <div
+      className="h-full rounded-full transition-all duration-1000 ease-out"
       style={{
-        height: "100%",
         width: `${Math.min(pct, 100)}%`,
-        borderRadius: 2,
         background: color,
         boxShadow: `0 0 8px ${color}60`,
-        transition: "width 1s ease",
       }}
     />
   </div>
@@ -96,7 +82,7 @@ const StatCard = ({
   sub,
   trend,
   spark,
-  accent = "#39ff14",
+  accent = "#39FF14",
 }: {
   icon: React.ReactNode;
   label: string;
@@ -106,86 +92,33 @@ const StatCard = ({
   spark?: number[];
   accent?: string;
 }) => (
-  <div
-    style={{
-      background: "var(--brand-card)",
-      border: "1px solid rgba(255,255,255,0.06)",
-      borderRadius: 12,
-      padding: "20px 20px 16px",
-      display: "flex",
-      flexDirection: "column",
-      gap: 4,
-      position: "relative",
-      overflow: "hidden",
-    }}
-  >
+  <div className="bg-[#111] border border-white/10 rounded-xl p-5 flex flex-col gap-1 relative overflow-hidden group hover:border-white/20 transition-colors">
     <div
-      style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        height: 2,
-        background: `linear-gradient(90deg, ${accent}60, transparent)`,
-      }}
+      className="absolute top-0 left-0 right-0 h-0.5 opacity-50 group-hover:opacity-100 transition-opacity"
+      style={{ background: `linear-gradient(90deg, ${accent}, transparent)` }}
     />
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "flex-start",
-      }}
-    >
-      <div style={{ color: "rgba(255,255,255,0.35)", marginBottom: 8 }}>
+    <div className="flex justify-between items-start">
+      <div className="text-slate-500 mb-2 group-hover:text-slate-300 transition-colors">
         {icon}
       </div>
       {spark && <Spark data={spark} color={accent} />}
     </div>
-    <div
-      style={{
-        fontSize: 11,
-        color: "rgba(255,255,255,0.4)",
-        letterSpacing: "0.15em",
-        textTransform: "uppercase",
-        fontFamily: "var(--font-mono)",
-      }}
-    >
+    <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest font-mono">
       {label}
     </div>
-    <div
-      style={{
-        fontSize: 26,
-        fontWeight: 800,
-        color: "#f0f0f0",
-        lineHeight: 1.1,
-        fontFamily: "var(--font-mono)",
-        letterSpacing: "-0.02em",
-      }}
-    >
+    <div className="text-2xl font-black text-white font-mono tracking-tight leading-tight mt-1">
       {value}
     </div>
-    <div
-      style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}
-    >
+    <div className="flex items-center gap-2 mt-1">
       {sub && (
-        <span
-          style={{
-            fontSize: 11,
-            color: "rgba(255,255,255,0.35)",
-            fontFamily: "var(--font-mono)",
-          }}
-        >
+        <span className="text-[10px] text-slate-400 font-medium font-sans">
           {sub}
         </span>
       )}
       {trend && (
         <span
-          style={{
-            fontSize: 10,
-            color: accent,
-            fontFamily: "var(--font-mono)",
-            letterSpacing: "0.1em",
-          }}
+          className="text-[10px] font-bold font-mono tracking-wide"
+          style={{ color: accent }}
         >
           {trend}
         </span>
@@ -210,45 +143,27 @@ const NavItem = ({
 }) => (
   <button
     onClick={onClick}
-    style={{
-      width: "100%",
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      padding: "10px 14px",
-      borderRadius: 8,
-      border: "none",
-      cursor: "pointer",
-      background: active ? "rgba(57,255,20,0.08)" : "transparent",
-      borderLeft: `2px solid ${active ? "#39ff14" : "transparent"}`,
-      color: active ? "#39ff14" : "rgba(255,255,255,0.45)",
-      fontFamily: "var(--font-mono)",
-      fontSize: 12,
-      fontWeight: 600,
-      letterSpacing: "0.08em",
-      textTransform: "uppercase",
-      transition: "all 0.15s",
-      textAlign: "left",
-    }}
+    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border-none cursor-pointer transition-all duration-200 text-left font-sans text-sm
+      ${
+        active
+          ? "bg-brand-primary/10 text-brand-primary font-bold shadow-[inset_0_0_0_1px_rgba(57,255,20,0.3)]"
+          : "bg-transparent text-slate-400 font-medium hover:bg-white/5 hover:text-slate-200"
+      }`}
   >
-    <span style={{ flexShrink: 0 }}>{icon}</span>
-    <span style={{ flex: 1 }}>{label}</span>
+    <span
+      className={`shrink-0 ${active ? "text-brand-primary" : "text-slate-500"}`}
+    >
+      {icon}
+    </span>
+    <span className="flex-1">{label}</span>
     {badge && (
-      <span
-        style={{
-          fontSize: 9,
-          padding: "2px 6px",
-          borderRadius: 10,
-          background: "rgba(57,255,20,0.15)",
-          color: "#39ff14",
-          fontWeight: 700,
-          letterSpacing: "0.1em",
-        }}
-      >
+      <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-brand-primary/20 text-brand-primary font-bold tracking-wider">
         {badge}
       </span>
     )}
-    {active && <ChevronRight size={12} style={{ opacity: 0.5 }} />}
+    {active && (
+      <ChevronRight size={14} className="opacity-60 text-brand-primary" />
+    )}
   </button>
 );
 
@@ -265,85 +180,44 @@ const CopyField = ({
   const [copied, setCopied] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const display = masked && !revealed ? "•".repeat(32) : value;
+
   return (
-    <div style={{ marginBottom: 16 }}>
-      <div
-        style={{
-          fontSize: 10,
-          color: "rgba(255,255,255,0.35)",
-          letterSpacing: "0.2em",
-          textTransform: "uppercase",
-          fontFamily: "var(--font-mono)",
-          marginBottom: 6,
-        }}
-      >
+    <div className="mb-5 group">
+      <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest font-sans mb-1.5">
         {label}
       </div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          background: "rgba(0,0,0,0.3)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          borderRadius: 8,
-          padding: "10px 14px",
-        }}
-      >
+      <div className="flex items-center gap-3 bg-black/50 border border-white/10 rounded-lg p-3 transition-colors group-hover:border-white/20">
         <code
-          style={{
-            flex: 1,
-            fontFamily: "var(--font-mono)",
-            fontSize: 12,
-            color: masked && !revealed ? "rgba(255,255,255,0.2)" : "#39ff14",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
+          className={`flex-1 font-mono text-[13px] overflow-hidden text-ellipsis whitespace-nowrap
+            ${masked && !revealed ? "text-slate-500 tracking-[0.2em]" : "text-brand-primary"}`}
         >
           {display}
         </code>
+
         {masked && (
           <button
             onClick={() => setRevealed((r) => !r)}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              padding: "0 4px",
-              color: "rgba(255,255,255,0.3)",
-              fontSize: 10,
-              fontFamily: "var(--font-mono)",
-              letterSpacing: "0.1em",
-              whiteSpace: "nowrap",
-            }}
+            className="bg-transparent border-none cursor-pointer px-2 text-slate-400 text-[10px] font-bold font-sans tracking-wider hover:text-white transition-colors"
           >
             {revealed ? "HIDE" : "SHOW"}
           </button>
         )}
+
         <button
           onClick={() => {
             navigator.clipboard.writeText(value);
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
           }}
-          style={{
-            background: copied
-              ? "rgba(57,255,20,0.15)"
-              : "rgba(255,255,255,0.05)",
-            border: `1px solid ${copied ? "rgba(57,255,20,0.3)" : "rgba(255,255,255,0.1)"}`,
-            borderRadius: 6,
-            padding: "4px 8px",
-            cursor: "pointer",
-            color: copied ? "#39ff14" : "rgba(255,255,255,0.4)",
-            display: "flex",
-            alignItems: "center",
-            gap: 4,
-            transition: "all 0.2s",
-            flexShrink: 0,
-          }}
+          className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-md font-sans text-xs font-bold transition-all
+            ${
+              copied
+                ? "bg-brand-primary/20 border border-brand-primary/40 text-brand-primary"
+                : "bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10 hover:text-white"
+            }`}
         >
           {copied ? <Check size={12} /> : <Copy size={12} />}
+          <span className="hidden sm:inline">{copied ? "Copied" : "Copy"}</span>
         </button>
       </div>
     </div>
@@ -361,7 +235,7 @@ const ProjectDetail = () => {
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleting, setDeleting] = useState(false);
 
-  // Simulated historical data for sparklines (replace with real API data if available)
+  // Simulated historical data for sparklines
   const [tokenHistory, setTokenHistory] = useState<number[]>([]);
   const [userHistory, setUserHistory] = useState<number[]>([]);
   const [msgHistory, setMsgHistory] = useState<number[]>([]);
@@ -374,7 +248,6 @@ const ProjectDetail = () => {
       if (res.ok) {
         const data = await res.json();
         setProject(data);
-        // Append to history arrays for sparklines
         setTokenHistory((h) => [...h.slice(-19), data.usage?.dailyTokens ?? 0]);
         setUserHistory((h) => [...h.slice(-19), data.stats?.totalUsers ?? 0]);
         setMsgHistory((h) => [...h.slice(-19), data.stats?.totalMessages ?? 0]);
@@ -405,32 +278,18 @@ const ProjectDetail = () => {
 
   if (loading)
     return (
-      <div className="min-h-screen bg-brand-bg flex flex-col items-center justify-center text-brand-primary">
+      <div className="min-h-[calc(100vh-64px)] bg-brand-bg flex flex-col items-center justify-center text-brand-primary">
         <Loader2 className="animate-spin mb-4" size={32} />
-        <span
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 11,
-            letterSpacing: "0.25em",
-            opacity: 0.6,
-          }}
-        >
-          LOADING PROJECT...
+        <span className="font-mono text-xs font-bold tracking-[0.2em] opacity-80 uppercase">
+          Loading Project...
         </span>
       </div>
     );
 
   if (!project)
     return (
-      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
-        <div
-          style={{
-            fontFamily: "var(--font-mono)",
-            color: "rgba(255,255,255,0.3)",
-            fontSize: 13,
-            letterSpacing: "0.2em",
-          }}
-        >
+      <div className="min-h-[calc(100vh-64px)] bg-brand-bg flex items-center justify-center">
+        <div className="font-mono text-red-500/80 text-sm font-bold tracking-[0.2em] bg-red-500/10 px-6 py-3 rounded-lg border border-red-500/20">
           [404] PROJECT NOT FOUND
         </div>
       </div>
@@ -462,130 +321,46 @@ const ProjectDetail = () => {
     : "—";
 
   const navItems = [
-    { id: "overview", label: "Overview", icon: <BarChart3 size={14} /> },
-    { id: "analytics", label: "Analytics", icon: <TrendingUp size={14} /> },
+    { id: "overview", label: "Overview", icon: <BarChart3 size={16} /> },
+    { id: "analytics", label: "Analytics", icon: <TrendingUp size={16} /> },
     {
       id: "users",
       label: "Users",
-      icon: <Users size={14} />,
+      icon: <Users size={16} />,
       badge: totalUsers > 0 ? String(totalUsers) : undefined,
     },
-    { id: "credentials", label: "Credentials", icon: <Key size={14} /> },
-    { id: "settings", label: "Settings", icon: <Settings size={14} /> },
+    { id: "credentials", label: "Credentials", icon: <Key size={16} /> },
+    { id: "settings", label: "Settings", icon: <Settings size={16} /> },
   ];
 
   const usageColor =
-    usagePct > 90 ? "#ff4444" : usagePct > 70 ? "#f0a500" : "#39ff14";
+    usagePct > 90 ? "#ef4444" : usagePct > 70 ? "#fbbf24" : "#39FF14";
 
   return (
-    <div
-      style={{
-        display: "flex",
-        minHeight: "100vh",
-        background: "var(--brand-bg)",
-        color: "var(--brand-text)",
-        paddingTop: 64,
-      }}
-    >
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
-        :root { --font-mono: 'JetBrains Mono', monospace; }
-        .pd-section { animation: pd-fadein 0.3s ease; }
-        @keyframes pd-fadein { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
-        .pd-row:hover { background: rgba(255,255,255,0.03) !important; }
-      `}</style>
-
+    <div className="flex min-h-[calc(100vh-64px)] bg-brand-bg text-white">
       {/* ── Left sidebar ── */}
-      <aside
-        style={{
-          width: 220,
-          flexShrink: 0,
-          borderRight: "1px solid rgba(255,255,255,0.05)",
-          background: "rgba(255,255,255,0.01)",
-          position: "sticky",
-          top: 64,
-          height: "calc(100vh - 64px)",
-          display: "flex",
-          flexDirection: "column",
-          padding: "28px 12px 20px",
-        }}
-      >
+      <aside className="w-64 shrink-0 fixed top-16 left-0 h-[calc(100vh-64px)] flex flex-col bg-[#0a0a0a] border-r border-white/10 z-40 p-4">
         {/* Project identity */}
-        <div
-          style={{
-            padding: "0 6px 20px",
-            borderBottom: "1px solid rgba(255,255,255,0.05)",
-            marginBottom: 16,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              marginBottom: 6,
-            }}
-          >
-            <Globe size={12} style={{ color: "#39ff14", flexShrink: 0 }} />
-            <span
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 9,
-                color: "rgba(255,255,255,0.3)",
-                letterSpacing: "0.2em",
-                textTransform: "uppercase",
-              }}
-            >
-              {project.region}
+        <div className="pb-5 border-b border-white/10 mb-4 px-2 mt-2">
+          <div className="flex items-center gap-2 mb-2">
+            <Globe size={14} className="text-brand-primary shrink-0" />
+            <span className="font-sans text-[10px] font-bold text-slate-500 tracking-[0.15em] uppercase">
+              {project.region || "Global Edge"}
             </span>
           </div>
-          <div
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 13,
-              fontWeight: 700,
-              color: "#f0f0f0",
-              letterSpacing: "0.02em",
-              wordBreak: "break-all",
-              lineHeight: 1.3,
-            }}
-          >
+          <div className="font-sans text-lg font-black text-white tracking-tight break-words leading-tight">
             {project.projectName}
           </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              marginTop: 8,
-            }}
-          >
-            <div
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                background: "#39ff14",
-                boxShadow: "0 0 6px #39ff14",
-              }}
-            />
-            <span
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 9,
-                color: "#39ff14",
-                letterSpacing: "0.15em",
-              }}
-            >
-              ACTIVE
+          <div className="flex items-center gap-2 mt-3 bg-brand-primary/10 w-fit px-2 py-1 rounded-md border border-brand-primary/20">
+            <div className="w-1.5 h-1.5 rounded-full bg-brand-primary shadow-[0_0_6px_#39FF14] animate-pulse" />
+            <span className="font-sans text-[9px] font-bold text-brand-primary tracking-widest uppercase">
+              Operational
             </span>
           </div>
         </div>
 
         {/* Nav */}
-        <nav
-          style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}
-        >
+        <nav className="flex-1 flex flex-col gap-1.5">
           {navItems.map((n) => (
             <NavItem
               key={n.id}
@@ -599,279 +374,142 @@ const ProjectDetail = () => {
         </nav>
 
         {/* Plan badge */}
-        <div
-          style={{
-            marginTop: "auto",
-            padding: "12px 14px",
-            background: "rgba(57,255,20,0.05)",
-            border: "1px solid rgba(57,255,20,0.15)",
-            borderRadius: 8,
-          }}
-        >
-          <div
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 9,
-              color: "rgba(255,255,255,0.3)",
-              letterSpacing: "0.2em",
-              marginBottom: 4,
-            }}
-          >
-            PLAN
+        <div className="mt-auto p-4 bg-[#111] border border-white/10 rounded-xl">
+          <div className="font-sans text-[10px] font-bold text-slate-500 tracking-widest uppercase mb-1">
+            Current Plan
           </div>
-          <div
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 13,
-              fontWeight: 700,
-              color: "#39ff14",
-            }}
-          >
+          <div className="font-sans text-sm font-black text-brand-primary tracking-tight">
             {planName.toUpperCase()}
           </div>
-          <div
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 10,
-              color: "rgba(255,255,255,0.35)",
-              marginTop: 2,
-            }}
-          >
+          <div className="font-sans text-xs text-slate-400 font-medium mt-1">
             {planPrice > 0 ? `$${planPrice}/mo` : "Free tier"}
           </div>
         </div>
       </aside>
 
       {/* ── Main content ── */}
-      <main style={{ flex: 1, overflowY: "auto", padding: "32px 40px 60px" }}>
-        <div style={{ maxWidth: 900 }}>
+      <main className="flex-1 ml-64 p-8 lg:p-12 overflow-y-auto">
+        <div className="max-w-5xl mx-auto animate-in fade-in duration-500">
           {/* ── OVERVIEW ── */}
           {tab === "overview" && (
-            <div className="pd-section">
+            <div className="space-y-6">
               <SectionHeader
                 title="Overview"
-                sub={`Project created ${createdAt}`}
+                sub={`Project created on ${createdAt}`}
               />
 
               {/* Primary stats grid */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(4, 1fr)",
-                  gap: 12,
-                  marginBottom: 24,
-                }}
-              >
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard
-                  icon={<Users size={16} />}
+                  icon={<Users size={18} />}
                   label="Total Users"
                   value={totalUsers.toLocaleString()}
                   sub={`${activeUsers} active now`}
                   trend="↑ live"
                   spark={userHistory}
-                  accent="#39ff14"
+                  accent="#39FF14"
                 />
                 <StatCard
-                  icon={<MessageSquare size={16} />}
-                  label="Messages Sent"
+                  icon={<MessageSquare size={18} />}
+                  label="Messages"
                   value={totalMessages.toLocaleString()}
                   sub="all time"
                   spark={msgHistory}
-                  accent="#00c8ff"
+                  accent="#3b82f6"
                 />
                 <StatCard
-                  icon={<Radio size={16} />}
+                  icon={<Radio size={18} />}
                   label="Active Rooms"
                   value={totalRooms.toLocaleString()}
                   sub="open channels"
-                  accent="#a78bfa"
+                  accent="#a855f7"
                 />
                 <StatCard
-                  icon={<Activity size={16} />}
+                  icon={<Activity size={18} />}
                   label="Uptime"
                   value={`${uptime}%`}
                   sub="last 30 days"
-                  accent="#39ff14"
+                  accent="#39FF14"
                 />
               </div>
 
               {/* Token usage */}
-              <div
-                style={{
-                  background: "var(--brand-card)",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                  borderRadius: 12,
-                  padding: 24,
-                  marginBottom: 16,
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    marginBottom: 20,
-                  }}
-                >
+              <div className="bg-[#111] border border-white/10 rounded-2xl p-6 lg:p-8">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 gap-4">
                   <div>
-                    <div
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 11,
-                        color: "rgba(255,255,255,0.4)",
-                        letterSpacing: "0.2em",
-                        textTransform: "uppercase",
-                        marginBottom: 4,
-                      }}
-                    >
+                    <div className="font-sans text-xs font-bold text-slate-500 tracking-[0.15em] uppercase mb-2">
                       Daily Token Consumption
                     </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "baseline",
-                        gap: 8,
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: 28,
-                          fontWeight: 800,
-                          color: "#f0f0f0",
-                        }}
-                      >
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-mono text-4xl font-black text-white tracking-tight">
                         {usedTokens.toLocaleString()}
                       </span>
-                      <span
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: 12,
-                          color: "rgba(255,255,255,0.3)",
-                        }}
-                      >
+                      <span className="font-sans text-sm font-medium text-slate-400">
                         / {dailyLimit.toLocaleString()}
                       </span>
                     </div>
                   </div>
                   <div
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 22,
-                      fontWeight: 800,
-                      color: usageColor,
-                    }}
+                    className="font-mono text-3xl font-black tracking-tight"
+                    style={{ color: usageColor }}
                   >
                     {usagePct.toFixed(1)}%
                   </div>
                 </div>
+
                 <UsageBar pct={usagePct} color={usageColor} />
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginTop: 10,
-                  }}
-                >
+
+                <div className="flex justify-between items-center mt-3">
                   <span
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 10,
-                      color: "rgba(255,255,255,0.25)",
-                    }}
+                    className={`font-sans text-xs font-medium ${usagePct >= 100 ? "text-red-400" : "text-slate-500"}`}
                   >
                     {usagePct >= 100
-                      ? "⚠ Limit exceeded — requests being throttled"
+                      ? "⚠ Limit exceeded — requests throttled"
                       : "Resets at midnight UTC"}
                   </span>
-                  <span
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 10,
-                      color: "rgba(255,255,255,0.25)",
-                    }}
-                  >
+                  <span className="font-sans text-xs font-medium text-slate-500">
                     {(dailyLimit - usedTokens).toLocaleString()} remaining
                   </span>
                 </div>
               </div>
 
               {/* Secondary stats row */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
-                  gap: 12,
-                }}
-              >
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {[
                   {
-                    icon: <Cpu size={14} />,
+                    icon: <Cpu size={16} />,
                     label: "Avg Latency",
                     value: avgLatency ? `${avgLatency}ms` : "—",
                     sub: "last 1h",
                   },
                   {
-                    icon: <Database size={14} />,
-                    label: "Total Lifetime",
+                    icon: <Database size={16} />,
+                    label: "Lifetime Usage",
                     value: totalAllTime.toLocaleString(),
-                    sub: "tokens consumed",
+                    sub: "total tokens",
                   },
                   {
-                    icon: <Clock size={14} />,
+                    icon: <Clock size={16} />,
                     label: "Created",
                     value: createdAt,
-                    sub: project.region,
+                    sub: project.region || "Global",
                   },
                 ].map(({ icon, label, value, sub }) => (
                   <div
                     key={label}
-                    style={{
-                      background: "rgba(255,255,255,0.02)",
-                      border: "1px solid rgba(255,255,255,0.05)",
-                      borderRadius: 10,
-                      padding: "16px 18px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 14,
-                    }}
+                    className="bg-white/5 border border-white/10 rounded-xl p-5 flex items-center gap-4"
                   >
-                    <div
-                      style={{ color: "rgba(255,255,255,0.25)", flexShrink: 0 }}
-                    >
+                    <div className="text-slate-400 bg-black/50 p-2.5 rounded-lg border border-white/5">
                       {icon}
                     </div>
                     <div>
-                      <div
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: 9,
-                          color: "rgba(255,255,255,0.3)",
-                          letterSpacing: "0.2em",
-                          textTransform: "uppercase",
-                          marginBottom: 4,
-                        }}
-                      >
+                      <div className="font-sans text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
                         {label}
                       </div>
-                      <div
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: 14,
-                          fontWeight: 700,
-                          color: "#e0e0e0",
-                        }}
-                      >
+                      <div className="font-mono text-lg font-bold text-white leading-none">
                         {value}
                       </div>
-                      <div
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: 10,
-                          color: "rgba(255,255,255,0.25)",
-                          marginTop: 2,
-                        }}
-                      >
+                      <div className="font-sans text-xs text-slate-400 mt-1.5 font-medium">
                         {sub}
                       </div>
                     </div>
@@ -883,63 +521,33 @@ const ProjectDetail = () => {
 
           {/* ── ANALYTICS ── */}
           {tab === "analytics" && (
-            <div className="pd-section">
+            <div className="space-y-6">
               <SectionHeader
                 title="Analytics"
                 sub="Usage trends and performance metrics"
               />
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 16,
-                  marginBottom: 16,
-                }}
-              >
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <ChartCard
                   title="Token Usage (24h)"
                   data={tokenHistory}
-                  color="#39ff14"
+                  color="#39FF14"
                   value={`${usedTokens.toLocaleString()} tokens`}
                 />
                 <ChartCard
-                  title="Messages / interval"
+                  title="Message Volume"
                   data={msgHistory}
-                  color="#00c8ff"
+                  color="#3b82f6"
                   value={`${totalMessages.toLocaleString()} total`}
                 />
-              </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 16,
-                }}
-              >
                 <ChartCard
-                  title="Active Users"
+                  title="Active Connections"
                   data={userHistory}
-                  color="#a78bfa"
+                  color="#a855f7"
                   value={`${activeUsers} online`}
                 />
-                <div
-                  style={{
-                    background: "var(--brand-card)",
-                    border: "1px solid rgba(255,255,255,0.06)",
-                    borderRadius: 12,
-                    padding: 20,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 10,
-                      color: "rgba(255,255,255,0.35)",
-                      letterSpacing: "0.2em",
-                      textTransform: "uppercase",
-                      marginBottom: 16,
-                    }}
-                  >
+
+                <div className="bg-[#111] border border-white/10 rounded-2xl p-6">
+                  <div className="font-sans text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-5">
                     Plan Limits
                   </div>
                   {[
@@ -953,38 +561,23 @@ const ProjectDetail = () => {
                       label: "Active Users",
                       used: activeUsers,
                       max: project.plan?.maxUsers ?? 100,
-                      color: "#a78bfa",
+                      color: "#a855f7",
                     },
                     {
                       label: "Rooms",
                       used: totalRooms,
                       max: project.plan?.maxRooms ?? 500,
-                      color: "#00c8ff",
+                      color: "#3b82f6",
                     },
                   ].map(({ label, used, max, color }) => (
-                    <div key={label} style={{ marginBottom: 14 }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          marginBottom: 6,
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontFamily: "var(--font-mono)",
-                            fontSize: 10,
-                            color: "rgba(255,255,255,0.4)",
-                          }}
-                        >
+                    <div key={label} className="mb-5 last:mb-0">
+                      <div className="flex justify-between items-end mb-2">
+                        <span className="font-sans text-xs font-semibold text-slate-400">
                           {label}
                         </span>
                         <span
-                          style={{
-                            fontFamily: "var(--font-mono)",
-                            fontSize: 10,
-                            color,
-                          }}
+                          className="font-mono text-xs font-bold"
+                          style={{ color }}
                         >
                           {used.toLocaleString()} / {max.toLocaleString()}
                         </span>
@@ -1002,224 +595,102 @@ const ProjectDetail = () => {
 
           {/* ── USERS ── */}
           {tab === "users" && (
-            <div className="pd-section">
+            <div className="space-y-6">
               <SectionHeader
                 title="Users"
                 sub="All registered Hermes users under this project"
               />
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3,1fr)",
-                  gap: 12,
-                  marginBottom: 24,
-                }}
-              >
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 {[
                   {
                     label: "Total Users",
                     value: totalUsers,
-                    icon: <Users size={14} />,
-                    color: "#39ff14",
+                    icon: <Users size={16} />,
+                    color: "#39FF14",
                   },
                   {
                     label: "Active Now",
                     value: activeUsers,
-                    icon: <Radio size={14} />,
-                    color: "#00c8ff",
+                    icon: <Radio size={16} />,
+                    color: "#3b82f6",
                   },
                   {
                     label: "Rooms Open",
                     value: totalRooms,
-                    icon: <MessageSquare size={14} />,
-                    color: "#a78bfa",
+                    icon: <MessageSquare size={16} />,
+                    color: "#a855f7",
                   },
                 ].map(({ label, value, icon, color }) => (
                   <div
                     key={label}
-                    style={{
-                      background: "var(--brand-card)",
-                      border: "1px solid rgba(255,255,255,0.06)",
-                      borderRadius: 10,
-                      padding: "16px 20px",
-                    }}
+                    className="bg-[#111] border border-white/10 rounded-xl p-5"
                   >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        marginBottom: 8,
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: 9,
-                          color: "rgba(255,255,255,0.3)",
-                          letterSpacing: "0.2em",
-                          textTransform: "uppercase",
-                        }}
-                      >
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-sans text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                         {label}
                       </span>
-                      <span style={{ color: "rgba(255,255,255,0.2)" }}>
-                        {icon}
-                      </span>
+                      <span className="text-slate-600">{icon}</span>
                     </div>
                     <span
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 24,
-                        fontWeight: 800,
-                        color,
-                      }}
+                      className="font-mono text-3xl font-black"
+                      style={{ color }}
                     >
                       {value.toLocaleString()}
                     </span>
                   </div>
                 ))}
               </div>
-              <div
-                style={{
-                  background: "var(--brand-card)",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                  borderRadius: 12,
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    padding: "12px 20px",
-                    borderBottom: "1px solid rgba(255,255,255,0.05)",
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr 1fr 1fr",
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 9,
-                    color: "rgba(255,255,255,0.25)",
-                    letterSpacing: "0.2em",
-                    textTransform: "uppercase",
-                  }}
-                >
+
+              <div className="bg-[#111] border border-white/10 rounded-xl overflow-hidden shadow-sm">
+                <div className="grid grid-cols-4 p-4 bg-black/40 border-b border-white/10 font-sans text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                   <span>User</span>
                   <span>Status</span>
                   <span>Last Seen</span>
                   <span>Messages</span>
                 </div>
+
                 {(project.users ?? []).length === 0 ? (
-                  <div
-                    style={{
-                      padding: "40px 20px",
-                      textAlign: "center",
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 11,
-                      color: "rgba(255,255,255,0.2)",
-                      letterSpacing: "0.15em",
-                    }}
-                  >
-                    No users yet — users appear here once they connect via the
-                    SDK
+                  <div className="p-12 text-center font-sans text-sm font-medium text-slate-500">
+                    No users yet. Users will appear here once they connect via
+                    the SDK.
                   </div>
                 ) : (
-                  (project.users ?? []).map((u: any, i: number) => (
-                    <div
-                      key={i}
-                      className="pd-row"
-                      style={{
-                        padding: "12px 20px",
-                        borderBottom: "1px solid rgba(255,255,255,0.03)",
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr 1fr 1fr",
-                        alignItems: "center",
-                      }}
-                    >
+                  <div className="divide-y divide-white/5">
+                    {(project.users ?? []).map((u: any, i: number) => (
                       <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                        }}
+                        key={i}
+                        className="grid grid-cols-4 p-4 items-center hover:bg-white/5 transition-colors"
                       >
-                        <div
-                          style={{
-                            width: 28,
-                            height: 28,
-                            borderRadius: 6,
-                            background: "rgba(57,255,20,0.1)",
-                            border: "1px solid rgba(57,255,20,0.2)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontFamily: "var(--font-mono)",
-                            fontSize: 11,
-                            fontWeight: 700,
-                            color: "#39ff14",
-                          }}
-                        >
-                          {u.displayName?.[0]?.toUpperCase() ?? "?"}
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center font-sans text-xs font-bold text-brand-primary">
+                            {u.displayName?.[0]?.toUpperCase() ?? "?"}
+                          </div>
+                          <span className="font-sans text-sm font-bold text-white">
+                            {u.displayName}
+                          </span>
                         </div>
-                        <span
-                          style={{
-                            fontFamily: "var(--font-mono)",
-                            fontSize: 12,
-                            color: "#d0d0d0",
-                          }}
-                        >
-                          {u.displayName}
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={`w-2 h-2 rounded-full ${u.isOnline ? "bg-brand-primary shadow-[0_0_6px_#39FF14]" : "bg-slate-600"}`}
+                          />
+                          <span
+                            className={`font-sans text-xs font-semibold ${u.isOnline ? "text-brand-primary" : "text-slate-500"}`}
+                          >
+                            {u.isOnline ? "Online" : "Offline"}
+                          </span>
+                        </div>
+                        <span className="font-sans text-xs font-medium text-slate-400">
+                          {u.lastSeen
+                            ? new Date(u.lastSeen).toLocaleString()
+                            : "—"}
+                        </span>
+                        <span className="font-mono text-xs font-bold text-slate-300">
+                          {u.messageCount ?? "—"}
                         </span>
                       </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: 6,
-                            height: 6,
-                            borderRadius: "50%",
-                            background: u.isOnline
-                              ? "#39ff14"
-                              : "rgba(255,255,255,0.2)",
-                            boxShadow: u.isOnline ? "0 0 6px #39ff14" : "none",
-                          }}
-                        />
-                        <span
-                          style={{
-                            fontFamily: "var(--font-mono)",
-                            fontSize: 10,
-                            color: u.isOnline
-                              ? "#39ff14"
-                              : "rgba(255,255,255,0.3)",
-                          }}
-                        >
-                          {u.isOnline ? "Online" : "Offline"}
-                        </span>
-                      </div>
-                      <span
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: 10,
-                          color: "rgba(255,255,255,0.3)",
-                        }}
-                      >
-                        {u.lastSeen
-                          ? new Date(u.lastSeen).toLocaleString()
-                          : "—"}
-                      </span>
-                      <span
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: 11,
-                          color: "rgba(255,255,255,0.5)",
-                        }}
-                      >
-                        {u.messageCount ?? "—"}
-                      </span>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
@@ -1227,20 +698,13 @@ const ProjectDetail = () => {
 
           {/* ── CREDENTIALS ── */}
           {tab === "credentials" && (
-            <div className="pd-section">
+            <div className="space-y-6">
               <SectionHeader
                 title="Credentials"
                 sub="Keep your API secret secure — never expose it client-side"
               />
-              <div
-                style={{
-                  background: "var(--brand-card)",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                  borderRadius: 12,
-                  padding: 28,
-                  marginBottom: 16,
-                }}
-              >
+
+              <div className="bg-[#111] border border-white/10 rounded-2xl p-6 lg:p-8">
                 <CopyField label="Project ID" value={project.projectId} />
                 <CopyField label="API Key" value={project.apiKey} />
                 <CopyField label="API Secret" value={project.secret} masked />
@@ -1248,185 +712,75 @@ const ProjectDetail = () => {
                 <CopyField label="Region" value={project.region} />
               </div>
 
-              <div
-                style={{
-                  padding: "14px 18px",
-                  background: "rgba(240,165,0,0.06)",
-                  border: "1px solid rgba(240,165,0,0.2)",
-                  borderRadius: 8,
-                  display: "flex",
-                  gap: 12,
-                  alignItems: "flex-start",
-                }}
-              >
+              <div className="p-5 bg-amber-500/10 border border-amber-500/20 rounded-xl flex gap-4 items-start">
                 <AlertTriangle
-                  size={14}
-                  style={{ color: "#f0a500", flexShrink: 0, marginTop: 1 }}
+                  size={18}
+                  className="text-amber-500 shrink-0 mt-0.5"
                 />
-                <span
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 11,
-                    color: "rgba(240,165,0,0.8)",
-                    lineHeight: 1.6,
-                  }}
-                >
+                <p className="font-sans text-sm font-medium text-amber-500/90 leading-relaxed">
                   The API Secret is shown once. Rotate it in Settings if
                   compromised. Never commit secrets to version control.
-                </span>
+                </p>
               </div>
             </div>
           )}
 
           {/* ── SETTINGS ── */}
           {tab === "settings" && (
-            <div className="pd-section">
+            <div className="space-y-6">
               <SectionHeader
                 title="Settings"
                 sub="Manage your project configuration"
               />
 
               {/* Plan */}
-              <SettingsCard title="Subscription Plan" icon={<Zap size={16} />}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
+              <SettingsCard title="Subscription Plan" icon={<Zap size={18} />}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <div
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 13,
-                        color: "#39ff14",
-                        fontWeight: 700,
-                        marginBottom: 4,
-                      }}
-                    >
+                    <div className="font-sans text-base font-black text-brand-primary mb-1">
                       {planName.toUpperCase()}
                     </div>
-                    <div
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 11,
-                        color: "rgba(255,255,255,0.35)",
-                      }}
-                    >
+                    <div className="font-sans text-sm font-medium text-slate-400">
                       {planPrice > 0 ? `$${planPrice}/month` : "Free tier"}
-                      {" · "}
+                      <span className="mx-2">•</span>
                       {dailyLimit.toLocaleString()} daily tokens
                     </div>
                   </div>
                   <button
                     onClick={() => navigate("/pricing")}
-                    style={{
-                      background: "#39ff14",
-                      color: "#000",
-                      border: "none",
-                      cursor: "pointer",
-                      padding: "8px 20px",
-                      borderRadius: 8,
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: "0.1em",
-                    }}
+                    className="bg-brand-primary text-black px-6 py-2.5 rounded-lg font-sans text-sm font-bold transition-all hover:brightness-110 shadow-[0_0_15px_rgba(57,255,20,0.2)]"
                   >
-                    UPGRADE
+                    UPGRADE PLAN
                   </button>
                 </div>
               </SettingsCard>
 
               {/* Security */}
-              <SettingsCard title="Security" icon={<Shield size={16} />}>
-                <div
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 11,
-                    color: "rgba(255,255,255,0.4)",
-                    marginBottom: 14,
-                    lineHeight: 1.6,
-                  }}
-                >
+              <SettingsCard title="Security" icon={<Shield size={18} />}>
+                <p className="font-sans text-sm font-medium text-slate-400 mb-5 leading-relaxed max-w-2xl">
                   Rotate your API secret if it has been compromised or exposed.
                   All existing connections will be invalidated immediately.
-                </div>
-                <button
-                  style={{
-                    background: "transparent",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    color: "rgba(255,255,255,0.6)",
-                    cursor: "pointer",
-                    padding: "8px 18px",
-                    borderRadius: 8,
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 11,
-                    fontWeight: 600,
-                    letterSpacing: "0.1em",
-                  }}
-                >
-                  ROTATE SECRET
+                </p>
+                <button className="bg-transparent border border-white/20 text-white hover:bg-white/5 px-6 py-2.5 rounded-lg font-sans text-sm font-bold transition-colors">
+                  ROTATE API SECRET
                 </button>
               </SettingsCard>
 
               {/* Danger zone */}
-              <div
-                style={{
-                  background: "rgba(255,68,68,0.04)",
-                  border: "1px solid rgba(255,68,68,0.15)",
-                  borderRadius: 12,
-                  padding: 24,
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    marginBottom: 8,
-                  }}
-                >
-                  <AlertTriangle size={15} style={{ color: "#ff4444" }} />
-                  <span
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: "#ff4444",
-                      letterSpacing: "0.15em",
-                    }}
-                  >
-                    DANGER ZONE
+              <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-6 lg:p-8 mt-8">
+                <div className="flex items-center gap-3 mb-3">
+                  <AlertTriangle size={20} className="text-red-500" />
+                  <span className="font-sans text-sm font-bold text-red-500 uppercase tracking-widest">
+                    Danger Zone
                   </span>
                 </div>
-                <p
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 11,
-                    color: "rgba(255,255,255,0.35)",
-                    marginBottom: 16,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  Permanently deletes this project and all associated data. This
-                  action cannot be undone.
+                <p className="font-sans text-sm font-medium text-red-500/70 mb-6 leading-relaxed max-w-2xl">
+                  Permanently deletes this project, invalidates all keys, and
+                  removes all associated data. This action cannot be undone.
                 </p>
                 <button
                   onClick={() => setDeleteModal(true)}
-                  style={{
-                    background: "rgba(255,68,68,0.1)",
-                    border: "1px solid rgba(255,68,68,0.3)",
-                    color: "#ff4444",
-                    cursor: "pointer",
-                    padding: "8px 20px",
-                    borderRadius: 8,
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    letterSpacing: "0.1em",
-                  }}
+                  className="bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white px-6 py-2.5 rounded-lg font-sans text-sm font-bold transition-colors"
                 >
                   TERMINATE PROJECT
                 </button>
@@ -1438,52 +792,16 @@ const ProjectDetail = () => {
 
       {/* ── Delete modal ── */}
       {deleteModal && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 120,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "rgba(0,0,0,0.85)",
-            backdropFilter: "blur(8px)",
-            padding: 16,
-          }}
-        >
-          <div
-            style={{
-              background: "var(--brand-card)",
-              border: "1px solid rgba(255,68,68,0.25)",
-              borderRadius: 16,
-              padding: 32,
-              width: "100%",
-              maxWidth: 440,
-            }}
-          >
-            <div
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 16,
-                fontWeight: 800,
-                color: "#ff4444",
-                letterSpacing: "0.1em",
-                marginBottom: 8,
-              }}
-            >
-              TERMINATE PROJECT
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="bg-[#111] border border-red-500/30 rounded-2xl p-8 w-full max-w-md shadow-[0_0_50px_rgba(239,68,68,0.15)]">
+            <div className="font-sans text-xl font-bold text-red-500 mb-3 tracking-tight">
+              Delete Project?
             </div>
-            <p
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 11,
-                color: "rgba(255,255,255,0.4)",
-                marginBottom: 20,
-                lineHeight: 1.7,
-              }}
-            >
+            <p className="font-sans text-sm text-slate-400 mb-6 leading-relaxed">
               Type{" "}
-              <strong style={{ color: "#fff" }}>{project.projectName}</strong>{" "}
+              <strong className="text-white bg-white/10 px-1.5 py-0.5 rounded">
+                {project.projectName}
+              </strong>{" "}
               to confirm deletion. All data will be permanently erased.
             </p>
             <input
@@ -1491,81 +809,30 @@ const ProjectDetail = () => {
               value={deleteConfirm}
               onChange={(e) => setDeleteConfirm(e.target.value)}
               placeholder={project.projectName}
-              style={{
-                width: "100%",
-                background: "rgba(0,0,0,0.3)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: 8,
-                padding: "10px 14px",
-                fontFamily: "var(--font-mono)",
-                fontSize: 12,
-                color: "#fff",
-                outline: "none",
-                marginBottom: 20,
-                boxSizing: "border-box",
-              }}
+              className="w-full bg-black/50 border border-white/10 focus:border-red-500/50 rounded-lg p-3 font-sans text-sm text-white outline-none mb-6 transition-colors"
             />
-            <div style={{ display: "flex", gap: 10 }}>
+            <div className="flex gap-3">
               <button
                 onClick={() => {
                   setDeleteModal(false);
                   setDeleteConfirm("");
                 }}
-                style={{
-                  flex: 1,
-                  background: "rgba(255,255,255,0.05)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  color: "rgba(255,255,255,0.6)",
-                  cursor: "pointer",
-                  padding: "10px",
-                  borderRadius: 8,
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 11,
-                  fontWeight: 600,
-                }}
+                className="flex-1 bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 hover:text-white py-3 rounded-lg font-sans text-sm font-bold transition-colors"
               >
-                CANCEL
+                Cancel
               </button>
               <button
                 disabled={deleteConfirm !== project.projectName || deleting}
                 onClick={handleDelete}
-                style={{
-                  flex: 1,
-                  background:
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-sans text-sm font-bold transition-colors
+                  ${
                     deleteConfirm === project.projectName
-                      ? "rgba(255,68,68,0.2)"
-                      : "rgba(255,68,68,0.05)",
-                  border: `1px solid ${
-                    deleteConfirm === project.projectName
-                      ? "rgba(255,68,68,0.5)"
-                      : "rgba(255,68,68,0.15)"
-                  }`,
-                  color:
-                    deleteConfirm === project.projectName
-                      ? "#ff4444"
-                      : "rgba(255,68,68,0.3)",
-                  cursor:
-                    deleteConfirm === project.projectName
-                      ? "pointer"
-                      : "not-allowed",
-                  padding: "10px",
-                  borderRadius: 8,
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 11,
-                  fontWeight: 700,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 6,
-                }}
+                      ? "bg-red-500 text-white cursor-pointer shadow-[0_0_15px_rgba(239,68,68,0.4)] hover:bg-red-600"
+                      : "bg-red-500/10 text-red-500/50 cursor-not-allowed"
+                  }`}
               >
-                {deleting ? (
-                  <Loader2
-                    size={12}
-                    style={{ animation: "spin 1s linear infinite" }}
-                  />
-                ) : null}
-                DELETE
+                {deleting && <Loader2 size={16} className="animate-spin" />}
+                Delete Project
               </button>
             </div>
           </div>
@@ -1577,31 +844,12 @@ const ProjectDetail = () => {
 
 // ── Helper sub-components ─────────────────────────────────────────────────────
 const SectionHeader = ({ title, sub }: { title: string; sub?: string }) => (
-  <div style={{ marginBottom: 24 }}>
-    <h2
-      style={{
-        fontFamily: "var(--font-mono)",
-        fontSize: 18,
-        fontWeight: 800,
-        color: "#f0f0f0",
-        letterSpacing: "0.05em",
-        margin: 0,
-      }}
-    >
+  <div className="mb-8">
+    <h2 className="font-sans text-2xl lg:text-3xl font-bold text-white tracking-tight">
       {title}
     </h2>
     {sub && (
-      <p
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 11,
-          color: "rgba(255,255,255,0.3)",
-          marginTop: 4,
-          letterSpacing: "0.05em",
-        }}
-      >
-        {sub}
-      </p>
+      <p className="font-sans text-sm text-slate-400 mt-2 font-medium">{sub}</p>
     )}
   </div>
 );
@@ -1615,36 +863,12 @@ const SettingsCard = ({
   icon: React.ReactNode;
   children: React.ReactNode;
 }) => (
-  <div
-    style={{
-      background: "var(--brand-card)",
-      border: "1px solid rgba(255,255,255,0.06)",
-      borderRadius: 12,
-      padding: 24,
-      marginBottom: 12,
-    }}
-  >
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        marginBottom: 16,
-      }}
-    >
-      <span style={{ color: "rgba(255,255,255,0.4)" }}>{icon}</span>
-      <span
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 12,
-          fontWeight: 700,
-          color: "#d0d0d0",
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-        }}
-      >
+  <div className="bg-[#111] border border-white/10 rounded-2xl p-6 lg:p-8">
+    <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
+      <div className="text-slate-400 bg-white/5 p-2 rounded-lg">{icon}</div>
+      <h3 className="font-sans text-lg font-bold text-white tracking-tight">
         {title}
-      </span>
+      </h3>
     </div>
     {children}
   </div>
@@ -1675,42 +899,12 @@ const ChartCard = ({
       : "";
 
   return (
-    <div
-      style={{
-        background: "var(--brand-card)",
-        border: "1px solid rgba(255,255,255,0.06)",
-        borderRadius: 12,
-        padding: 20,
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          marginBottom: 12,
-        }}
-      >
-        <div
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 10,
-            color: "rgba(255,255,255,0.35)",
-            letterSpacing: "0.2em",
-            textTransform: "uppercase",
-          }}
-        >
+    <div className="bg-[#111] border border-white/10 rounded-xl p-5 overflow-hidden">
+      <div className="flex justify-between items-start mb-4">
+        <div className="font-sans text-[10px] font-bold text-slate-500 uppercase tracking-widest">
           {title}
         </div>
-        <div
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 13,
-            fontWeight: 700,
-            color,
-          }}
-        >
+        <div className="font-mono text-sm font-bold" style={{ color }}>
           {value}
         </div>
       </div>
@@ -1729,7 +923,7 @@ const ChartCard = ({
               x2="0"
               y2="1"
             >
-              <stop offset="0%" stopColor={color} stopOpacity="0.2" />
+              <stop offset="0%" stopColor={color} stopOpacity="0.25" />
               <stop offset="100%" stopColor={color} stopOpacity="0" />
             </linearGradient>
           </defs>
@@ -1741,25 +935,15 @@ const ChartCard = ({
           <polyline
             fill="none"
             stroke={color}
-            strokeWidth="1.5"
+            strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
             points={pts}
           />
         </svg>
       ) : (
-        <div
-          style={{
-            height: H,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontFamily: "var(--font-mono)",
-            fontSize: 10,
-            color: "rgba(255,255,255,0.15)",
-          }}
-        >
-          Collecting data...
+        <div className="h-[80px] flex items-center justify-center font-sans text-xs font-medium text-slate-600">
+          Waiting for analytics data...
         </div>
       )}
     </div>

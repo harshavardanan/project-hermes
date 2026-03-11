@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Menu,
@@ -10,10 +10,6 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-interface NavbarProps {
-  onSignInClick: () => void;
-}
-
 interface UserData {
   displayName: string;
   avatar?: string;
@@ -21,40 +17,15 @@ interface UserData {
   isAdmin?: boolean;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ onSignInClick }) => {
+interface NavbarProps {
+  onSignInClick: () => void;
+  user: UserData | null; // Accept user from App.tsx
+}
+
+const Navbar: React.FC<NavbarProps> = ({ onSignInClick, user }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
-  const [user, setUser] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const fetchUserStatus = async () => {
-    try {
-      const response = await fetch("http://localhost:8080/auth/me", {
-        credentials: "include",
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data);
-      } else {
-        setUser(null);
-      }
-    } catch (error) {
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchUserStatus();
-    const handleAuthMessage = (event: MessageEvent) => {
-      if (event.origin !== "http://localhost:8080") return;
-      if (event.data === "auth_success") fetchUserStatus();
-    };
-    window.addEventListener("message", handleAuthMessage);
-    return () => window.removeEventListener("message", handleAuthMessage);
-  }, []);
 
   const handleLogout = () => {
     window.location.href = "http://localhost:8080/auth/logout";
@@ -104,6 +75,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSignInClick }) => {
               </button>
             ))}
 
+            {/* Dashboard Link - ONLY SHOWS IF LOGGED IN */}
             {user && (
               <button
                 onClick={() => navigate("/dashboard")}
@@ -151,9 +123,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSignInClick }) => {
             <div className="h-6 w-[1px] bg-brand-border mx-2" />
 
             {/* Identity / Auth */}
-            {loading ? (
-              <div className="w-8 h-8 rounded-full bg-brand-card animate-pulse" />
-            ) : user ? (
+            {user ? (
               <div className="flex items-center gap-3 pl-2">
                 <div className="flex flex-col items-end">
                   <div className="flex items-center gap-1.5 mb-0.5">

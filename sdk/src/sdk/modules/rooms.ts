@@ -5,12 +5,6 @@ import type {
   CreateGroupRoomInput,
 } from "../types/index";
 
-// ── Rooms Module ──────────────────────────────────────────────────────────────
-// Framework-agnostic wrapper around HermesClient room methods.
-// Usage:
-//   const rooms = new Rooms(client);
-//   const room = await rooms.createDirect({ targetUserId: "..." });
-
 export class Rooms {
   constructor(private client: HermesClient) {}
 

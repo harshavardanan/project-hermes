@@ -5,14 +5,6 @@ import type {
   MessageHistoryResult,
 } from "../types/index";
 
-// ── Messaging Module ──────────────────────────────────────────────────────────
-// Wraps HermesClient messaging methods with extra convenience helpers.
-// Use this directly in non-React environments.
-//
-// Usage:
-//   const messaging = new Messaging(client);
-//   await messaging.send({ roomId, type: "text", text: "Hello!" });
-
 export class Messaging {
   constructor(private client: HermesClient) {}
 

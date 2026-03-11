@@ -213,7 +213,6 @@ export class HermesClient extends EventEmitter {
     await this._emit("room:delete", { roomId });
   }
 
-  // 🚨 FIXED: No longer passing `{}` payload which broke the callback chain
   async getRooms(): Promise<Room[]> {
     const res = await this._emit<{ rooms: Room[] }>("room:list");
     return res.rooms;
@@ -227,7 +226,6 @@ export class HermesClient extends EventEmitter {
     await this._emit("room:member:remove", { roomId, targetId });
   }
 
-  // ── Media / Presence / Etc ──────────────────────────────────────────────────
   pingPresence(roomId: string): void {
     this.socket?.emit("presence:ping", { roomId });
   }
