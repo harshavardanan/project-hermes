@@ -180,7 +180,6 @@ const CopyField = ({
   const [copied, setCopied] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const display = masked && !revealed ? "•".repeat(32) : value;
-
   return (
     <div className="mb-5 group">
       <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest font-sans mb-1.5">
@@ -189,11 +188,10 @@ const CopyField = ({
       <div className="flex items-center gap-3 bg-black/50 border border-white/10 rounded-lg p-3 transition-colors group-hover:border-white/20">
         <code
           className={`flex-1 font-mono text-[13px] overflow-hidden text-ellipsis whitespace-nowrap
-            ${masked && !revealed ? "text-slate-500 tracking-[0.2em]" : "text-brand-primary"}`}
+          ${masked && !revealed ? "text-slate-500 tracking-[0.2em]" : "text-brand-primary"}`}
         >
           {display}
         </code>
-
         {masked && (
           <button
             onClick={() => setRevealed((r) => !r)}
@@ -202,7 +200,6 @@ const CopyField = ({
             {revealed ? "HIDE" : "SHOW"}
           </button>
         )}
-
         <button
           onClick={() => {
             navigator.clipboard.writeText(value);
@@ -224,6 +221,148 @@ const CopyField = ({
   );
 };
 
+// ── Hermes.config.json block ──────────────────────────────────────────────────
+const HermesConfigJson = ({ project }: { project: any }) => {
+  const [copied, setCopied] = useState(false);
+
+  const config = {
+    projectId: project.projectId ?? "",
+    apiKey: project.apiKey ?? "",
+    secret: project.secret ?? "",
+    endpoint: project.endpoint ?? "",
+    region: project.region ?? "",
+  };
+
+  // Raw value for copying (real secret)
+  const raw = JSON.stringify(config, null, 2);
+
+  // Display version — mask the secret
+  const displayConfig = {
+    ...config,
+    secret: "••••••••••••••••••••••••••••••••",
+  };
+  const lines = JSON.stringify(displayConfig, null, 2).split("\n");
+
+  const colorLine = (line: string) => {
+    const m = line.match(/^(\s*)("[\w]+")(\s*:\s*)(.+)$/);
+    if (!m) return <span className="text-slate-500">{line}</span>;
+    const [, indent, key, colon, val] = m;
+    const isSecret = key === '"secret"';
+    const isBracket = val === "{" || val === "}";
+    return (
+      <>
+        <span>{indent}</span>
+        <span className="text-[#93c5fd]">{key}</span>
+        <span className="text-slate-500">{colon}</span>
+        <span
+          className={
+            isBracket
+              ? "text-slate-400"
+              : isSecret
+                ? "text-slate-500 tracking-widest"
+                : "text-[#86efac]"
+          }
+        >
+          {val}
+        </span>
+      </>
+    );
+  };
+
+  return (
+    <div className="bg-[#0d1117] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
+      {/* Title bar */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-black/40">
+        <div className="flex items-center gap-3">
+          {/* macOS traffic lights */}
+          <div className="flex gap-1.5">
+            {["#ff5f56", "#ffbd2e", "#27c93f"].map((c) => (
+              <div
+                key={c}
+                style={{ background: c }}
+                className="w-3 h-3 rounded-full opacity-80"
+              />
+            ))}
+          </div>
+          {/* File tab */}
+          <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-md px-3 py-1">
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#fbbf24"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+            </svg>
+            <span className="font-mono text-xs font-semibold text-slate-300 tracking-wide">
+              Hermes.config.json
+            </span>
+          </div>
+        </div>
+        {/* Copy button */}
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(raw);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+          }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-sans text-xs font-bold transition-all
+            ${
+              copied
+                ? "bg-brand-primary/20 border border-brand-primary/40 text-brand-primary"
+                : "bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10 hover:text-white"
+            }`}
+        >
+          {copied ? <Check size={11} /> : <Copy size={11} />}
+          {copied ? "Copied!" : "Copy file"}
+        </button>
+      </div>
+
+      {/* Code body with line numbers */}
+      <div className="p-5 font-mono text-[13px] leading-6 overflow-x-auto">
+        <table className="border-collapse w-full">
+          <tbody>
+            {lines.map((line, i) => (
+              <tr
+                key={i}
+                className="hover:bg-white/[0.025] transition-colors group/row"
+              >
+                <td
+                  className="pr-5 text-right text-slate-600 text-[11px] select-none w-6 align-top pt-px
+                  group-hover/row:text-slate-500 transition-colors"
+                >
+                  {i + 1}
+                </td>
+                <td className="whitespace-pre">{colorLine(line)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Footer warning */}
+      <div className="px-5 py-3 border-t border-white/5 bg-black/20 flex items-center gap-2">
+        <AlertTriangle size={11} className="text-amber-500 shrink-0" />
+        <span className="font-sans text-[10px] font-medium text-slate-500">
+          Never commit this file. Add{" "}
+          <code className="text-slate-400 bg-white/5 px-1 rounded">
+            Hermes.config.json
+          </code>{" "}
+          to your{" "}
+          <code className="text-slate-400 bg-white/5 px-1 rounded">
+            .gitignore
+          </code>
+        </span>
+      </div>
+    </div>
+  );
+};
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 const ProjectDetail = () => {
   const { id } = useParams();
@@ -234,8 +373,6 @@ const ProjectDetail = () => {
   const [deleteModal, setDeleteModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleting, setDeleting] = useState(false);
-
-  // Simulated historical data for sparklines
   const [tokenHistory, setTokenHistory] = useState<number[]>([]);
   const [userHistory, setUserHistory] = useState<number[]>([]);
   const [msgHistory, setMsgHistory] = useState<number[]>([]);
@@ -295,7 +432,6 @@ const ProjectDetail = () => {
       </div>
     );
 
-  // ── Derived values ──────────────────────────────────────────────────────────
   const dailyLimit = project.plan?.dailyLimit ?? 0;
   const usedTokens = project.usage?.dailyTokens ?? 0;
   const totalAllTime = project.usage?.totalTokensAllTime ?? 0;
@@ -338,9 +474,8 @@ const ProjectDetail = () => {
 
   return (
     <div className="flex min-h-[calc(100vh-64px)] bg-brand-bg text-white">
-      {/* ── Left sidebar ── */}
+      {/* ── Sidebar ── */}
       <aside className="w-64 shrink-0 fixed top-16 left-0 h-[calc(100vh-64px)] flex flex-col bg-[#0a0a0a] border-r border-white/10 z-40 p-4">
-        {/* Project identity */}
         <div className="pb-5 border-b border-white/10 mb-4 px-2 mt-2">
           <div className="flex items-center gap-2 mb-2">
             <Globe size={14} className="text-brand-primary shrink-0" />
@@ -358,8 +493,6 @@ const ProjectDetail = () => {
             </span>
           </div>
         </div>
-
-        {/* Nav */}
         <nav className="flex-1 flex flex-col gap-1.5">
           {navItems.map((n) => (
             <NavItem
@@ -372,8 +505,6 @@ const ProjectDetail = () => {
             />
           ))}
         </nav>
-
-        {/* Plan badge */}
         <div className="mt-auto p-4 bg-[#111] border border-white/10 rounded-xl">
           <div className="font-sans text-[10px] font-bold text-slate-500 tracking-widest uppercase mb-1">
             Current Plan
@@ -387,18 +518,16 @@ const ProjectDetail = () => {
         </div>
       </aside>
 
-      {/* ── Main content ── */}
+      {/* ── Main ── */}
       <main className="flex-1 ml-64 p-8 lg:p-12 overflow-y-auto">
         <div className="max-w-5xl mx-auto animate-in fade-in duration-500">
-          {/* ── OVERVIEW ── */}
+          {/* OVERVIEW */}
           {tab === "overview" && (
             <div className="space-y-6">
               <SectionHeader
                 title="Overview"
                 sub={`Project created on ${createdAt}`}
               />
-
-              {/* Primary stats grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard
                   icon={<Users size={18} />}
@@ -432,8 +561,6 @@ const ProjectDetail = () => {
                   accent="#39FF14"
                 />
               </div>
-
-              {/* Token usage */}
               <div className="bg-[#111] border border-white/10 rounded-2xl p-6 lg:p-8">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 gap-4">
                   <div>
@@ -456,9 +583,7 @@ const ProjectDetail = () => {
                     {usagePct.toFixed(1)}%
                   </div>
                 </div>
-
                 <UsageBar pct={usagePct} color={usageColor} />
-
                 <div className="flex justify-between items-center mt-3">
                   <span
                     className={`font-sans text-xs font-medium ${usagePct >= 100 ? "text-red-400" : "text-slate-500"}`}
@@ -472,8 +597,6 @@ const ProjectDetail = () => {
                   </span>
                 </div>
               </div>
-
-              {/* Secondary stats row */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {[
                   {
@@ -519,7 +642,7 @@ const ProjectDetail = () => {
             </div>
           )}
 
-          {/* ── ANALYTICS ── */}
+          {/* ANALYTICS */}
           {tab === "analytics" && (
             <div className="space-y-6">
               <SectionHeader
@@ -545,7 +668,6 @@ const ProjectDetail = () => {
                   color="#a855f7"
                   value={`${activeUsers} online`}
                 />
-
                 <div className="bg-[#111] border border-white/10 rounded-2xl p-6">
                   <div className="font-sans text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-5">
                     Plan Limits
@@ -593,14 +715,13 @@ const ProjectDetail = () => {
             </div>
           )}
 
-          {/* ── USERS ── */}
+          {/* USERS */}
           {tab === "users" && (
             <div className="space-y-6">
               <SectionHeader
                 title="Users"
                 sub="All registered Hermes users under this project"
               />
-
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 {[
                   {
@@ -641,15 +762,13 @@ const ProjectDetail = () => {
                   </div>
                 ))}
               </div>
-
-              <div className="bg-[#111] border border-white/10 rounded-xl overflow-hidden shadow-sm">
+              <div className="bg-[#111] border border-white/10 rounded-xl overflow-hidden">
                 <div className="grid grid-cols-4 p-4 bg-black/40 border-b border-white/10 font-sans text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                   <span>User</span>
                   <span>Status</span>
                   <span>Last Seen</span>
                   <span>Messages</span>
                 </div>
-
                 {(project.users ?? []).length === 0 ? (
                   <div className="p-12 text-center font-sans text-sm font-medium text-slate-500">
                     No users yet. Users will appear here once they connect via
@@ -696,7 +815,7 @@ const ProjectDetail = () => {
             </div>
           )}
 
-          {/* ── CREDENTIALS ── */}
+          {/* CREDENTIALS */}
           {tab === "credentials" && (
             <div className="space-y-6">
               <SectionHeader
@@ -704,6 +823,10 @@ const ProjectDetail = () => {
                 sub="Keep your API secret secure — never expose it client-side"
               />
 
+              {/* ── Hermes.config.json ── */}
+              <HermesConfigJson project={project} />
+
+              {/* Individual copy fields */}
               <div className="bg-[#111] border border-white/10 rounded-2xl p-6 lg:p-8">
                 <CopyField label="Project ID" value={project.projectId} />
                 <CopyField label="API Key" value={project.apiKey} />
@@ -725,15 +848,13 @@ const ProjectDetail = () => {
             </div>
           )}
 
-          {/* ── SETTINGS ── */}
+          {/* SETTINGS */}
           {tab === "settings" && (
             <div className="space-y-6">
               <SectionHeader
                 title="Settings"
                 sub="Manage your project configuration"
               />
-
-              {/* Plan */}
               <SettingsCard title="Subscription Plan" icon={<Zap size={18} />}>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
@@ -754,8 +875,6 @@ const ProjectDetail = () => {
                   </button>
                 </div>
               </SettingsCard>
-
-              {/* Security */}
               <SettingsCard title="Security" icon={<Shield size={18} />}>
                 <p className="font-sans text-sm font-medium text-slate-400 mb-5 leading-relaxed max-w-2xl">
                   Rotate your API secret if it has been compromised or exposed.
@@ -765,8 +884,6 @@ const ProjectDetail = () => {
                   ROTATE API SECRET
                 </button>
               </SettingsCard>
-
-              {/* Danger zone */}
               <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-6 lg:p-8 mt-8">
                 <div className="flex items-center gap-3 mb-3">
                   <AlertTriangle size={20} className="text-red-500" />
@@ -802,7 +919,7 @@ const ProjectDetail = () => {
               <strong className="text-white bg-white/10 px-1.5 py-0.5 rounded">
                 {project.projectName}
               </strong>{" "}
-              to confirm deletion. All data will be permanently erased.
+              to confirm. All data will be permanently erased.
             </p>
             <input
               type="text"
@@ -842,7 +959,7 @@ const ProjectDetail = () => {
   );
 };
 
-// ── Helper sub-components ─────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 const SectionHeader = ({ title, sub }: { title: string; sub?: string }) => (
   <div className="mb-8">
     <h2 className="font-sans text-2xl lg:text-3xl font-bold text-white tracking-tight">
@@ -897,7 +1014,6 @@ const ChartCard = ({
           )
           .join(" ")
       : "";
-
   return (
     <div className="bg-[#111] border border-white/10 rounded-xl p-5 overflow-hidden">
       <div className="flex justify-between items-start mb-4">
