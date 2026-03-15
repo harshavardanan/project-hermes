@@ -1,7 +1,13 @@
 import React from "react";
 
+interface HealthData {
+  uptime: number;
+  memory?: { used: number; [key: string]: unknown };
+  status?: string;
+}
+
 interface LiveStatsBarProps {
-  healthData: any;
+  healthData?: HealthData | null;
   latency: number | null;
 }
 
@@ -19,7 +25,7 @@ const LiveStatsBar: React.FC<LiveStatsBarProps> = ({ healthData, latency }) => {
     <div className="w-full bg-brand-card/50 border-y border-brand-border py-12">
       <div className="max-w-[1280px] mx-auto px-6 md:px-10 flex flex-wrap justify-center gap-8 md:gap-16">
         <div className="flex flex-col items-center gap-1">
-          <p className="text-brand-primary text-3xl font-black drop-shadow-[0_0_10px_rgba(57,255,20,0.5)]">
+          <p className="text-brand-primary text-3xl font-black ">
             {healthData ? formatUptime(healthData.uptime) : "..."}
           </p>
           <p className="text-brand-muted text-xs font-bold uppercase tracking-widest">
@@ -30,7 +36,7 @@ const LiveStatsBar: React.FC<LiveStatsBarProps> = ({ healthData, latency }) => {
         <div className="h-12 w-px bg-brand-border hidden md:block"></div>
 
         <div className="flex flex-col items-center gap-1">
-          <p className="text-brand-primary text-3xl font-black drop-shadow-[0_0_10px_rgba(57,255,20,0.5)]">
+          <p className="text-brand-primary text-3xl font-black ">
             {healthData?.memory ? `${healthData.memory.used} MB` : "..."}
           </p>
           <p className="text-brand-muted text-xs font-bold uppercase tracking-widest">
@@ -41,7 +47,7 @@ const LiveStatsBar: React.FC<LiveStatsBarProps> = ({ healthData, latency }) => {
         <div className="h-12 w-px bg-brand-border hidden md:block"></div>
 
         <div className="flex flex-col items-center gap-1">
-          <p className="text-brand-primary text-3xl font-black drop-shadow-[0_0_10px_rgba(57,255,20,0.5)]">
+          <p className="text-brand-primary text-3xl font-black ">
             {latency !== null ? `${latency}ms` : "..."}
           </p>
           <p className="text-brand-muted text-xs font-bold uppercase tracking-widest">
@@ -52,7 +58,7 @@ const LiveStatsBar: React.FC<LiveStatsBarProps> = ({ healthData, latency }) => {
         <div className="h-12 w-px bg-brand-border hidden md:block"></div>
 
         <div className="flex flex-col items-center gap-1">
-          <p className="text-brand-primary text-3xl font-black drop-shadow-[0_0_10px_rgba(57,255,20,0.5)]">
+          <p className="text-brand-primary text-3xl font-black ">
             {healthData?.status === "ok" ? "SECURE" : "E2EE"}
           </p>
           <p className="text-brand-muted text-xs font-bold uppercase tracking-widest">

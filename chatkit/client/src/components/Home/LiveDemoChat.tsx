@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Send, CheckCircle2 } from "lucide-react";
 import { io, Socket } from "socket.io-client";
 import EmojiPicker, { Theme, type EmojiClickData } from "emoji-picker-react";
+import type { UserData } from "../../types";
 
 // ── Config ─────────────────────────────────────────────────────────────────────
 const ENGINE = import.meta.env.VITE_SERVER_ENDPOINT;
@@ -64,14 +65,18 @@ interface TypingUser {
   displayName: string;
 }
 interface LiveDemoChatProps {
-  user: {
-    name: string;
-    email: string;
-    _id?: string;
-    displayName?: string;
-    username?: string;
-  } | null;
+  user: UserData | null;
   onSignInClick: () => void;
+}
+
+interface ChatMessagePayload {
+  _id: string;
+  senderId: string;
+  senderName?: string;
+  text: string;
+  createdAt: string;
+  roomId?: string;
+  reactions?: { emoji: string; users: string[] }[];
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -99,12 +104,13 @@ export default function LiveDemoChat({
   const optimisticIds = useRef<Set<string>>(new Set());
   const socketRef = useRef<Socket | null>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const msgContainerRef = useRef<HTMLDivElement>(null);
   const hermesUserRef = useRef<string | null>(null);
 
-  // ── Auto-scroll ──────────────────────────────────────────────────────────────
+  // ── Auto-scroll (container only — never scrolls the page) ────────────────────
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = msgContainerRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [messages, typingUsers]);
 
   // ── Connect ───────────────────────────────────────────────────────────────────
@@ -147,7 +153,7 @@ export default function LiveDemoChat({
 
           // ✅ Join the room — without this, io.to(roomId) on the server
           // won't include this socket and messages won't be received
-          socket.emit("room:join", { roomId: DEMO_ROOM_ID }, (joinRes: any) => {
+          socket.emit("room:join", { roomId: DEMO_ROOM_ID }, (joinRes: { success?: boolean; error?: string }) => {
             if (joinRes && !joinRes.success) {
               console.error("Failed to join demo room:", joinRes.error);
             }
@@ -157,10 +163,10 @@ export default function LiveDemoChat({
           socket.emit(
             "message:history",
             { roomId: DEMO_ROOM_ID, limit: 50 },
-            (res: any) => {
+            (res: { messages?: ChatMessagePayload[] }) => {
               if (res?.messages) {
                 setMessages(
-                  res.messages.map((m: any) => ({
+                  res.messages.map((m: ChatMessagePayload) => ({
                     _id: m._id,
                     senderId: m.senderId,
                     senderName: m.senderName ?? m.senderId.slice(-6),
@@ -173,7 +179,7 @@ export default function LiveDemoChat({
                   string,
                   { emoji: string; users: string[] }[]
                 > = {};
-                res.messages.forEach((m: any) => {
+                res.messages.forEach((m: ChatMessagePayload) => {
                   if (m.reactions?.length) rxMap[m._id] = m.reactions;
                 });
                 setReactions(rxMap);
@@ -183,7 +189,7 @@ export default function LiveDemoChat({
         });
 
         // ── INCOMING MESSAGES (from ALL users including self from server) ──
-        socket.on("message:receive", (msg: any) => {
+        socket.on("message:receive", (msg: ChatMessagePayload) => {
           if (msg.roomId !== DEMO_ROOM_ID) return;
 
           setMessages((prev) => {
@@ -218,12 +224,12 @@ export default function LiveDemoChat({
         });
 
         // Reactions
-        socket.on("reaction:updated", ({ messageId, reactions: rx }: any) => {
+        socket.on("reaction:updated", ({ messageId, reactions: rx }: { messageId: string; reactions: { emoji: string; users: string[] }[] }) => {
           setReactions((prev) => ({ ...prev, [messageId]: rx }));
         });
 
         // Typing
-        socket.on("typing:started", ({ userId, displayName, roomId }: any) => {
+        socket.on("typing:started", ({ userId, displayName, roomId }: { userId: string; displayName: string; roomId: string }) => {
           if (roomId !== DEMO_ROOM_ID || userId === hermesUserRef.current)
             return;
           setTypingUsers((p) => [
@@ -231,7 +237,7 @@ export default function LiveDemoChat({
             { userId, displayName },
           ]);
         });
-        socket.on("typing:stopped", ({ userId, roomId }: any) => {
+        socket.on("typing:stopped", ({ userId, roomId }: { userId: string; roomId: string }) => {
           if (roomId !== DEMO_ROOM_ID) return;
           setTypingUsers((p) => p.filter((u) => u.userId !== userId));
         });
@@ -328,7 +334,7 @@ export default function LiveDemoChat({
 
   const dotColor =
     status === "connected"
-      ? "#39FF14"
+      ? "#ffffff"
       : status === "connecting"
         ? "#fbbf24"
         : status === "error"
@@ -348,7 +354,7 @@ export default function LiveDemoChat({
           <div className="space-y-4">
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-white leading-tight">
               Experience the{" "}
-              <span className="text-brand-primary drop-shadow-[0_0_10px_rgba(57,255,20,0.5)]">
+              <span className="text-brand-primary ">
                 speed
               </span>{" "}
               yourself.
@@ -433,6 +439,7 @@ export default function LiveDemoChat({
 
             {/* Messages */}
             <div
+              ref={msgContainerRef}
               className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar"
               onClick={() => setPickerFor(null)}
             >
@@ -613,8 +620,6 @@ export default function LiveDemoChat({
                   </span>
                 </div>
               )}
-
-              <div ref={bottomRef} />
             </div>
 
             {/* Input */}
@@ -622,7 +627,7 @@ export default function LiveDemoChat({
               {user ? (
                 <form
                   onSubmit={handleSend}
-                  className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus-within:border-brand-primary/40 transition-colors"
+                  className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus-within:border-white/30 transition-colors"
                 >
                   <input
                     type="text"
@@ -644,7 +649,7 @@ export default function LiveDemoChat({
                     className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all
                       ${
                         input.trim() && connected
-                          ? "bg-brand-primary text-black hover:scale-105 active:scale-95 shadow-[0_0_10px_rgba(57,255,20,0.3)]"
+                          ? "bg-white text-black hover:scale-105 active:scale-95"
                           : "bg-white/10 text-slate-500"
                       }`}
                   >
@@ -657,20 +662,21 @@ export default function LiveDemoChat({
                   </button>
                 </form>
               ) : (
-                <>
-                  <div className="flex gap-2 opacity-30 blur-sm pointer-events-none px-4 py-2">
-                    <div className="flex-1 bg-white/10 rounded-lg h-10" />
-                    <div className="w-10 bg-white/10 rounded-lg h-10" />
-                  </div>
-                  <div className="absolute inset-0 flex items-center justify-center p-4">
-                    <button
-                      onClick={onSignInClick}
-                      className="bg-brand-primary text-black font-bold py-3 px-8 rounded-full shadow-[0_0_20px_rgba(57,255,20,0.4)] hover:shadow-[0_0_30px_rgba(57,255,20,0.6)] transition-all duration-300 hover:scale-105 active:scale-95"
-                    >
-                      Sign in to join the chat
-                    </button>
-                  </div>
-                </>
+                /* Unauthenticated: disabled input + inline sign-in CTA */
+                <div className="flex items-center gap-3 bg-white/[0.03] border border-white/8 rounded-xl px-4 py-2">
+                  <input
+                    type="text"
+                    disabled
+                    className="bg-transparent border-none focus:ring-0 text-sm w-full text-slate-600 placeholder-slate-700 outline-none cursor-not-allowed"
+                    placeholder="Sign in to send a message…"
+                  />
+                  <button
+                    onClick={onSignInClick}
+                    className="flex-shrink-0 bg-white text-black text-xs font-bold px-4 py-2 rounded-lg hover:bg-zinc-100 transition-all active:scale-95 whitespace-nowrap"
+                  >
+                    Sign in
+                  </button>
+                </div>
               )}
             </div>
           </div>

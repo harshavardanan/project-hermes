@@ -1,10 +1,18 @@
-import React, { useState, useEffect } from "react";
-import { Check, Zap, ChevronDown } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Check, ChevronDown } from "lucide-react";
+
+interface Plan {
+  _id: string;
+  name: string;
+  planId?: string;
+  dailyLimit: number;
+  monthlyPrice: number;
+  features: string[];
+}
 
 const Pricing = () => {
-  const [plans, setPlans] = useState<any[]>([]);
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">(
     "monthly",
   );
@@ -12,14 +20,14 @@ const Pricing = () => {
   useEffect(() => {
     const fetchPlans = async () => {
       try {
-        const res = await fetch("http://localhost:8080/api/plans", {
+        const res = await fetch(`${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/api/plans`, {
           credentials: "include",
         });
         if (!res.ok) throw new Error("Failed to fetch plans.");
         const data = await res.json();
         setPlans(Array.isArray(data) ? data : []);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err) {
+        console.error("Failed to fetch plans", err);
       } finally {
         setLoading(false);
       }
@@ -29,7 +37,7 @@ const Pricing = () => {
 
   if (loading)
     return (
-      <div className="pt-40 text-center text-[var(--brand-primary)] animate-pulse font-black uppercase tracking-widest">
+      <div className="pt-40 text-center text-white  font-black uppercase tracking-widest">
         Initialising Tiers...
       </div>
     );
@@ -39,12 +47,12 @@ const Pricing = () => {
       <div className="max-w-6xl mx-auto">
         {/* Header & Toggle */}
         <div className="text-center mb-16">
-          <div className="inline-block px-3 py-1 rounded-full bg-[var(--brand-primary)]/10 border border-[var(--brand-primary)]/20 text-[var(--brand-primary)] text-[10px] font-black uppercase tracking-widest mb-4">
+          <div className="inline-block px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest mb-4">
             Network Protocol 2.0
           </div>
           <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter mb-4">
             Choose Your{" "}
-            <span className="text-[var(--brand-primary)]">Power</span>
+            <span className="text-white">Power</span>
           </h1>
           <p className="text-[var(--brand-muted)] max-w-md mx-auto mb-10 font-medium">
             Scale your application with the Hermes SDK. High-performance
@@ -112,7 +120,7 @@ const Pricing = () => {
 
                 <ul className="space-y-4 mb-10 flex-1">
                   <li className="flex items-center gap-3 text-sm font-bold text-white">
-                    <Check size={18} className="text-[var(--brand-primary)]" />
+                    <Check size={18} className="text-white" />
                     {plan.dailyLimit.toLocaleString()} Daily Tokens
                   </li>
                   {plan.features?.map((feature: string, idx: number) => (
@@ -122,7 +130,7 @@ const Pricing = () => {
                     >
                       <Check
                         size={18}
-                        className="text-[var(--brand-primary)]"
+                        className="text-white"
                       />
                       {feature}
                     </li>
@@ -132,7 +140,7 @@ const Pricing = () => {
                 <button
                   className={`w-full py-4 rounded-xl font-black uppercase tracking-widest transition-all active:scale-95 ${
                     isPopular
-                      ? "bg-[var(--brand-primary)] text-black shadow-[0_0_20px_rgba(255,140,0,0.4)] hover:brightness-110"
+                      ? "bg-[var(--brand-primary)] text-black  hover:brightness-110"
                       : "bg-[var(--brand-bg)] text-white border border-[var(--brand-border)] hover:bg-[var(--brand-border)]"
                   }`}
                 >
@@ -147,7 +155,7 @@ const Pricing = () => {
         <div className="max-w-3xl mx-auto">
           <h2 className="text-3xl font-black text-white text-center mb-10 uppercase tracking-tighter">
             Frequent{" "}
-            <span className="text-[var(--brand-primary)]">Queries</span>
+            <span className="text-white">Queries</span>
           </h2>
           <div className="space-y-4">
             <FaqItem
@@ -174,7 +182,7 @@ const FaqItem = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   return (
-    <div className="bg-[var(--brand-card)] border border-[var(--brand-border)] rounded-2xl overflow-hidden transition-all hover:border-[var(--brand-primary)]/20">
+    <div className="bg-[var(--brand-card)] border border-[var(--brand-border)] rounded-2xl overflow-hidden transition-all hover:border-white/10">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full p-6 flex items-center justify-between text-left hover:bg-white/5 transition-colors"
@@ -184,7 +192,7 @@ const FaqItem = ({
         </span>
         <ChevronDown
           size={20}
-          className={`text-[var(--brand-muted)] transition-transform ${isOpen ? "rotate-180 text-[var(--brand-primary)]" : ""}`}
+          className={`text-[var(--brand-muted)] transition-transform ${isOpen ? "rotate-180 text-white" : ""}`}
         />
       </button>
       {isOpen && (

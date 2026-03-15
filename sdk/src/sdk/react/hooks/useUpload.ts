@@ -2,19 +2,12 @@ import { useState, useCallback } from "react";
 import type { HermesClient } from "../../core/HermesClient";
 import type { UploadResult, Message } from "../../types/index";
 
-// ── useUpload ─────────────────────────────────────────────────────────────────
-// Handles file uploads with progress state.
-//
-// Usage:
-//   const { upload, sendFile, uploading, error } = useUpload(client);
-//   await sendFile("roomId", file);
-
 export const useUpload = (client: HermesClient) => {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpload, setLastUpload] = useState<UploadResult | null>(null);
 
-  // Upload only — returns UploadResult
+  
   const upload = useCallback(
     async (file: File): Promise<UploadResult | null> => {
       setUploading(true);
@@ -33,7 +26,7 @@ export const useUpload = (client: HermesClient) => {
     [client],
   );
 
-  // Upload and immediately send as message
+  
   const sendFile = useCallback(
     async (
       roomId: string,
@@ -66,7 +59,7 @@ export const useUpload = (client: HermesClient) => {
     [client],
   );
 
-  // Validate file before uploading
+  
   const validate = useCallback((file: File, maxMb = 50): string | null => {
     if (file.size > maxMb * 1024 * 1024) {
       return `File too large. Max size is ${maxMb}MB.`;

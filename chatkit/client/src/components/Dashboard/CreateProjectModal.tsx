@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { X, Copy, Check, Loader2 } from "lucide-react";
 
 interface Props {
@@ -14,7 +14,7 @@ export default function CreateProjectModal({
 }: Props) {
   const [projectName, setProjectName] = useState("");
   const [creating, setCreating] = useState(false);
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<Record<string, unknown> | null>(null);
   const [copied, setCopied] = useState(false);
 
   if (!show) return null;
@@ -22,7 +22,7 @@ export default function CreateProjectModal({
   const createProject = async () => {
     setCreating(true);
 
-    const res = await fetch("http://localhost:8080/api/projects", {
+    const res = await fetch(`${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/api/projects`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ projectName }),
@@ -36,9 +36,9 @@ export default function CreateProjectModal({
 
   const snippet = data
     ? `const hermesConfig = {
-  projectId: "${data.projectId}",
-  apiKey: "${data.apiKey}",
-  apiSecret: "${data.secret}"
+  projectId: "${String(data.projectId)}",
+  apiKey: "${String(data.apiKey)}",
+  apiSecret: "${String(data.secret)}"
 };`
     : "";
 

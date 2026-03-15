@@ -1,12 +1,9 @@
-// ── Connection ────────────────────────────────────────────────────────────────
 
-// Two valid config shapes:
-// 1. Token mode (production): { endpoint, token }
-// 2. Credentials mode (dev/testing): { endpoint, apiKey, secret, userId, displayName }
+
 export type HermesConfig =
   | {
       endpoint: string;
-      token: string; // pre-fetched from Joe's backend
+      token: string; 
       apiKey?: never;
       secret?: never;
       userId?: never;
@@ -17,16 +14,16 @@ export type HermesConfig =
   | {
       endpoint: string;
       token?: never;
-      apiKey: string; // Joe's API key
-      secret: string; // Joe's secret
-      userId: string; // Dan's ID in Joe's system
-      displayName: string; // Dan's display name
+      apiKey: string; 
+      secret: string; 
+      userId: string; 
+      displayName: string; 
       avatar?: string;
       email?: string;
     };
 
 export interface HermesUser {
-  userId: string; // HermesUser._id (our internal ID)
+  userId: string; 
   displayName: string;
   avatar?: string;
   email?: string;
@@ -37,8 +34,6 @@ export interface ConnectResponse {
   token: string;
   user: HermesUser;
 }
-
-// ── Rooms ─────────────────────────────────────────────────────────────────────
 
 export type RoomType = "direct" | "group";
 
@@ -62,17 +57,15 @@ export interface Room {
 }
 
 export interface CreateDirectRoomInput {
-  targetUserId: string; // target's HermesUser._id
+  targetUserId: string; 
 }
 
 export interface CreateGroupRoomInput {
   name: string;
-  memberIds: string[]; // HermesUser._id array
+  memberIds: string[]; 
   description?: string;
   avatar?: string;
 }
-
-// ── Messages ──────────────────────────────────────────────────────────────────
 
 export type MessageType =
   | "text"
@@ -127,8 +120,6 @@ export interface MessageHistoryResult {
   hasMore: boolean;
 }
 
-// ── Presence ──────────────────────────────────────────────────────────────────
-
 export interface PresenceEvent {
   userId: string;
   displayName: string;
@@ -141,15 +132,11 @@ export interface LastSeenEvent {
   lastSeen: string;
 }
 
-// ── Typing ────────────────────────────────────────────────────────────────────
-
 export interface TypingEvent {
   userId: string;
   displayName: string;
   roomId: string;
 }
-
-// ── Receipts ──────────────────────────────────────────────────────────────────
 
 export interface ReceiptEvent {
   roomId: string;
@@ -158,15 +145,11 @@ export interface ReceiptEvent {
   seenAt: string;
 }
 
-// ── Reactions ─────────────────────────────────────────────────────────────────
-
 export interface ReactionEvent {
   messageId: string;
   roomId: string;
   reactions: Reaction[];
 }
-
-// ── Upload ────────────────────────────────────────────────────────────────────
 
 export interface UploadResult {
   type: MessageType;
@@ -176,8 +159,6 @@ export interface UploadResult {
   fileSize: number;
   mimeType: string;
 }
-
-// ── Events ────────────────────────────────────────────────────────────────────
 
 export interface HermesEvents {
   connected: () => void;
@@ -197,8 +178,6 @@ export interface HermesEvents {
   "receipt:updated": (event: ReceiptEvent) => void;
   "reaction:updated": (event: ReactionEvent) => void;
 }
-
-// ── SDK State ─────────────────────────────────────────────────────────────────
 
 export type ConnectionStatus =
   | "idle"

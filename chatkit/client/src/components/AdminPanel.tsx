@@ -1,10 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Edit2, Trash2, X, Save, ShieldAlert } from "lucide-react";
 
+interface Plan {
+  _id: string;
+  planId: string;
+  name: string;
+  dailyLimit: number;
+  monthlyPrice: number;
+  features: string[];
+}
+
 const Admin = () => {
-  const [plans, setPlans] = useState<any[]>([]);
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingPlan, setEditingPlan] = useState<any>(null);
+  const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
 
   const [formData, setFormData] = useState({
     planId: "",
@@ -15,7 +24,7 @@ const Admin = () => {
   });
 
   const fetchPlans = () => {
-    fetch("http://localhost:8080/api/plans", { credentials: "include" })
+    fetch(`${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/api/plans`, { credentials: "include" })
       .then((res) => res.json())
       .then((data) => setPlans(Array.isArray(data) ? data : []));
   };
@@ -24,7 +33,7 @@ const Admin = () => {
     fetchPlans();
   }, []);
 
-  const handleOpenModal = (plan: any = null) => {
+  const handleOpenModal = (plan: Plan | null = null) => {
     if (plan) {
       setEditingPlan(plan);
       setFormData({
@@ -57,7 +66,7 @@ const Admin = () => {
         .filter((f) => f !== ""),
     };
 
-    const res = await fetch("http://localhost:8080/api/admin/plans", {
+    const res = await fetch(`${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/api/admin/plans`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include", // 👈 Vital for session-based isAdmin check
@@ -75,7 +84,7 @@ const Admin = () => {
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("Delete this plan?")) return;
-    const res = await fetch(`http://localhost:8080/api/admin/plans/${id}`, {
+    const res = await fetch(`${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/api/admin/plans/${id}`, {
       method: "DELETE",
       credentials: "include",
     });

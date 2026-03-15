@@ -1,4 +1,4 @@
-import React from "react";
+// Removed React import
 import { useNavigate } from "react-router-dom";
 import { Share2, Rss, Zap } from "lucide-react";
 
@@ -93,14 +93,28 @@ const Footer = () => {
             SPEED.
           </p>
           <div className="flex gap-8">
-            <button className="text-brand-muted/50 hover:text-brand-primary text-xs transition-colors">
+            <button className="text-brand-muted/50 hover:text-white text-xs transition-colors">
               Privacy Policy
             </button>
-            <button className="text-brand-muted/50 hover:text-brand-primary text-xs transition-colors">
+            <button className="text-brand-muted/50 hover:text-white text-xs transition-colors">
               Terms of Service
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Giant watermark wordmark */}
+      <div className="w-full overflow-hidden select-none pointer-events-none mt-6">
+        <p
+          className="text-center font-black uppercase leading-none tracking-tighter"
+          style={{
+            fontSize: "clamp(80px, 20vw, 260px)",
+            color: "rgba(255,255,255,0.035)",
+            letterSpacing: "-0.04em",
+          }}
+        >
+          HERMES
+        </p>
       </div>
     </footer>
   );

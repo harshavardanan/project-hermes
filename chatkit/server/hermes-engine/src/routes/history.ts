@@ -5,22 +5,19 @@ import { getHistory } from "../services/messageService.js";
 
 const router = Router();
 
-// ── GET /hermes/history/:roomId ───────────────────────────────────────────────
-// Query params: ?before=<messageId>&limit=<number>
 router.get(
   "/history/:roomId",
   hermesAuth,
   async (req: Request, res: Response) => {
     try {
-      const { roomId } = req.params;
+      const roomId = req.params["roomId"] as string;
       const { before, limit } = req.query;
 
-      // 🚨 FIX: Matches the payload from auth.ts exactly
       const hermesUserId = (req as any).hermesUser.hermesUserId;
 
       const result = await getHistory(
         roomId,
-        hermesUserId, // Pass the corrected ID here
+        hermesUserId,
         before as string | undefined,
         limit ? parseInt(limit as string) : undefined,
       );

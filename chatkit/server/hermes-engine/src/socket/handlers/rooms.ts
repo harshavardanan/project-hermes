@@ -18,9 +18,37 @@ export const handleRooms = (socket: Socket, io: Server) => {
     );
     return;
   }
+
+  // ── room:join ───────────────────────────────────────────────────────────────
+  socket.on("room:join", async (data: { roomId: string }, ack?: Function) => {
+    try {
+      const { roomId } = data;
+      if (!roomId) return ack?.({ success: false, error: "roomId required" });
+      await socket.join(roomId);
+      logger.socket("ROOM_JOIN", hermesUserId, `joined ${roomId}`);
+      ack?.({ success: true, roomId });
+    } catch (err) {
+      logger.error("room:join error", err);
+      ack?.({ success: false, error: "Failed to join room" });
+    }
+  });
+
+  // ── room:leave ──────────────────────────────────────────────────────────────
+  socket.on("room:leave", async (data: { roomId: string }, ack?: Function) => {
+    try {
+      const { roomId } = data;
+      if (!roomId) return ack?.({ success: false, error: "roomId required" });
+      await socket.leave(roomId);
+      logger.socket("ROOM_LEAVE", hermesUserId, `left ${roomId}`);
+      ack?.({ success: true });
+    } catch (err) {
+      logger.error("room:leave error", err);
+      ack?.({ success: false, error: "Failed to leave room" });
+    }
+  });
+
   // ── room:create:direct ──────────────────────────────────────────────────────
   socket.on("room:create:direct", async (...args) => {
-    // Dynamically find the callback, even if the frontend sends an empty object
     const ack =
       typeof args[args.length - 1] === "function"
         ? args[args.length - 1]
@@ -39,9 +67,10 @@ export const handleRooms = (socket: Socket, io: Server) => {
         projectId,
       );
 
-      socket.join(room.id);
-      io.to(targetHermesUserId).socketsJoin(room.id);
-      io.to(room.id).emit("room:created", room);
+      const roomId = (room._id as any).toString();
+      socket.join(roomId);
+      io.to(targetHermesUserId).socketsJoin(roomId);
+      io.to(roomId).emit("room:created", room);
 
       ack?.({ success: true, room });
       logger.socket("ROOM_DM", hermesUserId, `with ${targetHermesUserId}`);
@@ -73,13 +102,14 @@ export const handleRooms = (socket: Socket, io: Server) => {
         avatar,
       );
 
-      socket.join(room.id);
+      const roomId = (room._id as any).toString();
+      socket.join(roomId);
       for (const memberId of room.members as any[]) {
         const id = memberId.toString();
-        if (id !== hermesUserId) io.to(id).socketsJoin(room.id);
+        if (id !== hermesUserId) io.to(id).socketsJoin(roomId);
       }
 
-      io.to(room.id).emit("room:created", room);
+      io.to(roomId).emit("room:created", room);
       ack?.({ success: true, room });
       logger.socket("ROOM_GROUP", hermesUserId, `"${name}"`);
     } catch (err) {
@@ -116,7 +146,6 @@ export const handleRooms = (socket: Socket, io: Server) => {
 
   // ── room:list ───────────────────────────────────────────────────────────────
   socket.on("room:list", async (...args) => {
-    // 🚨 BULLETPROOF ACK EXTRACTION
     const ack =
       typeof args[args.length - 1] === "function"
         ? args[args.length - 1]
@@ -133,7 +162,6 @@ export const handleRooms = (socket: Socket, io: Server) => {
       const rooms = await getUserRooms(hermesUserId);
       console.log(`✅ getUserRooms returned ${rooms?.length || 0} rooms`);
 
-      // Always guarantee we return an array, fixing the React mapping issue
       ack?.({ success: true, rooms: rooms || [] });
     } catch (err) {
       console.error("❌ getUserRooms threw an error:", err);

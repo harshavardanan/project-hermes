@@ -1,17 +1,18 @@
-import React from "react";
 import { useNavigate } from "react-router-dom";
+import type { UserData } from "../../types";
 
-interface BottomCTAProps {
-  user: any;
-  onCtaClick: () => void;
-}
-
-const BottomCTA: React.FC<BottomCTAProps> = ({ user, onCtaClick }) => {
+export default function BottomCTA({
+  onSignInClick,
+  user,
+}: {
+  onSignInClick: () => void;
+  user: UserData | null;
+}) {
   const navigate = useNavigate();
 
   return (
     <div className="w-full px-6 md:px-10 py-24">
-      <div className="max-w-[1280px] mx-auto bg-brand-primary rounded-[2.5rem] p-12 md:p-20 relative overflow-hidden flex flex-col items-center text-center shadow-[0_0_50px_rgba(57,255,20,0.2)]">
+      <div className="max-w-[1280px] mx-auto bg-brand-primary rounded-[2.5rem] p-12 md:p-20 relative overflow-hidden flex flex-col items-center text-center shadow-[0_0_50px_rgba(255,255,255,0.08)]">
         <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
           <svg
             height="100%"
@@ -36,7 +37,7 @@ const BottomCTA: React.FC<BottomCTAProps> = ({ user, onCtaClick }) => {
           </p>
           <div className="flex flex-wrap justify-center gap-4 mt-4">
             <button
-              onClick={onCtaClick}
+              onClick={onSignInClick}
               className="bg-black text-brand-primary px-8 h-14 rounded-xl text-lg font-black hover:bg-zinc-900 transition-all active:scale-95 shadow-xl"
             >
               {user ? "Go to Dashboard" : "Start Building Now"}
@@ -52,6 +53,4 @@ const BottomCTA: React.FC<BottomCTAProps> = ({ user, onCtaClick }) => {
       </div>
     </div>
   );
-};
-
-export default BottomCTA;
+}

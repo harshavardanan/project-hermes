@@ -24,12 +24,12 @@ export class HermesClient extends EventEmitter {
   constructor(config: HermesConfig) {
     super();
     this.config = config;
-    if (config.token) {
+    if ("token" in config && config.token) {
       this.token = config.token;
     }
   }
 
-  // ── Connect ─────────────────────────────────────────────────────────────────
+  
   async connect(): Promise<HermesUser> {
     this.status = "connecting";
 
@@ -45,29 +45,32 @@ export class HermesClient extends EventEmitter {
         );
       }
 
-      const res = await fetch(`${this.config.endpoint}/hermes/connect`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          apiKey: this.config.apiKey,
-          secret: this.config.secret,
-          userId: this.config.userId,
-          displayName: this.config.displayName ?? this.config.userId,
-          avatar: this.config.avatar,
-          email: this.config.email,
-        }),
-      });
+      if ("apiKey" in this.config) {
+        const cfg = this.config;
+        const res = await fetch(`${cfg.endpoint}/hermes/connect`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            apiKey: cfg.apiKey,
+            secret: cfg.secret,
+            userId: cfg.userId,
+            displayName: cfg.displayName ?? cfg.userId,
+            avatar: cfg.avatar,
+            email: cfg.email,
+          }),
+        });
 
-      const data = await res.json();
-      if (!data.success) throw new Error(data.message || "Auth failed");
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || "Auth failed");
 
-      this.token = data.token;
-      this.user = {
-        userId: data.user.hermesUserId,
-        displayName: data.user.displayName,
-        avatar: data.user.avatar,
-        email: data.user.email,
-      };
+        this.token = data.token;
+        this.user = {
+          userId: data.user.hermesUserId,
+          displayName: data.user.displayName,
+          avatar: data.user.avatar,
+          email: data.user.email,
+        };
+      }
 
       await this._connectSocket();
       return this.user!;
@@ -78,7 +81,7 @@ export class HermesClient extends EventEmitter {
     }
   }
 
-  // ── Connect socket ─────────────────────────────────────────────────────────
+  
   private async _connectSocket(): Promise<void> {
     this.socket = io(`${this.config.endpoint}/hermes`, {
       auth: { token: this.token },
@@ -99,7 +102,7 @@ export class HermesClient extends EventEmitter {
     this.emit("connected");
   }
 
-  // ── Disconnect ──────────────────────────────────────────────────────────────
+  
   disconnect(): void {
     this.socket?.disconnect();
     this.socket = null;
@@ -108,7 +111,7 @@ export class HermesClient extends EventEmitter {
     this.emit("disconnected", "manual");
   }
 
-  // ── Wire socket events ─────────────────────────────────────────────────────
+  
   private _wireSocketEvents(): void {
     const s = this.socket!;
     s.on("disconnect", (reason) => {
@@ -136,7 +139,7 @@ export class HermesClient extends EventEmitter {
     s.on("reaction:updated", (event) => this.emit("reaction:updated", event));
   }
 
-  // ── 🚨 FIXED: Internal socket emit with ack ────────────────────────────────
+  
   _emit<T = any>(event: string, data?: any): Promise<T> {
     return new Promise((resolve, reject) => {
       if (!this.socket?.connected) {
@@ -145,7 +148,7 @@ export class HermesClient extends EventEmitter {
 
       const timer = setTimeout(() => {
         reject(new Error(`Timed out waiting for "${event}"`));
-      }, 5000); // Shortened to 5s so you don't wait as long if it fails
+      }, 5000); 
 
       const callback = (response: any) => {
         clearTimeout(timer);
@@ -156,7 +159,7 @@ export class HermesClient extends EventEmitter {
         }
       };
 
-      // FIX: If data is empty, don't pass it. This prevents Socket.io from dropping the callback!
+      
       if (data && Object.keys(data).length > 0) {
         this.socket.emit(event, data, callback);
       } else {
@@ -165,7 +168,7 @@ export class HermesClient extends EventEmitter {
     });
   }
 
-  // ── Messaging ────────────────────────────────────────────────────────────────
+  
   async sendMessage(input: SendMessageInput): Promise<Message> {
     const res = await this._emit<{ message: Message }>("message:send", input);
     return res.message;
@@ -196,7 +199,7 @@ export class HermesClient extends EventEmitter {
     return res.message;
   }
 
-  // ── Rooms ────────────────────────────────────────────────────────────────────
+  
   async createDirectRoom(input: CreateDirectRoomInput): Promise<Room> {
     const res = await this._emit<{ room: Room }>("room:create:direct", {
       targetHermesUserId: input.targetUserId,

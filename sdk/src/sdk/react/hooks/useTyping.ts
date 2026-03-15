@@ -2,15 +2,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import type { HermesClient } from "../../core/HermesClient";
 import type { TypingEvent } from "../../types/index";
 
-// ── useTyping ─────────────────────────────────────────────────────────────────
-// Tracks who is typing in a room + exposes startTyping/stopTyping actions.
-// Auto-clears typing state after 4s if no stop event received.
-//
-// Usage:
-//   const { typingUsers, startTyping, stopTyping } = useTyping(client, roomId);
-
 export const useTyping = (client: HermesClient, roomId: string | null) => {
-  // Map of userId → displayName for currently typing users
+  
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(
     new Map(),
   );
@@ -31,7 +24,7 @@ export const useTyping = (client: HermesClient, roomId: string | null) => {
         new Map(prev).set(event.userId, event.displayName),
       );
 
-      // Auto-clear after 4s in case stop event is missed
+      
       const existing = timeouts.current.get(event.userId);
       if (existing) clearTimeout(existing);
       const t = setTimeout(() => {
@@ -67,7 +60,7 @@ export const useTyping = (client: HermesClient, roomId: string | null) => {
     };
   }, [roomId, client]);
 
-  // ── Start typing — call on every keypress ─────────────────────────────────
+  
   const startTyping = useCallback(() => {
     if (!roomId) return;
 
@@ -76,7 +69,7 @@ export const useTyping = (client: HermesClient, roomId: string | null) => {
       typingRef.current = true;
     }
 
-    // Reset auto-stop
+    
     if (stopTimeout.current) clearTimeout(stopTimeout.current);
     stopTimeout.current = setTimeout(() => {
       client.stopTyping(roomId);
@@ -84,7 +77,7 @@ export const useTyping = (client: HermesClient, roomId: string | null) => {
     }, 3000);
   }, [roomId, client]);
 
-  // ── Stop typing — call on send or blur ────────────────────────────────────
+  
   const stopTyping = useCallback(() => {
     if (!roomId) return;
     if (stopTimeout.current) clearTimeout(stopTimeout.current);
@@ -94,7 +87,7 @@ export const useTyping = (client: HermesClient, roomId: string | null) => {
     }
   }, [roomId, client]);
 
-  // Formatted string e.g. "Alice is typing..." or "Alice and Bob are typing..."
+  
   const typingText = (() => {
     const names = Array.from(typingUsers.values());
     if (names.length === 0) return null;
@@ -104,8 +97,8 @@ export const useTyping = (client: HermesClient, roomId: string | null) => {
   })();
 
   return {
-    typingUsers, // Map<userId, displayName>
-    typingText, // formatted string or null
+    typingUsers, 
+    typingText, 
     isAnyoneTyping: typingUsers.size > 0,
     startTyping,
     stopTyping,

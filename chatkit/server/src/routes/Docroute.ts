@@ -83,11 +83,13 @@ router.post("/reorder", isAdmin, async (req: Request, res: Response) => {
     }
 
     // Bulk update — assign each doc its index as order value
-    await Promise.all(
-      ids.map((id: string, index: number) =>
-        Doc.findByIdAndUpdate(id, { $set: { order: index } }),
-      ),
-    );
+    const bulkOps = ids.map((id: string, index: number) => ({
+      updateOne: {
+        filter: { _id: id },
+        update: { $set: { order: index } }
+      }
+    }));
+    await Doc.bulkWrite(bulkOps);
 
     res.json({ success: true, message: "Order updated" });
   } catch (error) {

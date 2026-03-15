@@ -1,8 +1,6 @@
 import React, { useState, useRef, useCallback } from "react";
 import type { Message, UploadResult } from "../../types/index";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
 interface ChatInputProps {
   onSendText: (text: string) => Promise<void> | void;
   onSendFile?: (file: File) => Promise<void> | void;
@@ -18,8 +16,6 @@ interface ChatInputProps {
   renderAttachIcon?: () => React.ReactNode;
   renderSendIcon?: () => React.ReactNode;
 }
-
-// ── ChatInput ─────────────────────────────────────────────────────────────────
 
 export const ChatInput: React.FC<ChatInputProps> = ({
   onSendText,
@@ -41,7 +37,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   const fileRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-resize textarea
+  
   const resizeTextarea = useCallback(() => {
     const el = textareaRef.current;
     if (!el) return;
@@ -81,7 +77,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     const file = e.target.files?.[0];
     if (!file || !onSendFile) return;
     await onSendFile(file);
-    // Reset file input
+    
     if (fileRef.current) fileRef.current.value = "";
   };
 
@@ -95,7 +91,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         borderTop: "1px solid #e0e0e0",
       }}
     >
-      {/* Reply preview */}
+      {}
       {replyingTo && (
         <div
           className="hermes-chat-input__reply"
@@ -136,12 +132,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         </div>
       )}
 
-      {/* Input row */}
+      {}
       <div
         className="hermes-chat-input__row"
         style={{ display: "flex", alignItems: "flex-end", gap: 8 }}
       >
-        {/* File attach */}
+        {}
         {onSendFile && (
           <>
             <button
@@ -184,7 +180,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           </>
         )}
 
-        {/* Textarea */}
+        {}
         <textarea
           ref={textareaRef}
           value={text}
@@ -210,7 +206,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           }}
         />
 
-        {/* Send button */}
+        {}
         <button
           onClick={handleSend}
           disabled={!text.trim() || sending || disabled}
@@ -234,7 +230,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         </button>
       </div>
 
-      {/* Character count */}
+      {}
       {text.length > maxLength * 0.8 && (
         <div
           style={{

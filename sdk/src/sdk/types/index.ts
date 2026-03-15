@@ -1,7 +1,7 @@
-// ── Connection ────────────────────────────────────────────────────────────────
+
 
 export interface HermesConfig {
-  endpoint: string; // e.g. "https://yoursite.com"
+  endpoint: string; 
   apiKey: string;
   secret: string;
   userId: string;
@@ -19,8 +19,6 @@ export interface ConnectResponse {
   token: string;
   user: HermesUser;
 }
-
-// ── Rooms ─────────────────────────────────────────────────────────────────────
 
 export type RoomType = "direct" | "group";
 
@@ -52,8 +50,6 @@ export interface CreateGroupRoomInput {
   description?: string;
   avatar?: string;
 }
-
-// ── Messages ──────────────────────────────────────────────────────────────────
 
 export type MessageType =
   | "text"
@@ -108,8 +104,6 @@ export interface MessageHistoryResult {
   hasMore: boolean;
 }
 
-// ── Presence ──────────────────────────────────────────────────────────────────
-
 export interface PresenceEvent {
   userId: string;
   displayName: string;
@@ -121,15 +115,11 @@ export interface LastSeenEvent {
   lastSeen: string;
 }
 
-// ── Typing ────────────────────────────────────────────────────────────────────
-
 export interface TypingEvent {
   userId: string;
   displayName: string;
   roomId: string;
 }
-
-// ── Receipts ──────────────────────────────────────────────────────────────────
 
 export interface ReceiptEvent {
   roomId: string;
@@ -138,15 +128,11 @@ export interface ReceiptEvent {
   seenAt: string;
 }
 
-// ── Reactions ─────────────────────────────────────────────────────────────────
-
 export interface ReactionEvent {
   messageId: string;
   roomId: string;
   reactions: Reaction[];
 }
-
-// ── Upload ────────────────────────────────────────────────────────────────────
 
 export interface UploadResult {
   type: MessageType;
@@ -157,42 +143,37 @@ export interface UploadResult {
   mimeType: string;
 }
 
-// ── Events ────────────────────────────────────────────────────────────────────
-// All events the SDK can emit or listen to
-
 export interface HermesEvents {
-  // Connection
+  
   connected: () => void;
   disconnected: (reason: string) => void;
   error: (error: Error) => void;
 
-  // Messages
+  
   "message:receive": (message: Message) => void;
   "message:deleted": (data: { messageId: string; roomId: string }) => void;
   "message:edited": (message: Message) => void;
 
-  // Rooms
+  
   "room:created": (room: Room) => void;
   "room:deleted": (data: { roomId: string }) => void;
   "room:member:joined": (data: { roomId: string; userId: string }) => void;
   "room:member:left": (data: { roomId: string; userId: string }) => void;
 
-  // Presence
+  
   "user:online": (event: PresenceEvent) => void;
   "user:offline": (event: LastSeenEvent) => void;
 
-  // Typing
+  
   "typing:started": (event: TypingEvent) => void;
   "typing:stopped": (event: TypingEvent) => void;
 
-  // Receipts
+  
   "receipt:updated": (event: ReceiptEvent) => void;
 
-  // Reactions
+  
   "reaction:updated": (event: ReactionEvent) => void;
 }
-
-// ── SDK State ─────────────────────────────────────────────────────────────────
 
 export type ConnectionStatus =
   | "idle"

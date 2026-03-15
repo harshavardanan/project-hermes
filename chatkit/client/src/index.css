@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
 @theme {
-  /* Mapping Tailwind names to our CSS variables */
   --color-brand-primary: var(--brand-primary);
   --color-brand-bg: var(--brand-bg);
   --color-brand-card: var(--brand-card);
@@ -11,23 +10,26 @@
 }
 
 :root {
-  /* NEON GREEN & BLACK THEME */
-  --brand-primary: #bf40bf;
-  --brand-bg: #000000;
-  --brand-card: #0a0a0a;
-  --brand-border: #1a2e05;
-  --brand-text: #ffffff;
-  --brand-muted: #94a3b8;
+  /* CLEAN NEUTRAL DARK THEME */
+  --brand-primary: #ffffff;           /* white — used for accents, active states */
+  --brand-primary-fg: #09090b;        /* black foreground on white */
+  --brand-bg: #09090b;                /* near-black page background */
+  --brand-card: #111113;              /* card / surface */
+  --brand-border: #27272a;            /* zinc-800 borders */
+  --brand-text: #fafafa;              /* primary text */
+  --brand-muted: #71717a;             /* zinc-500 muted text */
+  --brand-accent: #18181b;            /* hover / subtle highlights */
 }
 
 body {
   background-color: var(--brand-bg);
   color: var(--brand-text);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
-/* Glass effect with a green tint */
+/* Glass surface */
 .glass {
-  background: rgba(10, 10, 10, 0.7);
+  background: rgba(17, 17, 19, 0.75);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(57, 255, 20, 0.1);
+  border: 1px solid var(--brand-border);
 }

@@ -24,7 +24,7 @@ export const ReactionPicker: React.FC<ReactionPickerProps> = ({
   const [showPicker, setShowPicker] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Check if current user reacted
+  
   const hasReacted = (emoji: string) => {
     if (!currentUserId) return false;
 
@@ -40,7 +40,7 @@ export const ReactionPicker: React.FC<ReactionPickerProps> = ({
     setShowPicker(false);
   };
 
-  // Close picker when clicking outside
+  
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       if (!containerRef.current) return;
@@ -65,7 +65,7 @@ export const ReactionPicker: React.FC<ReactionPickerProps> = ({
       style={{ position: "relative", display: "inline-block" }}
       className={className}
     >
-      {/* Quick reaction bar */}
+      {}
       <div
         style={{
           display: "flex",
@@ -104,7 +104,7 @@ export const ReactionPicker: React.FC<ReactionPickerProps> = ({
           </button>
         ))}
 
-        {/* Open emoji picker */}
+        {}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -123,7 +123,7 @@ export const ReactionPicker: React.FC<ReactionPickerProps> = ({
         </button>
       </div>
 
-      {/* Emoji Picker Popup */}
+      {}
       {showPicker && (
         <div
           onMouseDown={(e) => e.stopPropagation()}
@@ -147,7 +147,7 @@ export const ReactionPicker: React.FC<ReactionPickerProps> = ({
         </div>
       )}
 
-      {/* Hermes popup animation */}
+      {}
       <style>{`
         @keyframes hermes-pop {
           from {

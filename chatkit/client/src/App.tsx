@@ -16,11 +16,12 @@ import AuthModal from "./components/Auth";
 import ProjectDetail from "./components/ProjectDetail";
 import AdminPanel from "./components/AdminPanel";
 import DocEditor from "./components/DocumentEditor";
+import type { UserData } from "./types";
 
 const FULL_HEIGHT_ROUTES = ["/documentation", "/doceditor", "/admin"];
 
 const AppContent: React.FC<{
-  user: any;
+  user: UserData | null;
   isAuthOpen: boolean;
   setIsAuthOpen: (v: boolean) => void;
 }> = ({ user, isAuthOpen, setIsAuthOpen }) => {
@@ -87,11 +88,11 @@ const AppContent: React.FC<{
 
 const App: React.FC = () => {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchUser = () => {
-    fetch("http://localhost:8080/auth/me", { credentials: "include" })
+    fetch(`${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/auth/me`, { credentials: "include" })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data?.token) sessionStorage.setItem("hermes_token", data.token);
@@ -105,7 +106,7 @@ const App: React.FC = () => {
     fetchUser();
 
     const handleAuthMessage = (event: MessageEvent) => {
-      if (event.origin !== "http://localhost:8080") return;
+      if (event.origin !== (import.meta.env.VITE_ENDPOINT || "http://localhost:8080")) return;
 
       if (event.data === "auth_success") {
         setIsAuthOpen(false);

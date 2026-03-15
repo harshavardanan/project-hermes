@@ -1,13 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import type { HermesClient } from "../../core/HermesClient";
 
-// ── usePresence ───────────────────────────────────────────────────────────────
-// Tracks online/offline status of users.
-//
-// Usage:
-//   const { isOnline, onlineUsers } = usePresence(client);
-//   const online = isOnline("userId123");
-
 export const usePresence = (client: HermesClient) => {
   const [onlineMap, setOnlineMap] = useState<Map<string, boolean>>(new Map());
 

@@ -4,8 +4,6 @@ type EventKey = keyof HermesEvents;
 type EventCallback<K extends EventKey> = HermesEvents[K];
 type ListenerMap = { [K in EventKey]?: EventCallback<K>[] };
 
-// ── Typed Event Emitter ───────────────────────────────────────────────────────
-// Fully typed — you can only emit/listen to events defined in HermesEvents
 export class EventEmitter {
   private listeners: ListenerMap = {};
 

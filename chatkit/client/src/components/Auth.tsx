@@ -18,7 +18,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   useEffect(() => {
     const handleAuthMessage = (event: MessageEvent) => {
       // Only trust your backend origin
-      if (event.origin !== "http://localhost:8080") return;
+      if (event.origin !== (import.meta.env.VITE_ENDPOINT || "http://localhost:8080")) return;
 
       // Support both the Object format and the String format
       const isSuccess =
@@ -50,7 +50,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     const top = window.screenY + (window.outerHeight - height) / 2;
 
     window.open(
-      `http://localhost:8080/auth/${provider}`,
+      `${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/auth/${provider}`,
       "auth-popup",
       `width=${width},height=${height},left=${left},top=${top},status=unadorned,resizable=yes`,
     );
@@ -65,9 +65,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       />
 
       {/* Modal Card - Matched to Hermes Orange/Dark Theme */}
-      <div className="relative bg-brand-card border border-brand-border w-full max-w-md rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(255,140,0,0.15)] animate-in zoom-in-95 duration-200">
-        {/* Aesthetic Orange Accent Bar */}
-        <div className="h-1.5 bg-brand-primary w-full shadow-[0_0_15px_rgba(255,140,0,0.5)]" />
+      <div className="relative bg-brand-card border border-brand-border w-full max-w-md rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+        {/* Top accent line */}
+        <div className="h-px bg-brand-border w-full" />
 
         <button
           onClick={onClose}
@@ -79,11 +79,11 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
         <div className="p-10">
           <div className="text-center mb-10">
-            <div className="inline-flex items-center justify-center w-12 h-12 bg-brand-primary/10 rounded-xl mb-4 border border-brand-primary/20">
-              <Zap size={24} className="text-brand-primary fill-current" />
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-white/5 rounded-xl mb-4 border border-white/10">
+              <Zap size={24} className="text-white fill-current" />
             </div>
             <h2 className="text-3xl font-black text-white mb-1 uppercase tracking-tighter">
-              Hermes <span className="text-brand-primary">Authentication</span>
+              Hermes <span className="text-white">Authentication</span>
             </h2>
             <p className="text-brand-muted text-[10px] font-black uppercase tracking-widest">
               Synchronize credentials with the Hermes engine
@@ -145,7 +145,7 @@ const SocialButton = ({
         Continue with {text}
       </span>
     </div>
-    <div className="opacity-0 group-hover:opacity-100 transition-all duration-200 text-brand-primary translate-x-[-4px] group-hover:translate-x-0">
+    <div className="opacity-0 group-hover:opacity-100 transition-all duration-200 text-white translate-x-[-4px] group-hover:translate-x-0">
       <ChevronRight size={16} strokeWidth={3} />
     </div>
   </button>

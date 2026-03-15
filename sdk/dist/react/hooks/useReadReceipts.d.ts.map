@@ -1,0 +1,1 @@
+{"version":3,"file":"useReadReceipts.d.ts","sourceRoot":"","sources":["../../../src/sdk/react/hooks/useReadReceipts.ts"],"names":[],"mappings":"AACA,OAAO,KAAK,EAAE,YAAY,EAAE,MAAM,yBAAyB,CAAC;AAG5D,eAAO,MAAM,eAAe,GAC1B,QAAQ,YAAY,EACpB,QAAQ,MAAM,GAAG,IAAI;8BAyBG,MAAM;wBAShB,MAAM,KAAG,MAAM,EAAE;;CAOhC,CAAC"}

@@ -8,7 +8,7 @@ import { common, createLowlight } from "lowlight";
 import { Search, ChevronRight, X } from "lucide-react";
 
 const lowlight = createLowlight(common);
-const API = "http://localhost:8080/api/docs";
+const API = `${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/api/docs`;
 
 interface DocMeta {
   _id: string;
@@ -20,7 +20,7 @@ interface DocMeta {
 }
 
 interface DocData extends DocMeta {
-  content: any;
+  content: Record<string, unknown> | null;
 }
 
 const DocumentationPage: React.FC = () => {
@@ -69,6 +69,7 @@ const DocumentationPage: React.FC = () => {
   // ── Fetch doc content ────────────────────────────────────────────────────
   useEffect(() => {
     if (!urlSlug) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setNotFound(false);
     setDocData(null);
@@ -121,7 +122,8 @@ const DocumentationPage: React.FC = () => {
   const toggleCategory = (cat: string) => {
     setCollapsedCategories((prev) => {
       const next = new Set(prev);
-      next.has(cat) ? next.delete(cat) : next.add(cat);
+      if (next.has(cat)) next.delete(cat);
+      else next.add(cat);
       return next;
     });
   };
@@ -157,11 +159,7 @@ const DocumentationPage: React.FC = () => {
         <div className="px-6 pt-8 pb-4">
           <div className="flex items-center gap-2 mb-6">
             <div
-              className="w-4 h-4 rounded"
-              style={{
-                backgroundColor: "var(--brand-primary)",
-                boxShadow: "0 0 10px rgba(57, 255, 20, 0.4)",
-              }}
+              className="w-5 h-5 rounded-md bg-white"
             />
             <span
               className="font-bold tracking-widest text-[11px] uppercase"
@@ -230,22 +228,15 @@ const DocumentationPage: React.FC = () => {
                   <Link
                     key={item.slug}
                     to={`/documentation/${item.slug}`}
-                    className={`flex items-center py-2 px-3 rounded-lg text-sm transition-all duration-150 ${
+                    className={`flex items-center py-2 px-3 rounded-lg text-sm transition-all duration-150 group ${
                       urlSlug === item.slug
-                        ? "bg-white/[0.06] font-medium"
-                        : "hover:bg-white/[0.03]"
+                        ? "bg-white/[0.06] font-semibold text-white"
+                        : "text-brand-muted hover:text-white hover:bg-white/[0.03]"
                     }`}
-                    style={{
-                      color:
-                        urlSlug === item.slug
-                          ? "var(--brand-text)"
-                          : "var(--brand-muted)",
-                    }}
                   >
                     {urlSlug === item.slug && (
                       <span
-                        className="w-0.5 h-3.5 rounded-full mr-2.5 shrink-0"
-                        style={{ backgroundColor: "var(--brand-primary)" }}
+                        className="w-[2px] h-4 rounded-full mr-2.5 shrink-0 bg-white"
                       />
                     )}
                     <span className="truncate">{item.title}</span>
@@ -265,7 +256,7 @@ const DocumentationPage: React.FC = () => {
           {/* Loading */}
           {loading && (
             <div
-              className="font-mono text-[10px] animate-pulse tracking-widest"
+              className="font-mono text-[10px]  tracking-widest"
               style={{ color: "var(--brand-primary)" }}
             >
               &gt; FETCHING_RESOURCES...
@@ -311,17 +302,20 @@ const DocumentationPage: React.FC = () => {
               </nav>
 
               {/* Doc header */}
-              <header className="mb-10">
-                <div className="flex items-center gap-4">
-                  <span className="text-[10px] font-mono opacity-60">
-                    last updated{" "}
-                    {new Date(docData.lastUpdated).toLocaleDateString("en-GB", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
+              <header className="mb-10 pb-8 border-b border-white/[0.06]">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-[10px] font-mono text-white/30 uppercase tracking-widest"
+                    style={{ borderRadius: 4, padding: "2px 8px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+                  >
+                    {docData.category || "General"}
+                  </span>
+                  <span className="text-[10px] text-white/20 font-mono">
+                    updated {new Date(docData.lastUpdated).toLocaleDateString("en-GB", {day:"numeric",month:"short",year:"numeric"})}
                   </span>
                 </div>
+                <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter leading-tight">
+                  {docData.title}
+                </h1>
               </header>
             </>
           )}
@@ -341,109 +335,125 @@ const DocumentationPage: React.FC = () => {
       <style>{`
         /* ── Base ── */
         .ProseMirror { outline: none; }
-        .ProseMirror h1 { font-size: 2.5rem; font-weight: 800; color: var(--brand-text); margin-top: 3rem; margin-bottom: 1rem; line-height: 1.15; }
-        .ProseMirror h2 { font-size: 1.8rem; font-weight: 800; color: var(--brand-text); margin-top: 3.5rem; margin-bottom: 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem; }
-        .ProseMirror h3 { font-size: 1.3rem; font-weight: 700; color: var(--brand-text); margin-top: 2.5rem; margin-bottom: 1rem; }
-        .ProseMirror p  { font-size: 1.05rem; line-height: 1.85; color: #a1a1aa; margin-bottom: 1.25rem; }
-        .ProseMirror ul { padding-left: 1.5rem; list-style: disc;    color: #a1a1aa; margin-bottom: 1.5rem; }
+
+        /* ── Headings ── */
+        .ProseMirror h1 {
+          font-size: 2.4rem; font-weight: 800; color: #fafafa;
+          margin-top: 3rem; margin-bottom: 0.75rem; line-height: 1.15;
+          letter-spacing: -0.03em;
+        }
+        .ProseMirror h2 {
+          font-size: 1.6rem; font-weight: 700; color: #e4e4e7;
+          margin-top: 3rem; margin-bottom: 1rem;
+          padding-bottom: 0.6rem;
+          border-bottom: 1px solid rgba(255,255,255,0.07);
+          letter-spacing: -0.02em;
+        }
+        .ProseMirror h3 {
+          font-size: 1.15rem; font-weight: 700; color: #d4d4d8;
+          margin-top: 2rem; margin-bottom: 0.75rem;
+          letter-spacing: -0.01em;
+        }
+
+        /* ── Body ── */
+        .ProseMirror p { font-size: 0.97rem; line-height: 1.85; color: #a1a1aa; margin-bottom: 1.1rem; }
+        .ProseMirror ul { padding-left: 1.5rem; list-style: disc; color: #a1a1aa; margin-bottom: 1.5rem; }
         .ProseMirror ol { padding-left: 1.5rem; list-style: decimal; color: #a1a1aa; margin-bottom: 1.5rem; }
-        .ProseMirror li { margin-bottom: 0.4rem; line-height: 1.7; }
-        .ProseMirror strong { color: #e4e4e7; }
+        .ProseMirror li { margin-bottom: 0.35rem; line-height: 1.75; }
+        .ProseMirror strong { color: #e4e4e7; font-weight: 600; }
         .ProseMirror em     { color: #d4d4d8; font-style: italic; }
-        .ProseMirror s      { color: #71717a; }
+        .ProseMirror s      { color: #52525b; }
         .ProseMirror hr     { border: none; border-top: 1px solid rgba(255,255,255,0.07); margin: 2.5rem 0; }
 
         /* ── Blockquote ── */
         .ProseMirror blockquote {
-          border-left: 3px solid var(--brand-primary);
-          padding: 0.75rem 1.25rem; margin: 1.5rem 0;
-          background: rgba(57,255,20,0.04); border-radius: 0 8px 8px 0;
+          border-left: 2px solid rgba(255,255,255,0.2);
+          padding: 0.6rem 1.25rem; margin: 1.5rem 0;
+          background: rgba(255,255,255,0.02); border-radius: 0 8px 8px 0;
           color: #a1a1aa; font-style: italic;
         }
 
         /* ── Inline code ── */
-        .ProseMirror code {
-          color: var(--brand-primary);
-          background: rgba(57,255,20,0.07);
+        .ProseMirror :not(pre) > code {
+          color: #e4e4e7;
+          background: rgba(255,255,255,0.06);
           padding: 0.18rem 0.45rem; border-radius: 5px;
-          font-size: 0.85em;
-          font-family: 'JetBrains Mono', 'Fira Code', monospace;
-          border: 1px solid rgba(57,255,20,0.15);
+          font-size: 0.82em;
+          font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+          border: 1px solid rgba(255,255,255,0.1);
         }
 
         /* ── Code blocks ── */
         .ProseMirror pre {
           position: relative;
-          background: #0d1117 !important;
+          background: #0c0c0e !important;
           border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 12px; margin: 2rem 0;
+          border-radius: 10px; margin: 1.75rem 0;
           overflow: hidden;
-          box-shadow: 0 4px 24px rgba(0,0,0,0.5);
         }
-        /* traffic-light header */
+        /* macOS traffic lights */
         .ProseMirror pre::before {
-          content: "● ● ●"; display: block;
-          padding: 10px 16px 8px; font-size: 10px; letter-spacing: 4px;
-          color: rgba(255,255,255,0.15);
+          content: '';
+          display: flex;
+          padding: 10px 14px;
           border-bottom: 1px solid rgba(255,255,255,0.05);
-          background: rgba(255,255,255,0.02); font-family: monospace;
+          background: rgba(255,255,255,0.015);
         }
         .ProseMirror pre code {
           background: none !important; border: none !important; padding: 0 !important;
-          color: #e6edf3;
-          font-family: 'JetBrains Mono', 'Fira Code', monospace;
-          font-size: 0.88rem; line-height: 1.75;
-          display: block; padding: 1rem 1.25rem 1.25rem !important;
+          color: #cbd5e1;
+          font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+          font-size: 0.845rem; line-height: 1.8;
+          display: block; padding: 1.1rem 1.25rem 1.25rem !important;
           overflow-x: auto;
+          tab-size: 2;
         }
 
-        /* copy button injected by CopyButtonInjector */
+        /* ── CLI / command highlighting ── */
+        .hljs-keyword, .hljs-selector-tag, .hljs-built_in { color: #c084fc; }
+        .hljs-string, .hljs-attr    { color: #86efac; }
+        .hljs-function, .hljs-title { color: #93c5fd; }
+        .hljs-comment, .hljs-quote  { color: #4b5563; font-style: italic; }
+        .hljs-number, .hljs-literal { color: #f9a8d4; }
+        .hljs-variable, .hljs-template-variable { color: #fcd34d; }
+        .hljs-type, .hljs-class     { color: #67e8f9; }
+        .hljs-operator, .hljs-punctuation { color: #71717a; }
+        .hljs-tag    { color: #fb7185; }
+        .hljs-params { color: #fcd34d; }
+
+        /* copy button */
         .copy-code-btn {
-          position: absolute; top: 6px; right: 10px;
-          background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 6px; padding: 3px 8px; cursor: pointer;
+          position: absolute; top: 8px; right: 10px;
+          background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 6px; padding: 4px 10px; cursor: pointer;
           font-size: 10px; font-family: 'JetBrains Mono', monospace;
-          color: rgba(255,255,255,0.35);
+          color: rgba(255,255,255,0.3);
           display: flex; align-items: center; gap: 4px;
-          transition: all 0.2s; opacity: 0;
+          transition: all 0.15s; opacity: 0;
+          letter-spacing: 0.02em;
         }
         .ProseMirror pre:hover .copy-code-btn { opacity: 1; }
-        .copy-code-btn:hover  { background: rgba(57,255,20,0.1); border-color: rgba(57,255,20,0.3); color: var(--brand-primary); }
-        .copy-code-btn.copied { background: rgba(57,255,20,0.12); border-color: rgba(57,255,20,0.4); color: var(--brand-primary); opacity: 1; }
+        .copy-code-btn:hover  { background: rgba(255,255,255,0.07); color: #fafafa; }
+        .copy-code-btn.copied { background: rgba(255,255,255,0.07); color: #86efac; opacity: 1; }
 
-        /* ── Images — centered, styled ── */
-        .ProseMirror img.doc-image,
-        .ProseMirror img {
-          display: block;
-          margin: 2rem auto;
-          max-width: 100%;
-          height: auto;
-          border-radius: 10px;
-          border: 1px solid rgba(255,255,255,0.08);
+        /* ── Images ── */
+        .ProseMirror img.doc-image, .ProseMirror img {
+          display: block; margin: 2rem auto; max-width: 100%; height: auto;
+          border-radius: 10px; border: 1px solid rgba(255,255,255,0.08);
           box-shadow: 0 8px 32px rgba(0,0,0,0.6);
           transition: box-shadow 0.2s, transform 0.2s;
         }
-        .ProseMirror img:hover {
-          box-shadow: 0 12px 40px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.1);
-          transform: translateY(-1px);
-        }
-
-        /* ── Syntax highlighting ── */
-        .hljs-keyword, .hljs-selector-tag, .hljs-built_in { color: #ff79c6; }
-        .hljs-string, .hljs-attr    { color: #f1fa8c; }
-        .hljs-function, .hljs-title { color: var(--brand-primary); }
-        .hljs-comment, .hljs-quote  { color: #6272a4; font-style: italic; }
-        .hljs-number, .hljs-literal { color: #bd93f9; }
-        .hljs-variable, .hljs-template-variable { color: #ffb86c; }
-        .hljs-type, .hljs-class     { color: #8be9fd; }
-        .hljs-operator, .hljs-punctuation { color: #a0aec0; }
-        .hljs-tag    { color: #ff5555; }
-        .hljs-params { color: #ffb86c; }
+        .ProseMirror img:hover { box-shadow: 0 12px 40px rgba(0,0,0,0.8); transform: translateY(-1px); }
 
         /* ── Scrollbar ── */
         .ProseMirror ::-webkit-scrollbar { height: 4px; }
         .ProseMirror ::-webkit-scrollbar-track { background: transparent; }
-        .ProseMirror ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+        .ProseMirror ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+
+        /* ── Sidebar scrollbar ── */
+        nav::-webkit-scrollbar { width: 3px; }
+        nav::-webkit-scrollbar-track { background: transparent; }
+        nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 4px; }
       `}</style>
 
       <CopyButtonInjector />

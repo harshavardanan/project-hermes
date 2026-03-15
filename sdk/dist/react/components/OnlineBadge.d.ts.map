@@ -1,0 +1,1 @@
+{"version":3,"file":"OnlineBadge.d.ts","sourceRoot":"","sources":["../../../src/sdk/react/components/OnlineBadge.tsx"],"names":[],"mappings":"AAAA,OAAO,KAAK,MAAM,OAAO,CAAC;AAE1B,UAAU,gBAAgB;IACxB,QAAQ,EAAE,OAAO,CAAC;IAClB,IAAI,CAAC,EAAE,MAAM,CAAC;IACd,SAAS,CAAC,EAAE,MAAM,CAAC;CACpB;AAED,eAAO,MAAM,WAAW,EAAE,KAAK,CAAC,EAAE,CAAC,gBAAgB,CAkBlD,CAAC"}

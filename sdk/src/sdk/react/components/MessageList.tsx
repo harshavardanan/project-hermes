@@ -1,8 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import type { Message, HermesUser, Reaction } from "../../types/index";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
 interface MessageListProps {
   messages: Message[];
   currentUser: HermesUser;
@@ -18,11 +16,9 @@ interface MessageListProps {
   renderAvatar?: (senderId: string) => React.ReactNode;
   className?: string;
   autoScroll?: boolean;
-  // Typing indicator
+  
   typingUsers?: { userId: string; displayName: string }[];
 }
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 const formatTime = (iso: string) =>
   new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -34,7 +30,6 @@ const formatFileSize = (bytes?: number) => {
   return `${bytes} B`;
 };
 
-// ── Cool underrated emoji set ─────────────────────────────────────────────────
 const REACTION_EMOJIS = [
   "🫠",
   "🥹",
@@ -58,7 +53,6 @@ const REACTION_EMOJIS = [
   "🪐",
 ];
 
-// ── Emoji Picker ──────────────────────────────────────────────────────────────
 const EmojiPicker: React.FC<{
   onPick: (emoji: string) => void;
   onClose: () => void;
@@ -128,7 +122,6 @@ const EmojiPicker: React.FC<{
   );
 };
 
-// ── Typing Indicator ──────────────────────────────────────────────────────────
 const TypingIndicator: React.FC<{
   typingUsers: { userId: string; displayName: string }[];
 }> = ({ typingUsers }) => {
@@ -180,7 +173,6 @@ const TypingIndicator: React.FC<{
   );
 };
 
-// ── Default message renderer ──────────────────────────────────────────────────
 const DefaultMessage: React.FC<{
   message: Message;
   isOwn: boolean;
@@ -223,7 +215,7 @@ const DefaultMessage: React.FC<{
         position: "relative",
       }}
     >
-      {/* Avatar */}
+      {}
       {!isOwn && (
         <div style={{ flexShrink: 0 }}>
           {renderAvatar ? (
@@ -248,7 +240,7 @@ const DefaultMessage: React.FC<{
         </div>
       )}
 
-      {/* Bubble + actions + reactions stacked */}
+      {}
       <div
         style={{
           maxWidth: "70%",
@@ -257,7 +249,7 @@ const DefaultMessage: React.FC<{
           alignItems: isOwn ? "flex-end" : "flex-start",
         }}
       >
-        {/* Action bar — shows on hover */}
+        {}
         {(onEdit || onDelete || onReact || onReply) && (
           <div
             style={{
@@ -271,7 +263,7 @@ const DefaultMessage: React.FC<{
               position: "relative",
             }}
           >
-            {/* Emoji picker trigger */}
+            {}
             {onReact && (
               <div style={{ position: "relative" }}>
                 <ActionBtn
@@ -313,7 +305,7 @@ const DefaultMessage: React.FC<{
           </div>
         )}
 
-        {/* Bubble */}
+        {}
         <div
           style={{
             padding: "8px 12px",
@@ -322,7 +314,7 @@ const DefaultMessage: React.FC<{
             color: isOwn ? "#fff" : "#000",
           }}
         >
-          {/* Reply preview */}
+          {}
           {message.replyTo && (
             <div
               style={{
@@ -407,7 +399,7 @@ const DefaultMessage: React.FC<{
             </a>
           )}
 
-          {/* Timestamp */}
+          {}
           <div
             style={{
               fontSize: 10,
@@ -420,7 +412,7 @@ const DefaultMessage: React.FC<{
           </div>
         </div>
 
-        {/* Reaction pills */}
+        {}
         {message.reactions?.filter((r: Reaction) => r.users.length > 0).length >
           0 && (
           <div
@@ -467,7 +459,6 @@ const DefaultMessage: React.FC<{
   );
 };
 
-// ── Small action button ───────────────────────────────────────────────────────
 const ActionBtn: React.FC<{
   onClick: () => void;
   title?: string;
@@ -494,7 +485,6 @@ const ActionBtn: React.FC<{
   </button>
 );
 
-// ── MessageList ───────────────────────────────────────────────────────────────
 export const MessageList: React.FC<MessageListProps> = ({
   messages,
   currentUser,
@@ -570,7 +560,7 @@ export const MessageList: React.FC<MessageListProps> = ({
           padding: "16px",
         }}
       >
-        {/* Load more */}
+        {}
         {hasMore && (
           <div style={{ textAlign: "center", marginBottom: 12 }}>
             {loadingMore ? (
@@ -629,7 +619,7 @@ export const MessageList: React.FC<MessageListProps> = ({
           );
         })}
 
-        {/* Typing indicator — lives at the bottom of the list */}
+        {}
         <TypingIndicator typingUsers={typingUsers} />
 
         <div ref={bottomRef} />

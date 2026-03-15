@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Globe, Terminal, Loader2, ChevronRight, Plus } from "lucide-react";
 
@@ -11,12 +11,23 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-interface ProjectsProps {
-  onOpenForm: () => void;
+interface Project {
+  _id: string;
+  projectName: string;
+  projectId?: string;
+  region?: string;
+  createdAt: string;
+  stats?: {
+    messagesStats?: Record<string, number>;
+  };
 }
 
-const Projects = ({ onOpenForm }: ProjectsProps) => {
-  const [projects, setProjects] = useState<any[]>([]);
+export default function Projects({
+  onOpenForm,
+}: {
+  onOpenForm: () => void;
+}) {
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,7 +35,7 @@ const Projects = ({ onOpenForm }: ProjectsProps) => {
     try {
       setLoading(true);
 
-      const response = await fetch("http://localhost:8080/api/projects", {
+      const response = await fetch(`${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/api/projects`, {
         credentials: "include",
       });
 
@@ -37,8 +48,8 @@ const Projects = ({ onOpenForm }: ProjectsProps) => {
 
       const data = await response.json();
       setProjects(Array.isArray(data) ? data : []);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
@@ -196,5 +207,3 @@ const Projects = ({ onOpenForm }: ProjectsProps) => {
     </div>
   );
 };
-
-export default Projects;

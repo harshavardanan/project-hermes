@@ -17,13 +17,12 @@ const ENDPOINT = "http://localhost:8080";
 const API_KEY = "EA279B99DAC56FA1EDC180B121BD816AE303E1E8";
 const SECRET = "PGjvKe3yj2PB9bX5TkdVBtShDG1shQ";
 
-// NEON GREEN & BLACK THEME MATCHING HERO
 const C = {
   bg: "#000000",
   bgPanel: "#0a0a0a",
   bgCard: "#0f0f0f",
-  border: "#1a2e05", // dark green border
-  primary: "#39ff14", // brand-primary
+  border: "#1a2e05", 
+  primary: "#39ff14", 
   primaryDim: "rgba(57, 255, 20, 0.1)",
   primaryGlow: "0 0 25px rgba(57,255,20,0.25)",
   danger: "#ef4444",
@@ -101,7 +100,6 @@ const GLOBAL_CSS = `
   .hermes-typing-indicator { font-family: 'Inter', sans-serif !important; color: ${C.primary} !important; font-size: 11px !important; font-weight: 500 !important; letter-spacing: normal !important; }
 `;
 
-// ── Avatar ────────────────────────────────────────────────────────────────────
 function Avatar({
   name,
   size = 40,
@@ -170,7 +168,6 @@ function Avatar({
   );
 }
 
-// ── Splash ────────────────────────────────────────────────────────────────────
 function Splash({ label, error }: { label: string; error?: boolean }) {
   return (
     <div
@@ -187,7 +184,7 @@ function Splash({ label, error }: { label: string; error?: boolean }) {
     >
       <style>{GLOBAL_CSS}</style>
 
-      {/* Dynamic Background Glow from Hero */}
+      {}
       <div
         style={{
           position: "absolute",
@@ -205,7 +202,7 @@ function Splash({ label, error }: { label: string; error?: boolean }) {
       />
 
       <div style={{ zIndex: 1, textAlign: "center" }}>
-        {/* Status Badge */}
+        {}
         {!error && (
           <div
             style={{
@@ -286,7 +283,6 @@ function Splash({ label, error }: { label: string; error?: boolean }) {
   );
 }
 
-// ── App Root ──────────────────────────────────────────────────────────────────
 export default function App() {
   const [client, setClient] = useState<HermesClient | null>(null);
   const [connected, setConnected] = useState(false);
@@ -385,7 +381,6 @@ export default function App() {
   );
 }
 
-// ── Chat Shell ────────────────────────────────────────────────────────────────
 function ChatShell({
   client,
   currentUser,
@@ -478,7 +473,7 @@ function ChatShell({
     >
       <style>{GLOBAL_CSS}</style>
 
-      {/* Dynamic Background Glow from Hero */}
+      {}
       <div
         style={{
           position: "absolute",
@@ -494,7 +489,7 @@ function ChatShell({
         }}
       />
 
-      {/* ── SIDEBAR ── */}
+      {}
       <div
         className="glass"
         style={{
@@ -506,7 +501,7 @@ function ChatShell({
           zIndex: 10,
         }}
       >
-        {/* Header */}
+        {}
         <div
           style={{
             padding: "24px 20px",
@@ -558,7 +553,7 @@ function ChatShell({
           </div>
         </div>
 
-        {/* Actions */}
+        {}
         <div style={{ display: "flex", gap: 8, padding: "16px 20px 8px" }}>
           <button
             className="h-btn"
@@ -596,7 +591,7 @@ function ChatShell({
           </button>
         </div>
 
-        {/* Room List */}
+        {}
         <div style={{ flex: 1, overflowY: "auto", padding: "8px 12px" }}>
           <div
             style={{
@@ -703,13 +698,13 @@ function ChatShell({
         </div>
       </div>
 
-      {/* ── MAIN CONTENT ── */}
+      {}
       <div
         style={{ flex: 1, display: "flex", flexDirection: "column", zIndex: 1 }}
       >
         {activeRoom ? (
           <>
-            {/* Header */}
+            {}
             <div
               className="glass"
               style={{
@@ -739,7 +734,7 @@ function ChatShell({
               </div>
             </div>
 
-            {/* Messages */}
+            {}
             <div
               style={{ flex: 1, overflow: "hidden", background: "transparent" }}
             >
@@ -760,7 +755,7 @@ function ChatShell({
 
             <TypingIndicator typingText={typingText} />
 
-            {/* Input */}
+            {}
             <div
               className="glass"
               style={{

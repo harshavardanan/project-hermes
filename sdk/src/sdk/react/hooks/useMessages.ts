@@ -79,7 +79,7 @@ export const useMessages = (client: HermesClient, roomId: string | null) => {
       );
     };
     client.on("reaction:updated", onReaction);
-    return () => client.off("reaction:updated", onReaction);
+    return () => { client.off("reaction:updated", onReaction); };
   }, [client]);
 
   useEffect(() => {
@@ -104,7 +104,7 @@ export const useMessages = (client: HermesClient, roomId: string | null) => {
     return () => {
       client.off("typing:started", onStarted);
       client.off("typing:stopped", onStopped);
-      // Clear typing state when leaving room
+      
       setTypingUsers([]);
     };
   }, [roomId, client]);

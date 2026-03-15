@@ -1,20 +1,71 @@
 {
-  "name": "chatsdk-react",
-  "private": true,
+  "name": "hermes-sdk",
   "version": "0.1.0",
+  "description": "Official React SDK for the Hermes real-time messaging engine — hooks, components, and typed events out of the box.",
+  "keywords": [
+    "hermes",
+    "chat",
+    "real-time",
+    "websocket",
+    "react",
+    "sdk",
+    "messaging"
+  ],
+  "homepage": "https://github.com/your-org/hermes-sdk#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-org/hermes-sdk.git"
+  },
+  "license": "MIT",
+  "author": "",
   "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./react": {
+      "import": {
+        "types": "./dist/react.d.ts",
+        "default": "./dist/react.js"
+      },
+      "require": {
+        "types": "./dist/react.d.cts",
+        "default": "./dist/react.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build:lib": "vite build --config vite.lib.config.ts && tsc --project tsconfig.lib.json",
+    "build": "npm run build:lib",
+    "preview": "vite preview",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "react": ">=17.0.0",
+    "react-dom": ">=17.0.0"
   },
   "dependencies": {
     "emoji-picker-react": "^4.18.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
+    "@types/node": "^25.5.0",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
     "@vitejs/plugin-react": "^4.2.1",
@@ -22,6 +73,7 @@
     "postcss": "^8.5.8",
     "tailwindcss": "^4.2.1",
     "typescript": "^5.3.3",
-    "vite": "^5.0.12"
+    "vite": "^5.0.12",
+    "vite-plugin-dts": "^3.9.1"
   }
 }

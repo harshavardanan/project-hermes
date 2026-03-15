@@ -64,17 +64,13 @@ router.get("/projects/:id", async (req: Request, res: Response) => {
     const projectId = project._id;
 
     // 3. 🚀 FETCH LIVE STATS for Overview Tab
-    const totalUsersCount = await HermesUser.countDocuments({ projectId });
-    const activeUsersCount = await HermesUser.countDocuments({
-      projectId,
-      isOnline: true,
-    });
-    const totalRoomsCount = await Room.countDocuments({
-      projectId,
-      isDeleted: false,
-    });
+    const [totalUsersCount, activeUsersCount, totalRoomsCount, rooms] = await Promise.all([
+      HermesUser.countDocuments({ projectId }),
+      HermesUser.countDocuments({ projectId, isOnline: true }),
+      Room.countDocuments({ projectId, isDeleted: false }),
+      Room.find({ projectId }, { _id: 1 })
+    ]);
 
-    const rooms = await Room.find({ projectId }, { _id: 1 });
     const roomIds = rooms.map((r) => r._id);
     const totalMessagesCount = await Message.countDocuments({
       roomId: { $in: roomIds },
@@ -131,7 +127,7 @@ router.post("/projects", async (req: Request, res: Response) => {
       projectId: `${projectName.toLowerCase().replace(/\s+/g, "-")}-${crypto.randomBytes(3).toString("hex")}`,
       apiKey: crypto.randomBytes(20).toString("hex").toUpperCase(),
       secret: crypto.randomBytes(22).toString("base64url").slice(0, 30),
-      endpoint: "http://localhost:8080",
+      endpoint: process.env.BACKEND_URL || "http://localhost:8080",
       usage: {
         dailyTokens: 0,
         totalTokensAllTime: 0,

@@ -3,13 +3,10 @@ import type { Request, Response } from "express";
 import mongoose from "mongoose";
 import { Plan } from "../models/Plans.js";
 import { Project } from "../models/Projects.js";
-import { isAuthenticated, isAdmin } from "../middleware/auth.js"; //
+import { isAuthenticated, isAdmin } from "../middleware/auth.js";
 
 const router = express.Router();
 
-/**
- * GET /api/plans - Publicly viewable
- */
 router.get("/plans", async (req: Request, res: Response) => {
   try {
     const plans = await Plan.find().sort({ monthlyPrice: 1 });
@@ -19,12 +16,8 @@ router.get("/plans", async (req: Request, res: Response) => {
   }
 });
 
-/**
- * POST /api/admin/plans - Securely managed by isAdmin session
- */
 router.post("/admin/plans", isAdmin, async (req: Request, res: Response) => {
   const { planId, name, dailyLimit, monthlyPrice, features } = req.body;
-
   try {
     const plan = await Plan.findOneAndUpdate(
       { planId },
@@ -37,15 +30,12 @@ router.post("/admin/plans", isAdmin, async (req: Request, res: Response) => {
   }
 });
 
-/**
- * DELETE /api/admin/plans/:id - Allows removing tiers
- */
 router.delete(
   "/admin/plans/:id",
   isAdmin,
   async (req: Request, res: Response) => {
     try {
-      await Plan.findByIdAndDelete(req.params.id);
+      await Plan.findByIdAndDelete(req.params["id"]);
       res.json({ message: "Plan deleted successfully" });
     } catch (err) {
       res.status(500).json({ error: "Deletion failed" });
@@ -53,15 +43,12 @@ router.delete(
   },
 );
 
-/**
- * PATCH /api/projects/:projectId/upgrade - Standard user upgrade
- */
 router.patch(
   "/projects/:projectId/upgrade",
   isAuthenticated,
   async (req: Request, res: Response) => {
     const { targetPlanId } = req.body;
-    const { projectId } = req.params;
+    const projectId = req.params["projectId"] as string;
     const userId = (req.user as any)._id;
 
     if (

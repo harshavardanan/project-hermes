@@ -16,8 +16,6 @@ import {
   Trash2,
   ChevronRight,
   Loader2,
-  CheckCircle,
-  AlertCircle,
   Italic,
   Strikethrough,
   GripVertical,
@@ -29,43 +27,16 @@ import {
   ListOrdered,
 } from "lucide-react";
 
+import type { DocMeta, ToastState } from "./types";
+import { toSlug, timeAgo } from "./types";
+import ToolbarButton from "./ToolbarButton";
+import Toast from "./Toast";
+import CopyButtonInjector from "./CopyButtonInjector";
+
 const lowlight = createLowlight(common);
-const API = "http://localhost:8080/api/docs";
-const UPLOAD = "http://localhost:8080/hermes/upload";
+const API = `${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/api/docs`;
+const UPLOAD = `${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/hermes/upload`;
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-interface DocMeta {
-  _id: string;
-  title: string;
-  slug: string;
-  status: "draft" | "published";
-  lastUpdated: string;
-  category: string;
-}
-interface ToastState {
-  message: string;
-  type: "success" | "error";
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-const toSlug = (t: string) =>
-  t
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-");
-
-const timeAgo = (date: string) => {
-  const diff = Date.now() - new Date(date).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-};
-
-// ─── Upload image to server, get back a URL ───────────────────────────────────
 const uploadImage = async (file: File, token: string): Promise<string> => {
   const form = new FormData();
   form.append("file", file);
@@ -79,99 +50,6 @@ const uploadImage = async (file: File, token: string): Promise<string> => {
   return data.url ?? data.secure_url ?? data.data?.url;
 };
 
-// ─── Toolbar Button ───────────────────────────────────────────────────────────
-const TB = ({
-  onClick,
-  icon,
-  active,
-  title,
-}: {
-  onClick: () => void;
-  icon: React.ReactNode;
-  active?: boolean;
-  title?: string;
-}) => (
-  <button
-    onClick={onClick}
-    title={title}
-    className={`p-2 rounded-md transition-all duration-150 ${
-      active
-        ? "bg-[var(--brand-primary)] text-black shadow-[0_0_10px_rgba(57,255,20,0.3)]"
-        : "text-[var(--brand-muted)] hover:bg-white/5 hover:text-[var(--brand-text)]"
-    }`}
-  >
-    {icon}
-  </button>
-);
-
-// ─── Toast ────────────────────────────────────────────────────────────────────
-const Toast = ({
-  toast,
-  onClose,
-}: {
-  toast: ToastState;
-  onClose: () => void;
-}) => {
-  useEffect(() => {
-    const t = setTimeout(onClose, 3000);
-    return () => clearTimeout(t);
-  }, [onClose]);
-  return (
-    <div
-      className={`fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-4 py-3 rounded-xl border shadow-2xl text-sm font-mono ${
-        toast.type === "success"
-          ? "bg-[var(--brand-card)] border-[var(--brand-primary)]/30 text-[var(--brand-primary)]"
-          : "bg-[var(--brand-card)] border-red-500/30 text-red-400"
-      }`}
-    >
-      {toast.type === "success" ? (
-        <CheckCircle size={16} />
-      ) : (
-        <AlertCircle size={16} />
-      )}
-      {toast.message}
-    </div>
-  );
-};
-
-// ─── Copy Button Injector (for code blocks) ───────────────────────────────────
-const CopyButtonInjector = () => {
-  useEffect(() => {
-    const inject = (pre: HTMLElement) => {
-      if (pre.querySelector(".copy-code-btn")) return;
-      const btn = document.createElement("button");
-      btn.className = "copy-code-btn";
-      btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg> Copy`;
-      btn.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const code = pre.querySelector("code")?.textContent ?? "";
-        navigator.clipboard.writeText(code).then(() => {
-          btn.className = "copy-code-btn copied";
-          btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
-          setTimeout(() => {
-            btn.className = "copy-code-btn";
-            btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg> Copy`;
-          }, 2000);
-        });
-      });
-      pre.appendChild(btn);
-    };
-
-    document.querySelectorAll<HTMLElement>(".ProseMirror pre").forEach(inject);
-    const observer = new MutationObserver(() => {
-      document
-        .querySelectorAll<HTMLElement>(".ProseMirror pre")
-        .forEach(inject);
-    });
-    const pm = document.querySelector(".ProseMirror");
-    if (pm) observer.observe(pm, { childList: true, subtree: true });
-    return () => observer.disconnect();
-  }, []);
-  return null;
-};
-
-// ─── Main Component ───────────────────────────────────────────────────────────
 const DocumentEditor = () => {
   const [docs, setDocs] = useState<DocMeta[]>([]);
   const [activeDocId, setActiveDocId] = useState<string | null>(null);
@@ -190,14 +68,12 @@ const DocumentEditor = () => {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [collapsedCats, setCollapsedCats] = useState<Set<string>>(new Set());
 
-  // Store token so image upload can auth — set this from wherever you auth in your app
   const token = useRef<string>(sessionStorage.getItem("hermes_token") ?? "");
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   const showToast = (message: string, type: "success" | "error") =>
     setToast({ message, type });
 
-  // ── Insert image: upload to server, insert URL into editor ───────────────
   const insertImage = useCallback(async (file: File) => {
     if (!file.type.startsWith("image/")) return;
     if (!token.current) {
@@ -209,14 +85,13 @@ const DocumentEditor = () => {
       const url = await uploadImage(file, token.current);
       editor?.chain().focus().setImage({ src: url }).run();
       showToast("Image uploaded ✓", "success");
-    } catch (err: any) {
-      showToast(err.message ?? "Image upload failed", "error");
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : String(err), "error");
     } finally {
       setImageUploading(false);
     }
   }, []);
 
-  // ── Editor ───────────────────────────────────────────────────────────────
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ codeBlock: false }),
@@ -233,7 +108,7 @@ const DocumentEditor = () => {
         class:
           "prose prose-invert max-w-none focus:outline-none min-h-[500px] py-10",
       },
-      handlePaste(view, event) {
+      handlePaste(_view, event) {
         const items = Array.from(event.clipboardData?.items ?? []);
         const img = items.find((i) => i.type.startsWith("image/"));
         if (!img) return false;
@@ -242,7 +117,7 @@ const DocumentEditor = () => {
         if (file) insertImage(file);
         return true;
       },
-      handleDrop(view, event) {
+      handleDrop(_view, event) {
         const files = Array.from(event.dataTransfer?.files ?? []);
         const img = files.find((f) => f.type.startsWith("image/"));
         if (!img) return false;
@@ -253,7 +128,6 @@ const DocumentEditor = () => {
     },
   });
 
-  // ── Fetch doc list ───────────────────────────────────────────────────────
   const fetchDocs = useCallback(async () => {
     try {
       const res = await fetch(`${API}/list`, { credentials: "include" });
@@ -281,18 +155,16 @@ const DocumentEditor = () => {
   const toggleCat = (cat: string) =>
     setCollapsedCats((p) => {
       const n = new Set(p);
-      n.has(cat) ? n.delete(cat) : n.add(cat);
+      if (n.has(cat)) n.delete(cat);
+      else n.add(cat);
       return n;
     });
 
-  // ── Open doc ─────────────────────────────────────────────────────────────
   const openDoc = async (docSlug: string) => {
     if (!editor) return;
     setIsLoading(true);
     try {
-      const res = await fetch(`${API}/get/${docSlug}`, {
-        credentials: "include",
-      });
+      const res = await fetch(`${API}/get/${docSlug}`, { credentials: "include" });
       const json = await res.json();
       if (!json.success) throw new Error(json.message || "Failed to load");
       const doc = json.data;
@@ -303,14 +175,13 @@ const DocumentEditor = () => {
       setStatus(doc.status);
       setSlugManuallyEdited(true);
       editor.commands.setContent(doc.content);
-    } catch (err: any) {
-      showToast(err.message || "Failed to load document", "error");
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : String(err), "error");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ── New doc ──────────────────────────────────────────────────────────────
   const handleNew = () => {
     if (!editor) return;
     setActiveDocId(null);
@@ -326,13 +197,15 @@ const DocumentEditor = () => {
     if (!editor) return "Untitled Document";
     const first = editor.getJSON().content?.[0];
     if (first?.type === "heading" && first?.attrs?.level === 1) {
-      const t = first.content?.map((n: any) => n.text || "").join("") || "";
+      const t =
+        first.content
+          ?.map((n: { text?: string; [key: string]: unknown }) => n.text || "")
+          .join("") || "";
       return t.trim() || "Untitled Document";
     }
     return title?.trim() || "Untitled Document";
   };
 
-  // ── Save ─────────────────────────────────────────────────────────────────
   const handleSave = async (s: "draft" | "published") => {
     if (!editor) return;
     setIsSaving(true);
@@ -360,14 +233,13 @@ const DocumentEditor = () => {
       setStatus(s);
       showToast(s === "published" ? "🚀 Published!" : "Draft saved", "success");
       fetchDocs();
-    } catch (err: any) {
-      showToast(err.message || "Save failed", "error");
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : String(err), "error");
     } finally {
       setIsSaving(false);
     }
   };
 
-  // ── Delete ───────────────────────────────────────────────────────────────
   const handleDelete = async (slugToDelete: string) => {
     setIsDeleting(true);
     try {
@@ -381,14 +253,13 @@ const DocumentEditor = () => {
       setConfirmDelete(null);
       if (slug === slugToDelete) handleNew();
       fetchDocs();
-    } catch (err: any) {
-      showToast(err.message || "Delete failed", "error");
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : String(err), "error");
     } finally {
       setIsDeleting(false);
     }
   };
 
-  // ── Drag to reorder ──────────────────────────────────────────────────────
   const handleDragStart = (id: string) => setDraggedId(id);
   const handleDragOver = (e: React.DragEvent, targetId: string) => {
     e.preventDefault();
@@ -436,7 +307,7 @@ const DocumentEditor = () => {
         }}
       />
 
-      {/* ── Header ───────────────────────────────────────────────────────── */}
+      {/* ── Header ── */}
       <header
         className="sticky top-0 z-50 backdrop-blur-md border-b"
         style={{
@@ -444,7 +315,6 @@ const DocumentEditor = () => {
           borderColor: "rgba(255,255,255,0.05)",
         }}
       >
-        {/* Title row */}
         <div className="px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 flex-grow min-w-0">
             <button
@@ -498,7 +368,7 @@ const DocumentEditor = () => {
                 style={{
                   borderColor:
                     status === "published"
-                      ? "rgba(57,255,20,0.3)"
+                      ? "rgba(255,255,255,0.12)"
                       : "rgba(234,179,8,0.3)",
                   color:
                     status === "published" ? "var(--brand-primary)" : "#eab308",
@@ -547,95 +417,75 @@ const DocumentEditor = () => {
           className="px-4 py-1.5 flex items-center gap-1 border-t flex-wrap"
           style={{ borderColor: "rgba(255,255,255,0.05)" }}
         >
-          <TB
-            onClick={() =>
-              editor.chain().focus().toggleHeading({ level: 1 }).run()
-            }
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
             icon={<Heading1 size={15} />}
             active={editor.isActive("heading", { level: 1 })}
             title="H1"
           />
-          <TB
-            onClick={() =>
-              editor.chain().focus().toggleHeading({ level: 2 }).run()
-            }
+          <ToolbarButton
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
             icon={<Heading2 size={15} />}
             active={editor.isActive("heading", { level: 2 })}
             title="H2"
           />
-          <div
-            className="w-px h-4 mx-1"
-            style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
-          />
-          <TB
+          <div className="w-px h-4 mx-1" style={{ backgroundColor: "rgba(255,255,255,0.1)" }} />
+          <ToolbarButton
             onClick={() => editor.chain().focus().toggleBold().run()}
             icon={<Bold size={15} />}
             active={editor.isActive("bold")}
             title="Bold"
           />
-          <TB
+          <ToolbarButton
             onClick={() => editor.chain().focus().toggleItalic().run()}
             icon={<Italic size={15} />}
             active={editor.isActive("italic")}
             title="Italic"
           />
-          <TB
+          <ToolbarButton
             onClick={() => editor.chain().focus().toggleStrike().run()}
             icon={<Strikethrough size={15} />}
             active={editor.isActive("strike")}
             title="Strike"
           />
-          <div
-            className="w-px h-4 mx-1"
-            style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
-          />
-          <TB
+          <div className="w-px h-4 mx-1" style={{ backgroundColor: "rgba(255,255,255,0.1)" }} />
+          <ToolbarButton
             onClick={() => editor.chain().focus().toggleBulletList().run()}
             icon={<List size={15} />}
             active={editor.isActive("bulletList")}
             title="Bullet List"
           />
-          <TB
+          <ToolbarButton
             onClick={() => editor.chain().focus().toggleOrderedList().run()}
             icon={<ListOrdered size={15} />}
             active={editor.isActive("orderedList")}
             title="Ordered List"
           />
-          <TB
+          <ToolbarButton
             onClick={() => editor.chain().focus().toggleBlockquote().run()}
             icon={<Quote size={15} />}
             active={editor.isActive("blockquote")}
             title="Blockquote"
           />
-          <div
-            className="w-px h-4 mx-1"
-            style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
-          />
-          <TB
+          <div className="w-px h-4 mx-1" style={{ backgroundColor: "rgba(255,255,255,0.1)" }} />
+          <ToolbarButton
             onClick={() => editor.chain().focus().toggleCode().run()}
             icon={<Code size={15} />}
             active={editor.isActive("code")}
             title="Inline Code"
           />
-          <TB
+          <ToolbarButton
             onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-            icon={
-              <span className="text-[11px] font-mono font-bold leading-none">
-                {"</>"}
-              </span>
-            }
+            icon={<span className="text-[11px] font-mono font-bold leading-none">{"</>"}</span>}
             active={editor.isActive("codeBlock")}
             title="Code Block"
           />
-          <TB
+          <ToolbarButton
             onClick={() => editor.chain().focus().setHorizontalRule().run()}
             icon={<Minus size={15} />}
             title="Divider"
           />
-          <div
-            className="w-px h-4 mx-1"
-            style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
-          />
+          <div className="w-px h-4 mx-1" style={{ backgroundColor: "rgba(255,255,255,0.1)" }} />
 
           {/* Image from file */}
           <button
@@ -677,7 +527,7 @@ const DocumentEditor = () => {
         </div>
       </header>
 
-      {/* ── Body ─────────────────────────────────────────────────────────── */}
+      {/* ── Body ── */}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         {sidebarOpen && (
@@ -826,14 +676,14 @@ const DocumentEditor = () => {
         .ProseMirror blockquote {
           border-left: 3px solid var(--brand-primary);
           padding: 0.75rem 1.25rem; margin: 1.5rem 0;
-          background: rgba(57,255,20,0.04); border-radius: 0 8px 8px 0;
+          background: rgba(255,255,255,0.03); border-radius: 0 8px 8px 0;
           color: var(--brand-muted); font-style: italic;
         }
 
         .ProseMirror code {
           font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.88rem;
-          color: var(--brand-primary); background: rgba(57,255,20,0.07);
-          padding: 0.15rem 0.45rem; border-radius: 5px; border: 1px solid rgba(57,255,20,0.15);
+          color: var(--brand-primary); background: rgba(255,255,255,0.05);
+          padding: 0.15rem 0.45rem; border-radius: 5px; border: 1px solid rgba(255,255,255,0.08);
         }
 
         .ProseMirror pre {
@@ -863,8 +713,8 @@ const DocumentEditor = () => {
           gap: 4px; transition: all 0.2s; opacity: 0;
         }
         .ProseMirror pre:hover .copy-code-btn { opacity: 1; }
-        .copy-code-btn:hover  { background: rgba(57,255,20,0.1); border-color: rgba(57,255,20,0.3); color: var(--brand-primary); }
-        .copy-code-btn.copied { background: rgba(57,255,20,0.12); border-color: rgba(57,255,20,0.4); color: var(--brand-primary); opacity: 1; }
+        .copy-code-btn:hover  { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); color: var(--brand-primary); }
+        .copy-code-btn.copied { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.15); color: var(--brand-primary); opacity: 1; }
 
         .ProseMirror img.doc-image, .ProseMirror img {
           max-width: 100%; height: auto; border-radius: 10px; margin: 1.5rem 0;
@@ -885,7 +735,7 @@ const DocumentEditor = () => {
         .hljs-tag    { color: #ff5555; }
         .hljs-params { color: #ffb86c; }
 
-        .ProseMirror ::selection { background: rgba(57,255,20,0.2); }
+        .ProseMirror ::selection { background: rgba(255,255,255,0.08); }
       `}</style>
     </div>
   );

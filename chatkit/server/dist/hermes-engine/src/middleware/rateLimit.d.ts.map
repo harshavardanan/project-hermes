@@ -1,0 +1,1 @@
+{"version":3,"file":"rateLimit.d.ts","sourceRoot":"","sources":["../../../../hermes-engine/src/middleware/rateLimit.ts"],"names":[],"mappings":"AAGA,eAAO,MAAM,gBAAgB,sDAM3B,CAAC;AAGH,eAAO,MAAM,mBAAmB,sDAO9B,CAAC;AASH,eAAO,MAAM,oBAAoB,GAAI,UAAU,MAAM,KAAG,OAkBvD,CAAC"}

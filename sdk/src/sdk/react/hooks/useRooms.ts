@@ -12,12 +12,12 @@ export const useRooms = (client: HermesClient) => {
   const [error, setError] = useState<string | null>(null);
   const fetchedRef = useRef(false);
 
-  // ── Wait until socket is connected, then fetch ────────────────────────────
+  
   const fetchRooms = useCallback(async () => {
     setLoading(true);
     setError(null);
 
-    // Poll isConnected every 100ms, timeout after 5s
+    
     await new Promise<void>((resolve, reject) => {
       if (client.isConnected) return resolve();
       let attempts = 0;
@@ -46,7 +46,7 @@ export const useRooms = (client: HermesClient) => {
     }
   }, [client]);
 
-  // Fetch on mount + re-fetch on reconnect
+  
   useEffect(() => {
     fetchRooms();
     const onConnected = () => {
@@ -58,7 +58,7 @@ export const useRooms = (client: HermesClient) => {
     };
   }, [fetchRooms, client]);
 
-  // ── Real-time updates ─────────────────────────────────────────────────────
+  
   useEffect(() => {
     const onCreated = (room: Room) => {
       setRooms((prev) => {
@@ -125,7 +125,7 @@ export const useRooms = (client: HermesClient) => {
     };
   }, [client]);
 
-  // ── Actions — add room to state immediately on creation ───────────────────
+  
   const createDirect = useCallback(
     async (input: CreateDirectRoomInput) => {
       const room = await client.createDirectRoom(input);

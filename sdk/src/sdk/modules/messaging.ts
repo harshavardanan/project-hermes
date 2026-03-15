@@ -8,22 +8,22 @@ import type {
 export class Messaging {
   constructor(private client: HermesClient) {}
 
-  // Send any message type
+  
   send(input: SendMessageInput): Promise<Message> {
     return this.client.sendMessage(input);
   }
 
-  // Shorthand for text messages
+  
   sendText(roomId: string, text: string): Promise<Message> {
     return this.client.sendMessage({ roomId, type: "text", text });
   }
 
-  // Shorthand for link messages
+  
   sendLink(roomId: string, url: string, text?: string): Promise<Message> {
     return this.client.sendMessage({ roomId, type: "link", url, text });
   }
 
-  // Send a media/doc after uploading — pass the UploadResult directly
+  
   sendMedia(
     roomId: string,
     upload: {
@@ -48,22 +48,22 @@ export class Messaging {
     });
   }
 
-  // Reply to a message
+  
   reply(roomId: string, text: string, replyTo: string): Promise<Message> {
     return this.client.sendMessage({ roomId, type: "text", text, replyTo });
   }
 
-  // Edit a message
+  
   edit(messageId: string, roomId: string, text: string): Promise<Message> {
     return this.client.editMessage(messageId, roomId, text);
   }
 
-  // Soft delete a message
+  
   delete(messageId: string, roomId: string): Promise<void> {
     return this.client.deleteMessage(messageId, roomId);
   }
 
-  // Fetch paginated history
+  
   history(
     roomId: string,
     before?: string,
@@ -72,13 +72,13 @@ export class Messaging {
     return this.client.getHistory(roomId, before, limit);
   }
 
-  // Listen for incoming messages
+  
   onMessage(callback: (message: Message) => void): () => void {
     this.client.on("message:receive", callback);
     return () => this.client.off("message:receive", callback);
   }
 
-  // Listen for deleted messages
+  
   onDelete(
     callback: (data: { messageId: string; roomId: string }) => void,
   ): () => void {
@@ -86,7 +86,7 @@ export class Messaging {
     return () => this.client.off("message:deleted", callback);
   }
 
-  // Listen for edited messages
+  
   onEdit(callback: (message: Message) => void): () => void {
     this.client.on("message:edited", callback);
     return () => this.client.off("message:edited", callback);

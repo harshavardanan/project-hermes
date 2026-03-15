@@ -178,7 +178,7 @@ export const RoomList: React.FC<RoomListProps> = ({
         overflowY: "auto",
       }}
     >
-      {/* Buttons always visible */}
+      {}
       {(onCreateDirect || onCreateGroup) && (
         <div
           style={{

@@ -1,10 +1,9 @@
-import React from "react";
+// Removed React import
 import {
   LayoutDashboard,
   Activity,
   Settings,
   HelpCircle,
-  Zap,
 } from "lucide-react";
 import SidebarItem from "./SidebarItem";
 

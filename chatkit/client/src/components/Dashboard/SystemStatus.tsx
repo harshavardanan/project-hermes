@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 
-const HEALTH_URL = "http://localhost:8080/hermes/health";
-const METRICS_URL = "http://localhost:8080/hermes/metrics";
+const HEALTH_URL = `${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/hermes/health`;
+const METRICS_URL = `${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/hermes/metrics`;
 const POLL_MS = 5000; // Increased to 5 seconds to help prevent 429 Rate Limits
 const MAX_SAMPLES = 60;
 
@@ -266,8 +266,8 @@ const SystemStatus: React.FC = () => {
 
       addLog("INFO", msgs[tick % msgs.length]);
       setTick((t) => t + 1);
-    } catch (error: any) {
-      if (error.message === "429") {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.message === "429") {
         addLog(
           "WARN",
           "Rate limit exceeded (429). Throttling dashboard updates...",
