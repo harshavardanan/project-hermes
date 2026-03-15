@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
-import User from "../../../../src/models/Users.js";
+import User from "../../../models/Users.js";
 import { Room } from "../models/Room.js";
 import { Message } from "../models/Message.js";
 
