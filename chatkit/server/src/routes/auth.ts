@@ -44,7 +44,7 @@ router.get("/logout", (req: Request, res: Response, next: NextFunction) => {
         sameSite: "lax",
       });
 
-      return res.redirect(process.env.FRONTEND_URL || "http://localhost:5173");
+      return res.redirect(process.env.FRONTEND_URL!);
     });
   });
 });
