@@ -15,6 +15,7 @@
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.9.0",
+    "typescript": "^5.9.3",
     "connect-mongo": "^6.0.0",
     "consoleartist": "^1.1.1",
     "cors": "^2.8.6",
