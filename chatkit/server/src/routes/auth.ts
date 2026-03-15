@@ -40,15 +40,14 @@ router.get("/logout", (req: Request, res: Response, next: NextFunction) => {
       res.clearCookie("connect.sid", {
         path: "/",
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        secure: true,
+        sameSite: "none", // 👈 must match how cookie was set
       });
 
       return res.redirect(process.env.FRONTEND_URL!);
     });
   });
 });
-
 router.get("/me", (req: Request, res: Response) => {
   if (req.user) {
     res.json(req.user);
