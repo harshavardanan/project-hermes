@@ -24,13 +24,11 @@ export async function start() {
 
   const allowedOrigins = [
     process.env.FRONTEND_URL,
-    "http://localhost:5173",
-    "http://localhost:5174",
   ].filter(Boolean) as string[];
 
   app.use(
     cors({
-      origin: "*",
+      origin: (origin, callback) => callback(null, origin ?? '*'),
       credentials: true,
     }),
   );
