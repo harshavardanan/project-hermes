@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import type { Socket } from "socket.io";
 import jwt from "jsonwebtoken";
-import { Project } from "../../../../src/models/Projects.js";
+import { Project } from "../../../models/Projects.js";
 import { HermesUser } from "../models/HermesUser.js";
 import { logger } from "../utils/logger.js";
 
