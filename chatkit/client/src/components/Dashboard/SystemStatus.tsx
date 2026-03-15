@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 
-const HEALTH_URL = `${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/hermes/health`;
-const METRICS_URL = `${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/hermes/metrics`;
+const HEALTH_URL = `${import.meta.env.VITE_ENDPOINT}/hermes/health`;
+const METRICS_URL = `${import.meta.env.VITE_ENDPOINT}/hermes/metrics`;
 const POLL_MS = 5000; // Increased to 5 seconds to help prevent 429 Rate Limits
 const MAX_SAMPLES = 60;
 

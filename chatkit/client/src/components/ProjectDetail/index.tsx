@@ -29,7 +29,7 @@ import SettingsCard from "./SettingsCard";
 import ChartCard from "./ChartCard";
 
 
-const BASE = import.meta.env.VITE_ENDPOINT || "http://localhost:8080";
+const BASE = import.meta.env.VITE_ENDPOINT;
 
 const ProjectDetail = () => {
   const { id } = useParams();

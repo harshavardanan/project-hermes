@@ -20,7 +20,7 @@ const Pricing = () => {
   useEffect(() => {
     const fetchPlans = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/api/plans`, {
+        const res = await fetch(`${import.meta.env.VITE_ENDPOINT}/api/plans`, {
           credentials: "include",
         });
         if (!res.ok) throw new Error("Failed to fetch plans.");

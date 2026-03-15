@@ -52,7 +52,7 @@ export async function start() {
       },
     }),
   );
-
+  app.set("trust proxy", 1);
   app.use(passport.initialize());
   app.use(passport.session());
 

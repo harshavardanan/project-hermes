@@ -35,7 +35,7 @@ export default function Projects({
     try {
       setLoading(true);
 
-      const response = await fetch(`${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/api/projects`, {
+      const response = await fetch(`${import.meta.env.VITE_ENDPOINT}/api/projects`, {
         credentials: "include",
       });
 

@@ -34,8 +34,8 @@ import Toast from "./Toast";
 import CopyButtonInjector from "./CopyButtonInjector";
 
 const lowlight = createLowlight(common);
-const API = `${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/api/docs`;
-const UPLOAD = `${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/hermes/upload`;
+const API = `${import.meta.env.VITE_ENDPOINT}/api/docs`;
+const UPLOAD = `${import.meta.env.VITE_ENDPOINT}/hermes/upload`;
 
 const uploadImage = async (file: File, token: string): Promise<string> => {
   const form = new FormData();

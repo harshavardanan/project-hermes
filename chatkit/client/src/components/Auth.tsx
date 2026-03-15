@@ -18,7 +18,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   useEffect(() => {
     const handleAuthMessage = (event: MessageEvent) => {
       // Only trust your backend origin
-      if (event.origin !== (import.meta.env.VITE_ENDPOINT || "http://localhost:8080")) return;
+      if (event.origin !== import.meta.env.VITE_ENDPOINT) return;
 
       // Support both the Object format and the String format
       const isSuccess =
@@ -50,7 +50,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     const top = window.screenY + (window.outerHeight - height) / 2;
 
     window.open(
-      `${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/auth/${provider}`,
+      `${import.meta.env.VITE_ENDPOINT}/auth/${provider}`,
       "auth-popup",
       `width=${width},height=${height},left=${left},top=${top},status=unadorned,resizable=yes`,
     );

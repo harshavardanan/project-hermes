@@ -23,7 +23,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const checkAuth = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/auth/me`, {
+      const res = await fetch(`${import.meta.env.VITE_ENDPOINT}/auth/me`, {
         credentials: "include",
       });
       if (res.ok) {

@@ -92,7 +92,7 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchUser = () => {
-    fetch(`${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/auth/me`, { credentials: "include" })
+    fetch(`${import.meta.env.VITE_ENDPOINT}/auth/me`, { credentials: "include" })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data?.token) sessionStorage.setItem("hermes_token", data.token);
@@ -106,7 +106,7 @@ const App: React.FC = () => {
     fetchUser();
 
     const handleAuthMessage = (event: MessageEvent) => {
-      if (event.origin !== (import.meta.env.VITE_ENDPOINT || "http://localhost:8080")) return;
+      if (event.origin !== import.meta.env.VITE_ENDPOINT) return;
 
       if (event.data === "auth_success") {
         setIsAuthOpen(false);

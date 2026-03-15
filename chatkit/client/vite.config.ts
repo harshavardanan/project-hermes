@@ -9,4 +9,18 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    proxy: {
+      "/api": "http://localhost:8080",
+      "/auth": "http://localhost:8080",
+      "/hermes": {
+        target: "http://localhost:8080",
+        ws: true,
+      },
+      "/socket.io": {
+        target: "http://localhost:8080",
+        ws: true,
+      },
+    },
+  },
 });

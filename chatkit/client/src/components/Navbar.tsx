@@ -22,7 +22,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSignInClick, user }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleLogout = () => {
-    window.location.href = `${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/auth/logout`;
+    window.location.href = `${import.meta.env.VITE_ENDPOINT}/auth/logout`;
   };
 
   const navLinks = [

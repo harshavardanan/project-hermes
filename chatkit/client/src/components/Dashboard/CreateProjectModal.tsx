@@ -22,7 +22,7 @@ export default function CreateProjectModal({
   const createProject = async () => {
     setCreating(true);
 
-    const res = await fetch(`${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/api/projects`, {
+    const res = await fetch(`${import.meta.env.VITE_ENDPOINT}/api/projects`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ projectName }),

@@ -24,7 +24,7 @@ export default function Home({
       const start = Date.now();
       try {
         const res = await fetch(
-          `${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/hermes/health`,
+          `${import.meta.env.VITE_ENDPOINT}/hermes/health`,
         );
         if (res.ok) {
           const data = await res.json();

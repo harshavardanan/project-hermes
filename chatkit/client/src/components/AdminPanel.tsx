@@ -24,7 +24,7 @@ const Admin = () => {
   });
 
   const fetchPlans = () => {
-    fetch(`${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/api/plans`, { credentials: "include" })
+    fetch(`${import.meta.env.VITE_ENDPOINT}/api/plans`, { credentials: "include" })
       .then((res) => res.json())
       .then((data) => setPlans(Array.isArray(data) ? data : []));
   };
@@ -66,7 +66,7 @@ const Admin = () => {
         .filter((f) => f !== ""),
     };
 
-    const res = await fetch(`${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/api/admin/plans`, {
+    const res = await fetch(`${import.meta.env.VITE_ENDPOINT}/api/admin/plans`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include", // 👈 Vital for session-based isAdmin check
@@ -84,7 +84,7 @@ const Admin = () => {
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("Delete this plan?")) return;
-    const res = await fetch(`${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/api/admin/plans/${id}`, {
+    const res = await fetch(`${import.meta.env.VITE_ENDPOINT}/api/admin/plans/${id}`, {
       method: "DELETE",
       credentials: "include",
     });

@@ -8,7 +8,7 @@ import { common, createLowlight } from "lowlight";
 import { Search, ChevronRight, X } from "lucide-react";
 
 const lowlight = createLowlight(common);
-const API = `${import.meta.env.VITE_ENDPOINT || "http://localhost:8080"}/api/docs`;
+const API = `${import.meta.env.VITE_ENDPOINT}/api/docs`;
 
 interface DocMeta {
   _id: string;
