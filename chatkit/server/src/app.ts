@@ -14,7 +14,7 @@ import projectRoutes from "./routes/ProjectsRoute.js";
 import authRoutes from "./routes/auth.js";
 import pricingRoutes from "./routes/PricingRoute.js";
 import docRoutes from "./routes/Docroute.js";
-import { initHermes } from "../hermes-engine/src/index.js"; // 👈 Hermes
+import { initHermes } from "./hermes-engine/src/index.js"; // 👈 Hermes
 
 export async function start() {
   const app: Application = express();

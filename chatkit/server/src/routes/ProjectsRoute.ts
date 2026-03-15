@@ -2,9 +2,9 @@ import express from "express";
 import type { Request, Response } from "express";
 import { Project } from "../models/Projects.js";
 import { Plan } from "../models/Plans.js";
-import { HermesUser } from "../../hermes-engine/src/models/HermesUser.js"; // 🚨 Ensure this path matches your folder structure
-import { Room } from "../../hermes-engine/src/models/Room.js"; // 🚨 Ensure this path matches your folder structure
-import { Message } from "../../hermes-engine/src/models/Message.js"; // 🚨 Ensure this path matches your folder structure
+import { HermesUser } from "./../hermes-engine/src/models/HermesUser.js"; // 🚨 Ensure this path matches your folder structure
+import { Room } from "./../hermes-engine/src/models/Room.js"; // 🚨 Ensure this path matches your folder structure
+import { Message } from "./../hermes-engine/src/models/Message.js"; // 🚨 Ensure this path matches your folder structure
 import crypto from "crypto";
 import { isAuthenticated } from "../middleware/auth.js";
 
@@ -64,12 +64,13 @@ router.get("/projects/:id", async (req: Request, res: Response) => {
     const projectId = project._id;
 
     // 3. 🚀 FETCH LIVE STATS for Overview Tab
-    const [totalUsersCount, activeUsersCount, totalRoomsCount, rooms] = await Promise.all([
-      HermesUser.countDocuments({ projectId }),
-      HermesUser.countDocuments({ projectId, isOnline: true }),
-      Room.countDocuments({ projectId, isDeleted: false }),
-      Room.find({ projectId }, { _id: 1 })
-    ]);
+    const [totalUsersCount, activeUsersCount, totalRoomsCount, rooms] =
+      await Promise.all([
+        HermesUser.countDocuments({ projectId }),
+        HermesUser.countDocuments({ projectId, isOnline: true }),
+        Room.countDocuments({ projectId, isDeleted: false }),
+        Room.find({ projectId }, { _id: 1 }),
+      ]);
 
     const roomIds = rooms.map((r) => r._id);
     const totalMessagesCount = await Message.countDocuments({
