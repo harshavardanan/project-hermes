@@ -13,7 +13,7 @@ import { TypingIndicator } from "./sdk/react/components/TypingIndicator";
 import { OnlineBadge } from "./sdk/react/components/OnlineBadge";
 import type { Room, HermesUser, Message } from "./sdk/types/index";
 
-const ENDPOINT = "http://localhost:8080";
+const ENDPOINT = import.meta.env.VITE_ENDPOINT;
 const API_KEY = "EA279B99DAC56FA1EDC180B121BD816AE303E1E8";
 const SECRET = "PGjvKe3yj2PB9bX5TkdVBtShDG1shQ";
 

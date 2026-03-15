@@ -29,7 +29,7 @@ const ProjectSchema = new Schema<IProject>({
   apiKey: { type: String, required: true, unique: true },
   secret: { type: String, required: true },
   region: { type: String, default: "us-east-1" },
-  endpoint: { type: String, default: "http://localhost:8080" },
+  endpoint: { type: String, default: "" },
   plan: {
     type: Schema.Types.ObjectId,
     ref: "Plan",
