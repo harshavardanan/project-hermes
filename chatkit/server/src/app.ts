@@ -22,19 +22,17 @@ export async function start() {
 
   await connectDB(mongoUri);
 
-  const allowedOrigins = [
-    process.env.FRONTEND_URL,
-  ].filter(Boolean) as string[];
-
   app.use(
     cors({
-      origin: (origin, callback) => callback(null, origin ?? '*'),
+      origin: (origin, callback) => callback(null, origin ?? "*"),
       credentials: true,
     }),
   );
 
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+  app.set("trust proxy", 1); // 👈 must be before session
 
   app.use(
     session({
@@ -44,13 +42,13 @@ export async function start() {
       store: MongoStore.create({ mongoUrl: mongoUri }),
       cookie: {
         secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        sameSite: "none", // 👈 required for cross-domain (Netlify → Railway)
         httpOnly: true,
         maxAge: 1000 * 60 * 60 * 24,
       },
     }),
   );
-  app.set("trust proxy", 1);
+
   app.use(passport.initialize());
   app.use(passport.session());
 
