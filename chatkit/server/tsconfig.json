@@ -18,5 +18,5 @@
     "moduleDetection": "force",
     "skipLibCheck": true
   },
-  "include": ["src/**/*", "hermes-engine/src/**/*"]
+  "include": ["src/**/*"]
 }
