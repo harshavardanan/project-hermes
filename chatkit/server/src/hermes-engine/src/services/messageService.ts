@@ -2,7 +2,7 @@ import { Types } from "mongoose";
 import { Message, type IMessage, type MessageType } from "../models/Message.js";
 import { Room } from "../models/Room.js";
 import { Member } from "../models/Member.js";
-import { Project } from "../../../../src/models/Projects.js";
+import { Project } from "../../../models/Projects.js";
 import { encrypt, decrypt } from "../utils/encryption.js";
 import { logger } from "../utils/logger.js";
 
