@@ -4,7 +4,6 @@
   },
   "deploy": {
     "startCommand": "node dist/index.js",
-    "restartPolicyType": "ON_FAILURE",
-    "healthcheckPath": "/hermes/health"
+    "restartPolicyType": "ON_FAILURE"
   }
 }
