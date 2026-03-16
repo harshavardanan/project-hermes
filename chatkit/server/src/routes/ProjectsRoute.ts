@@ -128,7 +128,7 @@ router.post("/projects", async (req: Request, res: Response) => {
       projectId: `${projectName.toLowerCase().replace(/\s+/g, "-")}-${crypto.randomBytes(3).toString("hex")}`,
       apiKey: crypto.randomBytes(20).toString("hex").toUpperCase(),
       secret: crypto.randomBytes(22).toString("base64url").slice(0, 30),
-      endpoint: process.env.BACKEND_URL || "",
+      endpoint: process.env.BACKEND_URL,
       usage: {
         dailyTokens: 0,
         totalTokensAllTime: 0,
