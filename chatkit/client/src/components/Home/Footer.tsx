@@ -113,6 +113,16 @@ const Footer = () => {
             letterSpacing: "-0.04em",
           }}
         >
+          PROJECT
+        </p>
+        <p
+          className="text-center font-black uppercase leading-none tracking-tighter"
+          style={{
+            fontSize: "clamp(80px, 20vw, 260px)",
+            color: "rgba(255,255,255,0.035)",
+            letterSpacing: "-0.04em",
+          }}
+        >
           HERMES
         </p>
       </div>

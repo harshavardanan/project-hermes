@@ -19,8 +19,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     const handleAuthMessage = (event: MessageEvent) => {
       // Only trust your backend origin
       if (event.origin !== import.meta.env.VITE_ENDPOINT) return;
-
-      // Support both the Object format and the String format
       const isSuccess =
         event.data === "auth_success" ||
         (event.data && event.data.type === "AUTH_SUCCESS");
@@ -28,9 +26,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       if (isSuccess) {
         console.log("Hermes: Auth Signal Captured");
         onClose();
-
-        // Since your Navbar is also listening, it should refresh.
-        // But we will force a small delay then a redirect to be safe.
         setTimeout(() => {
           window.location.href = "/dashboard";
         }, 100);
@@ -58,7 +53,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      {/* Backdrop - Uses brand-bg variable for consistency */}
       <div
         className="absolute inset-0 bg-brand-bg/90 backdrop-blur-sm animate-in fade-in duration-300"
         onClick={onClose}

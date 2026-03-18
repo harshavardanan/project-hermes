@@ -16,17 +16,15 @@ router.get(
     const frontendUrl = process.env.FRONTEND_URL;
 
     res.send(`
-      <script>
-        if (window.opener) {
-          // Sending object to match your frontend listener
-          window.opener.postMessage({ type: 'AUTH_SUCCESS' }, "${frontendUrl}");
-          window.close();
-        } else {
-          // Fallback if popup was opened directly
-          window.location.href = "${frontendUrl}/dashboard";
-        }
-      </script>
-    `);
+  <script>
+    if (window.opener) {
+      window.opener.postMessage({ type: 'AUTH_SUCCESS' }, "${frontendUrl}");
+      window.close();
+    } else {
+      window.location.href = "${frontendUrl}";
+    }
+  </script>
+`);
   },
 );
 

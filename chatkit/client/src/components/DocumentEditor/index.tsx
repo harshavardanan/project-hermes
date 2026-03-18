@@ -3,7 +3,13 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import Image from "@tiptap/extension-image";
-import { common, createLowlight } from "lowlight";
+import { createLowlight } from "lowlight";
+import javascript from "highlight.js/lib/languages/javascript";
+import typescript from "highlight.js/lib/languages/typescript";
+import bash from "highlight.js/lib/languages/bash";
+import json from "highlight.js/lib/languages/json";
+import css from "highlight.js/lib/languages/css";
+import xml from "highlight.js/lib/languages/xml";
 import {
   Save,
   Bold,
@@ -33,7 +39,14 @@ import ToolbarButton from "./ToolbarButton";
 import Toast from "./Toast";
 import CopyButtonInjector from "./CopyButtonInjector";
 
-const lowlight = createLowlight(common);
+const lowlight = createLowlight();
+lowlight.register("javascript", javascript);
+lowlight.register("typescript", typescript);
+lowlight.register("bash", bash);
+lowlight.register("json", json);
+lowlight.register("css", css);
+lowlight.register("html", xml);
+
 const API = `${import.meta.env.VITE_ENDPOINT}/api/docs`;
 const UPLOAD = `${import.meta.env.VITE_ENDPOINT}/hermes/upload`;
 
@@ -108,6 +121,9 @@ const DocumentEditor = () => {
         class:
           "prose prose-invert max-w-none focus:outline-none min-h-[500px] py-10",
       },
+      transformPastedHTML(html) {
+        return html.slice(0, 500000);
+      },
       handlePaste(_view, event) {
         const items = Array.from(event.clipboardData?.items ?? []);
         const img = items.find((i) => i.type.startsWith("image/"));
@@ -164,7 +180,9 @@ const DocumentEditor = () => {
     if (!editor) return;
     setIsLoading(true);
     try {
-      const res = await fetch(`${API}/get/${docSlug}`, { credentials: "include" });
+      const res = await fetch(`${API}/get/${docSlug}`, {
+        credentials: "include",
+      });
       const json = await res.json();
       if (!json.success) throw new Error(json.message || "Failed to load");
       const doc = json.data;
@@ -418,18 +436,25 @@ const DocumentEditor = () => {
           style={{ borderColor: "rgba(255,255,255,0.05)" }}
         >
           <ToolbarButton
-            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+            onClick={() =>
+              editor.chain().focus().toggleHeading({ level: 1 }).run()
+            }
             icon={<Heading1 size={15} />}
             active={editor.isActive("heading", { level: 1 })}
             title="H1"
           />
           <ToolbarButton
-            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            onClick={() =>
+              editor.chain().focus().toggleHeading({ level: 2 }).run()
+            }
             icon={<Heading2 size={15} />}
             active={editor.isActive("heading", { level: 2 })}
             title="H2"
           />
-          <div className="w-px h-4 mx-1" style={{ backgroundColor: "rgba(255,255,255,0.1)" }} />
+          <div
+            className="w-px h-4 mx-1"
+            style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
+          />
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBold().run()}
             icon={<Bold size={15} />}
@@ -448,7 +473,10 @@ const DocumentEditor = () => {
             active={editor.isActive("strike")}
             title="Strike"
           />
-          <div className="w-px h-4 mx-1" style={{ backgroundColor: "rgba(255,255,255,0.1)" }} />
+          <div
+            className="w-px h-4 mx-1"
+            style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
+          />
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleBulletList().run()}
             icon={<List size={15} />}
@@ -467,7 +495,10 @@ const DocumentEditor = () => {
             active={editor.isActive("blockquote")}
             title="Blockquote"
           />
-          <div className="w-px h-4 mx-1" style={{ backgroundColor: "rgba(255,255,255,0.1)" }} />
+          <div
+            className="w-px h-4 mx-1"
+            style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
+          />
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleCode().run()}
             icon={<Code size={15} />}
@@ -476,7 +507,11 @@ const DocumentEditor = () => {
           />
           <ToolbarButton
             onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-            icon={<span className="text-[11px] font-mono font-bold leading-none">{"</>"}</span>}
+            icon={
+              <span className="text-[11px] font-mono font-bold leading-none">
+                {"</>"}
+              </span>
+            }
             active={editor.isActive("codeBlock")}
             title="Code Block"
           />
@@ -485,7 +520,10 @@ const DocumentEditor = () => {
             icon={<Minus size={15} />}
             title="Divider"
           />
-          <div className="w-px h-4 mx-1" style={{ backgroundColor: "rgba(255,255,255,0.1)" }} />
+          <div
+            className="w-px h-4 mx-1"
+            style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
+          />
 
           {/* Image from file */}
           <button

@@ -45,18 +45,11 @@ export default function Home({
     <div className="bg-brand-bg text-brand-text min-h-screen font-sans selection:bg-brand-primary/30 flex flex-col overflow-x-hidden">
       <main className="flex flex-col items-center">
         <Hero user={user} onSignInClick={onSignInClick} />
-
         <LiveStatsBar healthData={healthData} latency={latency} />
-
         <FeaturesSection />
-
-        {/* SDK install terminal demo */}
         <TerminalSection />
-
-        {/* Live demo chat */}
         <LiveDemoChat user={user} onSignInClick={onSignInClick} />
       </main>
-
       <Footer />
     </div>
   );

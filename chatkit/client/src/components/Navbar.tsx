@@ -198,13 +198,19 @@ const Navbar: React.FC<NavbarProps> = ({ onSignInClick, user }) => {
               <>
                 <div className="h-px bg-brand-border" />
                 <button
-                  onClick={() => { navigate("/doceditor"); setIsOpen(false); }}
+                  onClick={() => {
+                    navigate("/doceditor");
+                    setIsOpen(false);
+                  }}
                   className="flex items-center gap-2 w-full text-left font-bold text-lg uppercase tracking-tighter text-white"
                 >
                   <FilePen size={18} /> Doc Editor
                 </button>
                 <button
-                  onClick={() => { navigate("/admin"); setIsOpen(false); }}
+                  onClick={() => {
+                    navigate("/admin");
+                    setIsOpen(false);
+                  }}
                   className="flex items-center gap-2 w-full text-left font-bold text-lg uppercase tracking-tighter text-white"
                 >
                   <ShieldCheck size={18} /> Admin
@@ -223,7 +229,10 @@ const Navbar: React.FC<NavbarProps> = ({ onSignInClick, user }) => {
               </button>
             ) : (
               <button
-                onClick={() => { onSignInClick(); setIsOpen(false); }}
+                onClick={() => {
+                  onSignInClick();
+                  setIsOpen(false);
+                }}
                 className="w-full bg-white text-black py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-zinc-100 transition-all"
               >
                 Sign In
