@@ -301,7 +301,7 @@ export default function FeaturesSection() {
   return (
     <section className="w-full max-w-[1280px] px-6 md:px-10 py-24">
       <div className="text-center mb-16">
-        <div className="inline-block px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/50 text-[10px] font-bold uppercase tracking-widest mb-4">
+        <div className="inline-block px-3 py-1 rounded-full bg-#000 border border-white/10 text-white/50 text-[10px] font-bold uppercase tracking-widest mb-4">
           SDK Primitives
         </div>
         <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter max-w-[700px] mx-auto">

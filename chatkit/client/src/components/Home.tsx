@@ -4,7 +4,7 @@ import Hero from "./Home/Hero";
 import LiveStatsBar from "./Home/LiveStatsBar";
 import FeaturesSection from "./Home/FeaturesSection";
 import TerminalSection from "./Home/TerminalSection";
-import LiveDemoChat from "./Home/LiveDemoChat";
+import Stats from "./Home/Stats";
 import Footer from "./Home/Footer";
 import type { UserData } from "../types";
 
@@ -48,7 +48,7 @@ export default function Home({
         <LiveStatsBar healthData={healthData} latency={latency} />
         <FeaturesSection />
         <TerminalSection />
-        <LiveDemoChat user={user} onSignInClick={onSignInClick} />
+        <Stats />
       </main>
       <Footer />
     </div>

@@ -25,12 +25,6 @@ export default function Hero({
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-white/[0.02] blur-[140px] rounded-full -z-10" />
 
       <div className="max-w-5xl mx-auto text-center">
-        {/* Eyebrow */}
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 text-[11px] font-semibold uppercase tracking-widest text-white/50 mb-8">
-          <span className="w-1.5 h-1.5 rounded-full bg-white/50 inline-block" />
-          Real-time chat infrastructure
-        </div>
-
         {/* Headline */}
         <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter mb-6 leading-[1.05]">
           Build messenger apps,
@@ -41,7 +35,8 @@ export default function Hero({
             <span
               className="absolute inset-x-0 -bottom-1 h-[3px] rounded-full bg-gradient-to-r from-transparent via-white/50 to-transparent"
               style={{
-                maskImage: "linear-gradient(90deg,transparent,white 30%,white 70%,transparent)",
+                maskImage:
+                  "linear-gradient(90deg,transparent,white 30%,white 70%,transparent)",
               }}
             />
           </span>
