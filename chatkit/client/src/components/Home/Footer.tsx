@@ -1,15 +1,12 @@
-// Removed React import
-import { useNavigate } from "react-router-dom";
-import { Share2, Rss, Zap } from "lucide-react";
+import { Share2, Rss, Zap, Terminal, Code2, ArrowRight } from "lucide-react";
 
 const Footer = () => {
-  const navigate = useNavigate();
-
   return (
-    <footer className="w-full bg-brand-bg border-t border-brand-border py-16">
-      <div className="max-w-[1280px] mx-auto px-6 md:px-10">
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-10">
-          <div className="col-span-2 flex flex-col gap-6">
+    <footer className="w-full bg-brand-bg border-t border-brand-border py-16 relative overflow-hidden">
+      <div className="max-w-[1280px] mx-auto px-6 md:px-10 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-12">
+          {/* Brand Column */}
+          <div className="col-span-1 md:col-span-2 lg:col-span-3 flex flex-col gap-6">
             <div className="flex items-center gap-3">
               <div className="size-8 flex items-center justify-center bg-brand-primary rounded-lg text-black">
                 <Zap size={20} fill="currentColor" />
@@ -32,84 +29,75 @@ const Footer = () => {
             </div>
           </div>
 
-          <div className="flex flex-col gap-4">
-            <h4 className="text-white font-bold uppercase text-xs tracking-widest mb-2">
-              Product
-            </h4>
-            <button
-              onClick={() => navigate("/pricing")}
-              className="text-brand-muted hover:text-brand-primary text-sm font-medium transition-colors text-left"
-            >
-              Pricing
-            </button>
-            <button
-              onClick={() => navigate("/documentation")}
-              className="text-brand-muted hover:text-brand-primary text-sm font-medium transition-colors text-left"
-            >
-              SDK Docs
-            </button>
-            <button
-              onClick={() => navigate("/dashboard")}
-              className="text-brand-muted hover:text-brand-primary text-sm font-medium transition-colors text-left"
-            >
-              Dashboard
-            </button>
-          </div>
+          {/* Ecosystem Column */}
+          <div className="col-span-1 md:col-span-2 lg:col-span-3 flex flex-col gap-6">
+            <h3 className="text-white text-sm font-bold tracking-widest uppercase">
+              Explore Ecosystem
+            </h3>
+            <div className="flex flex-col sm:flex-row gap-4">
+              {/* SDK Card 1 */}
+              <a
+                href="https://www.npmjs.com/package/consoleartist"
+                target="_blank"
+                rel="noreferrer"
+                className="group flex-1 flex flex-col justify-between p-5 rounded-xl border border-brand-border bg-white/[0.02] hover:bg-white/[0.04] hover:border-brand-primary/50 transition-all cursor-pointer"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="size-8 rounded-md bg-black/50 border border-brand-border flex items-center justify-center text-brand-muted group-hover:text-brand-primary transition-colors">
+                    <Terminal size={16} />
+                  </div>
+                  <ArrowRight
+                    size={16}
+                    className="text-brand-muted opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-brand-primary transition-all duration-300"
+                  />
+                </div>
+                <div>
+                  <h4 className="text-white font-medium text-sm mb-1">
+                    consoleartist
+                  </h4>
+                  <p className="text-brand-muted text-xs leading-relaxed">
+                    Advanced terminal styling and ASCII engine.
+                  </p>
+                </div>
+              </a>
 
-          <div className="flex flex-col gap-4">
-            <h4 className="text-white font-bold uppercase text-xs tracking-widest mb-2">
-              Resources
-            </h4>
-            <button className="text-brand-muted hover:text-brand-primary text-sm font-medium transition-colors text-left">
-              Blog
-            </button>
-            <button className="text-brand-muted hover:text-brand-primary text-sm font-medium transition-colors text-left">
-              Help Center
-            </button>
-            <button className="text-brand-muted hover:text-brand-primary text-sm font-medium transition-colors text-left">
-              Security
-            </button>
-          </div>
-
-          <div className="flex flex-col gap-4">
-            <h4 className="text-white font-bold uppercase text-xs tracking-widest mb-2">
-              Company
-            </h4>
-            <button className="text-brand-muted hover:text-brand-primary text-sm font-medium transition-colors text-left">
-              About
-            </button>
-            <button className="text-brand-muted hover:text-brand-primary text-sm font-medium transition-colors text-left">
-              Contact
-            </button>
-            <button className="text-brand-muted hover:text-brand-primary text-sm font-medium transition-colors text-left">
-              Terms
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-16 pt-8 border-t border-brand-border flex flex-col md:flex-row justify-between items-center gap-6">
-          <p className="text-brand-muted/50 text-xs font-mono">
-            © {new Date().getFullYear()} HERMES INFRASTRUCTURE INC. BUILT FOR
-            SPEED.
-          </p>
-          <div className="flex gap-8">
-            <button className="text-brand-muted/50 hover:text-white text-xs transition-colors">
-              Privacy Policy
-            </button>
-            <button className="text-brand-muted/50 hover:text-white text-xs transition-colors">
-              Terms of Service
-            </button>
+              {/* SDK Card 2 */}
+              <a
+                href="https://www.npmjs.com/package/asyncfunctionhandler"
+                target="_blank"
+                rel="noreferrer"
+                className="group flex-1 flex flex-col justify-between p-5 rounded-xl border border-brand-border bg-white/[0.02] hover:bg-white/[0.04] hover:border-brand-primary/50 transition-all cursor-pointer"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="size-8 rounded-md bg-black/50 border border-brand-border flex items-center justify-center text-brand-muted group-hover:text-brand-primary transition-colors">
+                    <Code2 size={16} />
+                  </div>
+                  <ArrowRight
+                    size={16}
+                    className="text-brand-muted opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 group-hover:text-brand-primary transition-all duration-300"
+                  />
+                </div>
+                <div>
+                  <h4 className="text-white font-medium text-sm mb-1">
+                    asyncfunctionhandler
+                  </h4>
+                  <p className="text-brand-muted text-xs leading-relaxed">
+                    Elegant promise wrapper and error handling utility.
+                  </p>
+                </div>
+              </a>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Giant watermark wordmark */}
-      <div className="w-full overflow-hidden select-none pointer-events-none mt-6">
+      <div className="w-full overflow-hidden select-none pointer-events-none mt-10">
         <p
           className="text-center font-black uppercase leading-none tracking-tighter"
           style={{
             fontSize: "clamp(80px, 20vw, 260px)",
-            color: "rgba(255,255,255,0.035)",
+            color: "rgba(255,255,255,0.025)",
             letterSpacing: "-0.04em",
           }}
         >
@@ -119,7 +107,7 @@ const Footer = () => {
           className="text-center font-black uppercase leading-none tracking-tighter"
           style={{
             fontSize: "clamp(80px, 20vw, 260px)",
-            color: "rgba(255,255,255,0.035)",
+            color: "rgba(255,255,255,0.025)",
             letterSpacing: "-0.04em",
           }}
         >

@@ -1,32 +1,35 @@
-import React from "react";
-import { ChevronRight } from "lucide-react";
-
-interface Props {
+interface SidebarItemProps {
   icon: React.ReactNode;
   label: string;
-  active?: boolean;
+  active: boolean;
   onClick: () => void;
+  isCollapsed?: boolean;
 }
 
-export default function SidebarItem({ icon, label, active, onClick }: Props) {
+export default function SidebarItem({
+  icon,
+  label,
+  active,
+  onClick,
+  isCollapsed,
+}: SidebarItemProps) {
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-all border-l-2
-      ${
+      title={isCollapsed ? label : ""} // Shows a tooltip on hover when collapsed
+      className={`flex items-center p-2.5 rounded-lg transition-all overflow-hidden ${
+        isCollapsed ? "justify-center" : "gap-3 px-3"
+      } ${
         active
-          ? "border-brand-primary bg-brand-primary/10 text-brand-primary font-bold"
-          : "border-transparent text-gray-400 hover:bg-white/5 hover:text-white font-medium"
+          ? "bg-brand-primary/10 text-brand-primary font-semibold"
+          : "text-brand-muted hover:bg-brand-accent hover:text-brand-text"
       }`}
     >
-      <span className={`shrink-0 ${active ? "opacity-100" : "opacity-70"}`}>
-        {icon}
-      </span>
+      <div className="shrink-0">{icon}</div>
 
-      <span className="flex-1 text-left">{label}</span>
-
-      {/* Changed text-green-400 to text-brand-primary */}
-      {active && <ChevronRight size={16} className="text-brand-primary" />}
+      {!isCollapsed && (
+        <span className="text-sm tracking-wide whitespace-nowrap">{label}</span>
+      )}
     </button>
   );
 }

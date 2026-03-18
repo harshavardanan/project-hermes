@@ -1,9 +1,9 @@
-// Removed React import
+import { useState } from "react";
 import {
   LayoutDashboard,
   Activity,
-  Settings,
-  HelpCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import SidebarItem from "./SidebarItem";
 
@@ -13,6 +13,8 @@ interface Props {
 }
 
 export default function AppSidebar({ activeTab, setActiveTab }: Props) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
   const tabs = [
     { id: "Projects", label: "Projects", icon: <LayoutDashboard size={18} /> },
     {
@@ -20,12 +22,40 @@ export default function AppSidebar({ activeTab, setActiveTab }: Props) {
       label: "System Status",
       icon: <Activity size={18} />,
     },
-    { id: "Settings", label: "Settings", icon: <Settings size={18} /> },
   ];
 
   return (
-    <aside className="w-64 h-screen flex flex-col bg-black border-r border-white/10 p-4">
-      {/* Logo */}
+    <aside
+      className={`sticky top-16 h-[calc(100vh-4rem)] flex flex-col border-r p-4 transition-all duration-300 ease-in-out z-40 shrink-0 ${
+        isCollapsed ? "w-20" : "w-64"
+      }`}
+      style={{
+        backgroundColor: "var(--brand-card)",
+        borderColor: "rgba(255,255,255,0.05)",
+      }}
+    >
+      {/* Header & Toggle Button */}
+      <div
+        className={`flex items-center mb-8 mt-4 ${
+          isCollapsed ? "justify-center" : "justify-between"
+        }`}
+      >
+        {!isCollapsed && (
+          <div
+            className="flex items-center gap-2 font-bold tracking-widest text-[11px] uppercase truncate px-2"
+            style={{ color: "var(--brand-muted)" }}
+          >
+            Dashboard
+          </div>
+        )}
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="p-1.5 rounded-md hover:bg-white/[0.05] transition-colors"
+          style={{ color: "var(--brand-muted)" }}
+        >
+          {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+        </button>
+      </div>
 
       {/* Navigation */}
       <nav className="flex flex-col gap-1 flex-1">
@@ -36,24 +66,10 @@ export default function AppSidebar({ activeTab, setActiveTab }: Props) {
             label={tab.label}
             active={activeTab === tab.id}
             onClick={() => setActiveTab(tab.id)}
+            isCollapsed={isCollapsed}
           />
         ))}
-
-        <div className="h-px bg-border my-2" />
-
-        <SidebarItem
-          icon={<HelpCircle size={18} />}
-          label="Support"
-          active={activeTab === "Support"}
-          onClick={() => setActiveTab("Support")}
-        />
       </nav>
-
-      {/* Status */}
-      <div className="mt-auto p-3 bg-muted border border-border rounded-lg text-xs">
-        <div className="font-medium">All Systems Operational</div>
-        <div className="text-muted-foreground">Engine v2.4 Live</div>
-      </div>
     </aside>
   );
 }

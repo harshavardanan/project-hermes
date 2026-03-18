@@ -4,7 +4,7 @@ import {
   Routes,
   Route,
   Navigate,
-  useLocation,
+  // useLocation,
 } from "react-router-dom";
 
 import Dashboard from "./components/Dashboard/Dashboard";
@@ -18,28 +18,24 @@ import AdminPanel from "./components/AdminPanel";
 import DocEditor from "./components/DocumentEditor";
 import type { UserData } from "./types";
 
-const FULL_HEIGHT_ROUTES = ["/documentation", "/doceditor", "/admin"];
+// const FULL_HEIGHT_ROUTES = ["/documentation", "/doceditor", "/admin"];
 
 const AppContent: React.FC<{
   user: UserData | null;
   isAuthOpen: boolean;
   setIsAuthOpen: (v: boolean) => void;
 }> = ({ user, isAuthOpen, setIsAuthOpen }) => {
-  const location = useLocation();
+  // const location = useLocation();
 
-  const isFullHeight = FULL_HEIGHT_ROUTES.some((r) =>
-    location.pathname.startsWith(r),
-  );
+  // const isFullHeight = FULL_HEIGHT_ROUTES.some((r) =>
+  //   location.pathname.startsWith(r),
+  // );
 
   return (
     <div className="bg-black text-white min-h-screen">
       <Navbar onSignInClick={() => setIsAuthOpen(true)} user={user} />
 
-      <main
-        className={`min-h-screen bg-black text-white ${
-          isFullHeight ? "" : "pt-16"
-        }`}
-      >
+      <main className={`min-h-screen bg-black text-white `}>
         <Routes>
           <Route
             path="/"
@@ -92,7 +88,9 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchUser = () => {
-    fetch(`${import.meta.env.VITE_ENDPOINT}/auth/me`, { credentials: "include" })
+    fetch(`${import.meta.env.VITE_ENDPOINT}/auth/me`, {
+      credentials: "include",
+    })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data?.token) sessionStorage.setItem("hermes_token", data.token);

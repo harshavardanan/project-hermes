@@ -13,7 +13,7 @@ export default function Dashboard() {
     <div className="flex min-h-screen bg-black text-white">
       <AppSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      <main className="flex-1 px-8 py-6">
+      <main className="flex-1 px-8 pt-24 pb-6">
         {activeTab === "Projects" && (
           <Projects key={refreshKey} onOpenForm={() => setShowModal(true)} />
         )}

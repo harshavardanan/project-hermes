@@ -11,14 +11,14 @@
 
 :root {
   /* CLEAN NEUTRAL DARK THEME */
-  --brand-primary: #ffffff;           /* white — used for accents, active states */
-  --brand-primary-fg: #09090b;        /* black foreground on white */
-  --brand-bg: #09090b;                /* near-black page background */
-  --brand-card: #111113;              /* card / surface */
-  --brand-border: #27272a;            /* zinc-800 borders */
-  --brand-text: #fafafa;              /* primary text */
-  --brand-muted: #71717a;             /* zinc-500 muted text */
-  --brand-accent: #18181b;            /* hover / subtle highlights */
+  --brand-primary: #ffffff; /* white — used for accents, active states */
+  --brand-primary-fg: #09090b; /* black foreground on white */
+  --brand-bg: #0a0a0a; /* near-black page background */
+  --brand-card: #030303; /* card / surface */
+  --brand-border: #27272a; /* zinc-800 borders */
+  --brand-text: #fafafa; /* primary text */
+  --brand-muted: #71717a; /* zinc-500 muted text */
+  --brand-accent: #18181b; /* hover / subtle highlights */
 }
 
 body {

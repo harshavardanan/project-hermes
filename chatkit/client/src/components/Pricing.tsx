@@ -47,12 +47,8 @@ const Pricing = () => {
       <div className="max-w-6xl mx-auto">
         {/* Header & Toggle */}
         <div className="text-center mb-16">
-          <div className="inline-block px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-widest mb-4">
-            Network Protocol 2.0
-          </div>
           <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter mb-4">
-            Choose Your{" "}
-            <span className="text-white">Power</span>
+            Choose Your <span className="text-white">Power</span>
           </h1>
           <p className="text-[var(--brand-muted)] max-w-md mx-auto mb-10 font-medium">
             Scale your application with the Hermes SDK. High-performance
@@ -128,10 +124,7 @@ const Pricing = () => {
                       key={idx}
                       className="flex items-center gap-3 text-sm font-medium text-[var(--brand-muted)]"
                     >
-                      <Check
-                        size={18}
-                        className="text-white"
-                      />
+                      <Check size={18} className="text-white" />
                       {feature}
                     </li>
                   ))}
@@ -154,8 +147,7 @@ const Pricing = () => {
         {/* FAQ Section */}
         <div className="max-w-3xl mx-auto">
           <h2 className="text-3xl font-black text-white text-center mb-10 uppercase tracking-tighter">
-            Frequent{" "}
-            <span className="text-white">Queries</span>
+            Frequent <span className="text-white">Queries</span>
           </h2>
           <div className="space-y-4">
             <FaqItem

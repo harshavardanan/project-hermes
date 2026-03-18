@@ -17,9 +17,11 @@ interface HealthData {
   status: string;
   uptime: number;
   memory: { used: number; total: number };
-  cpu: number;
+  cpu: number | { usage: number; loadAverage?: number[]; cores?: number };
   version?: string;
 }
+const getCpu = (h: HealthData): number =>
+  typeof h.cpu === "number" ? h.cpu : (h.cpu?.usage ?? 0);
 interface MetricsData {
   activeConnections: number;
   totalMessages: number;
@@ -40,12 +42,12 @@ interface LogEntry {
   msg: string;
 }
 
-const LOG_COLORS: Record<string, string> = {
-  INIT: "#38bdf8",
-  INFO: "#e5e5e5",
-  WARN: "#fbbf24",
-  "ERR!": "#ef4444",
-};
+// const LOG_COLORS: Record<string, string> = {
+//   INIT: "#38bdf8",
+//   INFO: "#e5e5e5",
+//   WARN: "#fbbf24",
+//   "ERR!": "#ef4444",
+// };
 
 const Sparkline = ({
   data,
@@ -191,33 +193,42 @@ export function Stats() {
       ]);
       if (hRes.status === 429 || mRes.status === 429) throw new Error("429");
       if (!hRes.ok || !mRes.ok) throw new Error("HTTP_ERROR");
+
       const h: HealthData = await hRes.json();
       const m: MetricsData = await mRes.json();
+
       setHealth(h);
       setMetrics(m);
+
+      // Extract the exact CPU number once to use in calculations and logs safely
+      const currentCpu = getCpu(h);
+
       const sample: Sample = {
         t: Date.now(),
-        latency: Math.round(
-          10 + ((h?.cpu || 0) / 100) * 80 + Math.random() * 5,
-        ),
+        // FIX: Use currentCpu instead of h?.cpu
+        latency: Math.round(10 + (currentCpu / 100) * 80 + Math.random() * 5),
         load: Math.min(
           100,
           ((m?.activeConnections || 0) / 100) * 60 + Math.random() * 10,
         ),
         mps: m?.messagesPerSecond || 0,
-        cpu: h?.cpu || 0,
+        cpu: currentCpu,
         memory: h?.memory?.used || 0,
       };
+
       setSamples((prev) => {
         const next = [...prev.slice(-(MAX_SAMPLES - 1)), sample];
         sessionStorage.setItem("hermes_samples", JSON.stringify(next));
         return next;
       });
+
       const msgs = [
         `Heartbeat OK — uptime ${Math.floor((h?.uptime || 0) / 60)}m`,
         `Active connections: ${m?.activeConnections || 0}`,
-        `CPU ${h?.cpu || 0}% | RAM ${h?.memory?.used || 0}/${h?.memory?.total || 0}MB`,
+        // FIX: Use currentCpu instead of h?.cpu to prevent "[object Object]%" in logs
+        `CPU ${currentCpu.toFixed(2)}% | RAM ${h?.memory?.used || 0}/${h?.memory?.total || 0}MB`,
       ];
+
       addLog("INFO", msgs[tick % msgs.length]);
       setTick((t) => t + 1);
     } catch (err: unknown) {
@@ -237,7 +248,7 @@ export function Stats() {
 
   const latency = samples.length ? samples[samples.length - 1].latency : 0;
   const mps = metrics?.messagesPerSecond ?? 0;
-  const cpu = health?.cpu ?? 0;
+  const cpu = health ? getCpu(health) : 0;
   const mem = health?.memory?.used ?? 0;
 
   const card: React.CSSProperties = {

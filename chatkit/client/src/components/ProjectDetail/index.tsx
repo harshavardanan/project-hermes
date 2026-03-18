@@ -28,7 +28,6 @@ import SectionHeader from "./SectionHeader";
 import SettingsCard from "./SettingsCard";
 import ChartCard from "./ChartCard";
 
-
 const BASE = import.meta.env.VITE_ENDPOINT;
 
 const ProjectDetail = () => {
@@ -108,10 +107,14 @@ const ProjectDetail = () => {
   const usagePct = dailyLimit > 0 ? (usedTokens / dailyLimit) * 100 : 0;
   const planName = project.plan?.name ?? "Free";
   const planPrice = project.plan?.monthlyPrice ?? 0;
-  const totalUsers = project.stats?.totalUsers ?? project.usage?.totalUsers ?? 0;
-  const activeUsers = project.stats?.activeUsers ?? project.usage?.activeUsers ?? 0;
-  const totalMessages = project.stats?.totalMessages ?? project.usage?.totalMessages ?? 0;
-  const totalRooms = project.stats?.totalRooms ?? project.usage?.totalRooms ?? 0;
+  const totalUsers =
+    project.stats?.totalUsers ?? project.usage?.totalUsers ?? 0;
+  const activeUsers =
+    project.stats?.activeUsers ?? project.usage?.activeUsers ?? 0;
+  const totalMessages =
+    project.stats?.totalMessages ?? project.usage?.totalMessages ?? 0;
+  const totalRooms =
+    project.stats?.totalRooms ?? project.usage?.totalRooms ?? 0;
   const avgLatency = project.stats?.avgLatency ?? 0;
   const uptime = project.stats?.uptime ?? 99.9;
   const createdAt = project.createdAt
@@ -190,13 +193,15 @@ const ProjectDetail = () => {
       </aside>
 
       {/* ── Main ── */}
-      <main className="flex-1 ml-64 p-8 lg:p-12 overflow-y-auto">
+      <main className="flex-1 ml-64 p-8 pt-24 lg:p-12 lg:pt-28 overflow-y-auto">
         <div className="max-w-5xl mx-auto animate-in fade-in duration-500">
-
           {/* OVERVIEW */}
           {tab === "overview" && (
             <div className="space-y-6">
-              <SectionHeader title="Overview" sub={`Project created on ${createdAt}`} />
+              <SectionHeader
+                title="Overview"
+                sub={`Project created on ${createdAt}`}
+              />
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard
                   icon={<Users size={18} />}
@@ -393,18 +398,39 @@ const ProjectDetail = () => {
               />
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 {[
-                  { label: "Total Users", value: totalUsers, icon: <Users size={16} />, color: "#ffffff" },
-                  { label: "Active Now", value: activeUsers, icon: <Radio size={16} />, color: "#3b82f6" },
-                  { label: "Rooms Open", value: totalRooms, icon: <MessageSquare size={16} />, color: "#a855f7" },
+                  {
+                    label: "Total Users",
+                    value: totalUsers,
+                    icon: <Users size={16} />,
+                    color: "#ffffff",
+                  },
+                  {
+                    label: "Active Now",
+                    value: activeUsers,
+                    icon: <Radio size={16} />,
+                    color: "#3b82f6",
+                  },
+                  {
+                    label: "Rooms Open",
+                    value: totalRooms,
+                    icon: <MessageSquare size={16} />,
+                    color: "#a855f7",
+                  },
                 ].map(({ label, value, icon, color }) => (
-                  <div key={label} className="bg-[#111] border border-white/10 rounded-xl p-5">
+                  <div
+                    key={label}
+                    className="bg-[#111] border border-white/10 rounded-xl p-5"
+                  >
                     <div className="flex justify-between items-center mb-2">
                       <span className="font-sans text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                         {label}
                       </span>
                       <span className="text-slate-600">{icon}</span>
                     </div>
-                    <span className="font-mono text-3xl font-black" style={{ color }}>
+                    <span
+                      className="font-mono text-3xl font-black"
+                      style={{ color }}
+                    >
                       {value.toLocaleString()}
                     </span>
                   </div>
@@ -413,8 +439,14 @@ const ProjectDetail = () => {
 
               {(() => {
                 const allUsers = project.users ?? [];
-                const totalPages = Math.max(1, Math.ceil(allUsers.length / PAGE_SIZE));
-                const pageUsers = allUsers.slice(usersPage * PAGE_SIZE, (usersPage + 1) * PAGE_SIZE);
+                const totalPages = Math.max(
+                  1,
+                  Math.ceil(allUsers.length / PAGE_SIZE),
+                );
+                const pageUsers = allUsers.slice(
+                  usersPage * PAGE_SIZE,
+                  (usersPage + 1) * PAGE_SIZE,
+                );
                 return (
                   <div className="bg-[#111] border border-white/10 rounded-xl overflow-hidden">
                     <div className="grid grid-cols-4 p-4 bg-black/40 border-b border-white/10 font-sans text-[10px] font-bold text-slate-500 uppercase tracking-widest">
@@ -426,26 +458,38 @@ const ProjectDetail = () => {
 
                     {allUsers.length === 0 ? (
                       <div className="p-12 text-center font-sans text-sm font-medium text-slate-500">
-                        No users yet. Users will appear here once they connect via the SDK.
+                        No users yet. Users will appear here once they connect
+                        via the SDK.
                       </div>
                     ) : (
                       <div className="divide-y divide-white/5">
                         {pageUsers.map((u, i) => (
-                          <div key={i} className="grid grid-cols-4 p-4 items-center hover:bg-white/5 transition-colors">
+                          <div
+                            key={i}
+                            className="grid grid-cols-4 p-4 items-center hover:bg-white/5 transition-colors"
+                          >
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 rounded-lg bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center font-sans text-xs font-bold text-brand-primary">
                                 {u.displayName?.[0]?.toUpperCase() ?? "?"}
                               </div>
-                              <span className="font-sans text-sm font-bold text-white">{u.displayName}</span>
+                              <span className="font-sans text-sm font-bold text-white">
+                                {u.displayName}
+                              </span>
                             </div>
                             <div className="flex items-center gap-2">
-                              <div className={`w-2 h-2 rounded-full ${u.isOnline ? "bg-brand-primary" : "bg-slate-600"}`} />
-                              <span className={`font-sans text-xs font-semibold ${u.isOnline ? "text-brand-primary" : "text-slate-500"}`}>
+                              <div
+                                className={`w-2 h-2 rounded-full ${u.isOnline ? "bg-brand-primary" : "bg-slate-600"}`}
+                              />
+                              <span
+                                className={`font-sans text-xs font-semibold ${u.isOnline ? "text-brand-primary" : "text-slate-500"}`}
+                              >
                                 {u.isOnline ? "Online" : "Offline"}
                               </span>
                             </div>
                             <span className="font-sans text-xs font-medium text-slate-400">
-                              {u.lastSeen ? new Date(u.lastSeen).toLocaleString() : "—"}
+                              {u.lastSeen
+                                ? new Date(u.lastSeen).toLocaleString()
+                                : "—"}
                             </span>
                             <span className="font-mono text-xs font-bold text-slate-300">
                               {u.messageCount ?? "—"}
@@ -498,7 +542,10 @@ const ProjectDetail = () => {
           {/* SETTINGS */}
           {tab === "settings" && (
             <div className="space-y-6">
-              <SectionHeader title="Settings" sub="Manage your project configuration" />
+              <SectionHeader
+                title="Settings"
+                sub="Manage your project configuration"
+              />
               <SettingsCard title="Subscription Plan" icon={<Zap size={18} />}>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
@@ -521,7 +568,8 @@ const ProjectDetail = () => {
               </SettingsCard>
               <SettingsCard title="Security" icon={<Shield size={18} />}>
                 <p className="font-sans text-sm font-medium text-slate-400 mb-5 leading-relaxed max-w-2xl">
-                  Rotate your API secret if it has been compromised or exposed. All existing connections will be invalidated immediately.
+                  Rotate your API secret if it has been compromised or exposed.
+                  All existing connections will be invalidated immediately.
                 </p>
                 <button className="bg-transparent border border-white/20 text-white hover:bg-white/5 px-6 py-2.5 rounded-lg font-sans text-sm font-bold transition-colors">
                   ROTATE API SECRET
@@ -535,7 +583,8 @@ const ProjectDetail = () => {
                   </span>
                 </div>
                 <p className="font-sans text-sm font-medium text-red-500/70 mb-6 leading-relaxed max-w-2xl">
-                  Permanently deletes this project, invalidates all keys, and removes all associated data. This action cannot be undone.
+                  Permanently deletes this project, invalidates all keys, and
+                  removes all associated data. This action cannot be undone.
                 </p>
                 <button
                   onClick={() => setDeleteModal(true)}

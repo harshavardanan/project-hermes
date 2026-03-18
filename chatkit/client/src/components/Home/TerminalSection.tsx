@@ -1,19 +1,16 @@
-import { Terminal, type TerminalLine } from "../ui/Terminal";
+import { Terminal, type TerminalStep } from "../ui/Terminal"; // <-- Updated import
 
-const SCRIPT: TerminalLine[] = [
-  { type: "command", text: "npm install hermes-sdk" },
-  { type: "output",  text: "added 1 package in 1s" },
-  { type: "output",  text: "npm notice hermes-sdk@2.4.1 installed" },
-  { type: "blank",   text: "" },
-  { type: "command", text: "npx hermes-sdk init" },
-  { type: "output",  text: "✔ Config verified" },
-  { type: "output",  text: "✔ Connected to Hermes Engine" },
-  { type: "output",  text: "✔ SDK ready — happy building!" },
-  { type: "blank",   text: "" },
-  { type: "command", text: "npx hermes-sdk init --project my-app" },
-  { type: "output",  text: "✔ Project 'my-app' initialised" },
-  { type: "output",  text: "✔ API key written to .env.local" },
-  { type: "output",  text: "✔ All set. Check docs.hermesapp.dev 🚀" },
+const SCRIPT: TerminalStep[] = [
+  // <-- Updated Type
+  { type: "command", text: "npm install hermes-chat-react" },
+  { type: "output", text: "added 1 package in 1s" },
+  { type: "output", text: "npm notice hermes-chat@2.4.1 installed" },
+  { type: "blank", text: "" },
+  { type: "command", text: "npx hermes-config init" },
+  { type: "output", text: "✔  Added Config" },
+  { type: "output", text: "✔ Connected to Hermes Engine" },
+  { type: "output", text: "✔ SDK ready — happy building!" },
+  { type: "blank", text: "" },
 ];
 
 export default function TerminalSection() {
@@ -26,8 +23,7 @@ export default function TerminalSection() {
             Quick Start
           </div>
           <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter leading-[1.1] mb-5">
-            Up and running{" "}
-            <span className="text-white/60">in minutes.</span>
+            Up and running <span className="text-white/60">in minutes.</span>
           </h2>
           <p className="text-brand-muted text-lg leading-relaxed mb-8 max-w-md">
             Install the SDK, initialise your project, and you're live. Real-time
@@ -40,7 +36,10 @@ export default function TerminalSection() {
               "React hooks for every feature",
               "Edge-deployed in 30+ regions",
             ].map((f) => (
-              <div key={f} className="flex items-center gap-3 text-sm text-white/70 font-medium">
+              <div
+                key={f}
+                className="flex items-center gap-3 text-sm text-white/70 font-medium"
+              >
                 <span className="w-1.5 h-1.5 rounded-full bg-white/40 shrink-0" />
                 {f}
               </div>
@@ -51,11 +50,11 @@ export default function TerminalSection() {
         {/* Right — animated terminal */}
         <Terminal
           script={SCRIPT}
-          prompt="$ "
+          prompt="~/hermes $ "
           typingSpeed={60}
           pauseAfterCommand={400}
           delayBetweenCommands={800}
-          loop={true}
+          loop={false}
           loopDelay={3000}
         />
       </div>
