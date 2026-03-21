@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      h1 {
+        color: black;
+        text-align: center;
+        font-size: 30px;
+        text-shadow: 1px 1px 2px black;
+        font-weight: 400;
+        font-family:"Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif;
+          
+      }
+
+      body {
+        text-align: center;
+        background-color: white;
+        border-color: black;
+        border-radius: 10px;
+        border-width: 5px;
+        border-style: solid;
+        padding: 10px;
+        margin-left: auto;
+        margin-right: auto;
+        max-width: 500px;
+      }
+
+      .box {
+        font-size: 15px;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        font-weight: 500;
+        box-sizing: content-box;
+      }
+
+      .button {
+        padding: 10px;
+        border-color: black;
+        border-radius: 10px;
+        border-width: 5px;
+        border-style: solid;
+        cursor: pointer;
+        font-size: 15px;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        font-weight: 400;
+      }
+    </style>
+    <title>Form</title>
+  </head>
+  <body>
+    <h1>Application Form</h1>
+    <form>
+      <div class="box">
+        <br />
+        <label for="uname">Username</label><br />
+        <input type="text" id="uname" />
+        <br /><br />
+        <label for="pword">Password</label><br />
+        <input type="password" id="pword" pattern="[A-Za-z0-9!@#$%^&*]{10,20}"  />
+        <br /><br />
+        <button class="button" type="submit">Login</button>
+        <br />
+      </div>
+    </form>
+  </body>
+</html>
