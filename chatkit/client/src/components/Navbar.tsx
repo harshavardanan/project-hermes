@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
   Menu,
   X,
-  Zap,
   LogOut,
   LayoutDashboard,
   FilePen,
@@ -11,6 +10,7 @@ import {
 } from "lucide-react";
 
 import type { UserData } from "../types";
+
 interface NavbarProps {
   onSignInClick: () => void;
   user: UserData | null;
@@ -22,6 +22,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSignInClick, user }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleLogout = () => {
+    navigate("/");
     window.location.href = `${import.meta.env.VITE_ENDPOINT}/auth/logout`;
   };
 
@@ -45,8 +46,12 @@ const Navbar: React.FC<NavbarProps> = ({ onSignInClick, user }) => {
             className="flex items-center gap-2 font-black text-xl text-white cursor-pointer group"
             onClick={() => navigate("/")}
           >
-            <div className="bg-white p-1.5 rounded-lg text-black transition-transform group-hover:scale-110">
-              <Zap size={20} fill="currentColor" />
+            <div className="w-7 h-7 bg-white rounded-md flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 overflow-hidden">
+              <img
+                src="/vite.svg"
+                alt="Hermes"
+                className="w-5 h-5 object-contain"
+              />
             </div>
             <span className="tracking-tighter uppercase">
               Project <span className="text-white">Hermes</span>
@@ -87,7 +92,6 @@ const Navbar: React.FC<NavbarProps> = ({ onSignInClick, user }) => {
                 <div className="h-6 w-[1px] bg-brand-border" />
                 <button
                   onClick={() => navigate("/doceditor")}
-                  title="Doc Editor"
                   className={`text-xs font-semibold uppercase tracking-widest transition-all duration-200 flex items-center gap-1.5 ${
                     isActivePath("/doceditor")
                       ? "text-white"
@@ -98,7 +102,6 @@ const Navbar: React.FC<NavbarProps> = ({ onSignInClick, user }) => {
                 </button>
                 <button
                   onClick={() => navigate("/admin")}
-                  title="Admin Panel"
                   className={`text-xs font-semibold uppercase tracking-widest transition-all duration-200 flex items-center gap-1.5 ${
                     isActivePath("/admin")
                       ? "text-white"
@@ -138,7 +141,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSignInClick, user }) => {
                     `https://ui-avatars.com/api/?name=${user.displayName}&background=18181b&color=ffffff`
                   }
                   alt="User avatar"
-                  className="w-9 h-9 rounded-full border border-brand-border hover:border-white/40 transition-all p-0.5 bg-brand-card"
+                  className="w-8 h-8 rounded-full border border-brand-border hover:border-white/40 transition-all p-0.5 bg-brand-card"
                 />
               </div>
             ) : (
@@ -153,11 +156,21 @@ const Navbar: React.FC<NavbarProps> = ({ onSignInClick, user }) => {
 
           {/* Mobile toggle */}
           <div className="md:hidden flex items-center gap-4">
+            {user && (
+              <img
+                src={
+                  user.avatar ||
+                  `https://ui-avatars.com/api/?name=${user.displayName}&background=18181b&color=ffffff`
+                }
+                alt="User avatar"
+                className="w-7 h-7 rounded-full border border-brand-border"
+              />
+            )}
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="text-white p-1"
             >
-              {isOpen ? <X size={24} /> : <Menu size={24} />}
+              {isOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
           </div>
         </div>
@@ -221,12 +234,32 @@ const Navbar: React.FC<NavbarProps> = ({ onSignInClick, user }) => {
 
           <div className="pt-4 border-t border-brand-border">
             {user ? (
-              <button
-                onClick={handleLogout}
-                className="w-full bg-red-500/10 text-red-400 py-4 rounded-xl font-bold uppercase tracking-widest flex items-center justify-center gap-2"
-              >
-                <LogOut size={20} /> Logout
-              </button>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 pb-3 border-b border-brand-border">
+                  <img
+                    src={
+                      user.avatar ||
+                      `https://ui-avatars.com/api/?name=${user.displayName}&background=18181b&color=ffffff`
+                    }
+                    alt="User avatar"
+                    className="w-9 h-9 rounded-full border border-brand-border"
+                  />
+                  <div>
+                    <p className="text-white text-sm font-bold">
+                      {user.displayName}
+                    </p>
+                    <p className="text-brand-muted text-xs">
+                      {user.isAdmin ? "Admin" : "Member"}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="w-full bg-red-500/10 text-red-400 py-4 rounded-xl font-bold uppercase tracking-widest flex items-center justify-center gap-2"
+                >
+                  <LogOut size={18} /> Logout
+                </button>
+              </div>
             ) : (
               <button
                 onClick={() => {

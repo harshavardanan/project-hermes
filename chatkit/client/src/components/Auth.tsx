@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { X, ShieldCheck } from "lucide-react";
 
 interface AuthModalProps {
@@ -31,53 +31,80 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [state, setState] = useState<"idle" | "success">("idle");
   const [userName, setUserName] = useState("");
   const [isNewUser, setIsNewUser] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const stopPolling = () => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    pollRef.current = null;
+    timeoutRef.current = null;
+  };
+
+  const handleAuthSuccess = (user: any) => {
+    stopPolling();
+    const name = user?.displayName || user?.name || "Developer";
+    const createdAt = user?.createdAt ? new Date(user.createdAt) : null;
+    const isNew = createdAt ? Date.now() - createdAt.getTime() < 15000 : false;
+    setUserName(name);
+    setIsNewUser(isNew);
+    setState("success");
+    setTimeout(() => {
+      onClose();
+      window.location.reload();
+    }, 2500);
+  };
+
+  const startPolling = () => {
+    stopPolling();
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_ENDPOINT}/auth/me`, {
+          credentials: "include",
+        });
+        if (res.ok) {
+          const user = await res.json();
+          if (user?._id) handleAuthSuccess(user);
+        }
+      } catch {
+        // not logged in yet, keep polling
+      }
+    }, 1000);
+
+    // stop after 2 minutes
+    timeoutRef.current = setTimeout(stopPolling, 120000);
+  };
+
+  // Keep postMessage as fallback for desktop
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.origin !== import.meta.env.VITE_ENDPOINT) return;
-
       const isSuccess =
         event.data === "auth_success" ||
         (event.data && event.data.type === "AUTH_SUCCESS");
-
       if (!isSuccess) return;
-
       fetch(`${import.meta.env.VITE_ENDPOINT}/auth/me`, {
         credentials: "include",
       })
         .then((r) => (r.ok ? r.json() : null))
         .then((user) => {
-          const name = user?.displayName || user?.name || "Developer";
-          const createdAt = user?.createdAt ? new Date(user.createdAt) : null;
-          const isNew = createdAt
-            ? Date.now() - createdAt.getTime() < 10000
-            : false;
-          setUserName(name);
-          setIsNewUser(isNew);
-          setState("success");
-          setTimeout(() => {
-            onClose();
-            window.location.reload();
-          }, 2500);
+          if (user?._id) handleAuthSuccess(user);
         })
-        .catch(() => {
-          setUserName("Developer");
-          setIsNewUser(false);
-          setState("success");
-          setTimeout(() => {
-            onClose();
-            window.location.reload();
-          }, 2500);
-        });
+        .catch(() => {});
     };
-
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
   }, [onClose]);
 
   useEffect(() => {
-    if (!isOpen) setState("idle");
+    if (!isOpen) {
+      setState("idle");
+      stopPolling();
+    }
   }, [isOpen]);
+
+  // cleanup on unmount
+  useEffect(() => () => stopPolling(), []);
 
   if (!isOpen) return null;
 
@@ -91,6 +118,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       "auth-popup",
       `width=${width},height=${height},left=${left},top=${top},resizable=yes`,
     );
+    // Start polling immediately — works on mobile where postMessage fails
+    startPolling();
   };
 
   return (
@@ -108,9 +137,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         }}
       >
         {state === "success" ? (
-          // ── Success ──────────────────────────────────────────────────
           <div className="flex flex-col items-center justify-center py-16 px-8 text-center gap-6">
-            {/* Check circle */}
             <div
               className="w-16 h-16 rounded-full flex items-center justify-center"
               style={{
@@ -130,7 +157,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
               </svg>
             </div>
 
-            {/* Message */}
             <div style={{ animation: "fadeUp 0.4s ease 0.15s both" }}>
               <p className="text-white font-bold text-xl tracking-tight">
                 {isNewUser
@@ -144,7 +170,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
               </p>
             </div>
 
-            {/* Loading dots */}
             <div
               className="flex gap-1.5"
               style={{ animation: "fadeUp 0.4s ease 0.3s both" }}
@@ -162,7 +187,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             </div>
           </div>
         ) : (
-          // ── Login ────────────────────────────────────────────────────
           <>
             <button
               onClick={onClose}
@@ -172,7 +196,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             </button>
 
             <div className="px-8 pt-10 pb-8">
-              {/* Header */}
               <div className="mb-8">
                 <p className="text-[10px] font-mono text-white/20 uppercase tracking-widest mb-2">
                   Project Hermes
@@ -185,7 +208,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 </p>
               </div>
 
-              {/* Google button */}
               <button
                 onClick={handleLogin}
                 className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium text-white transition-all active:scale-[0.98]"
@@ -204,7 +226,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 <span>Continue with Google</span>
               </button>
 
-              {/* Footer */}
               <div className="mt-8 flex items-center justify-center gap-1.5 text-[10px] text-white/15 font-mono">
                 <ShieldCheck size={10} />
                 <span>Encrypted · Zero data stored</span>
