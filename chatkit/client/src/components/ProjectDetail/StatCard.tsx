@@ -21,7 +21,7 @@ const StatCard = ({
   spark,
   accent = "#ffffff",
 }: StatCardProps) => (
-  <div className="bg-[#111] border border-white/10 rounded-xl p-5 flex flex-col gap-1 relative overflow-hidden group hover:border-white/20 transition-colors">
+  <div className="bg-brand-card border border-white/10 rounded-xl p-5 flex flex-col gap-1 relative overflow-hidden group hover:border-white/20 transition-colors">
     <div
       className="absolute top-0 left-0 right-0 h-0.5 opacity-50 group-hover:opacity-100 transition-opacity"
       style={{ background: `linear-gradient(90deg, ${accent}, transparent)` }}

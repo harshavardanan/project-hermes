@@ -2,6 +2,7 @@ import express from "express";
 import type { Request, Response } from "express";
 import { Doc } from "../models/Document.js";
 import { isAuthenticated, isAdmin } from "../middleware/auth.js";
+import { getCached, setCached, delCached } from "../config/redis.js";
 
 const router = express.Router();
 
@@ -28,6 +29,9 @@ router.post("/save", isAdmin, async (req: Request, res: Response) => {
       },
       { upsert: true, new: true, setDefaultsOnInsert: true },
     );
+
+    // Invalidate docs list cache
+    await delCached("api:docs:list");
 
     res.status(200).json({ success: true, data: doc });
   } catch (error) {
@@ -56,6 +60,9 @@ router.put("/update/:id", isAdmin, async (req: Request, res: Response) => {
         .json({ success: false, message: "Document not found" });
     }
 
+    // Invalidate docs list cache
+    await delCached("api:docs:list");
+
     res.json({ success: true, data: updatedDoc });
   } catch (error) {
     res.status(500).json({ success: false, message: (error as Error).message });
@@ -64,10 +71,17 @@ router.put("/update/:id", isAdmin, async (req: Request, res: Response) => {
 
 router.get("/list", async (req: Request, res: Response) => {
   try {
+    const cached = await getCached("api:docs:list");
+    if (cached) return res.json(JSON.parse(cached));
+
     const docs = await Doc.find()
       .select("title slug status lastUpdated order category")
       .sort({ order: 1, lastUpdated: -1 }); // sort by order first, then date
-    res.json({ success: true, data: docs });
+
+    const responseData = { success: true, data: docs };
+    await setCached("api:docs:list", JSON.stringify(responseData), 30); // Cache 30s
+
+    res.json(responseData);
   } catch (err) {
     res.status(500).json({ success: false, error: "Fetch failed" });
   }
@@ -91,6 +105,9 @@ router.post("/reorder", isAdmin, async (req: Request, res: Response) => {
     }));
     await Doc.bulkWrite(bulkOps);
 
+    // Invalidate docs list cache
+    await delCached("api:docs:list");
+
     res.json({ success: true, message: "Order updated" });
   } catch (error) {
     res.status(500).json({ success: false, message: (error as Error).message });
@@ -99,11 +116,18 @@ router.post("/reorder", isAdmin, async (req: Request, res: Response) => {
 
 router.get("/get/:slug", async (req: Request, res: Response) => {
   try {
+    const cached = await getCached(`api:docs:get:${req.params.slug}`);
+    if (cached) return res.json(JSON.parse(cached));
+
     const doc = await Doc.findOne({ slug: req.params.slug });
     if (!doc) {
       return res.status(404).json({ success: false, error: "Not found" });
     }
-    res.json({ success: true, data: doc });
+
+    const responseData = { success: true, data: doc };
+    await setCached(`api:docs:get:${req.params.slug}`, JSON.stringify(responseData), 30);
+
+    res.json(responseData);
   } catch (err) {
     res.status(500).json({ success: false, error: "Fetch failed" });
   }
@@ -115,6 +139,10 @@ router.delete("/delete/:slug", isAdmin, async (req: Request, res: Response) => {
     if (!deleted) {
       return res.status(404).json({ success: false, message: "Doc not found" });
     }
+    
+    // Invalidate docs caches
+    await delCached("api:docs:list", `api:docs:get:${req.params.slug}`);
+
     res.json({ success: true, message: "Deleted successfully" });
   } catch (error) {
     res.status(500).json({ success: false, message: "Delete failed" });

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useAppConfig } from "../../store/appConfig";
 
-const HEALTH_URL = `${import.meta.env.VITE_ENDPOINT}/hermes/health`;
-const METRICS_URL = `${import.meta.env.VITE_ENDPOINT}/hermes/metrics`;
 const POLL_MS = 5000;
 const MAX_SAMPLES = 60;
 
@@ -185,8 +184,13 @@ export function Stats() {
     });
   }, []);
 
+  const endpoint = useAppConfig((s) => s.endpoint);
+
   const fetchAll = useCallback(async () => {
     try {
+      const HEALTH_URL = `${endpoint}/hermes/health`;
+      const METRICS_URL = `${endpoint}/hermes/metrics`;
+      
       const [hRes, mRes] = await Promise.all([
         fetch(HEALTH_URL),
         fetch(METRICS_URL),

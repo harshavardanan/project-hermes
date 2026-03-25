@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
@@ -10,14 +11,13 @@ import typescript from "highlight.js/lib/languages/typescript";
 import bash from "highlight.js/lib/languages/bash";
 import json from "highlight.js/lib/languages/json";
 import { Search, ChevronRight, X, Menu } from "lucide-react";
+import { useAppConfig } from "../store/appConfig";
 
 const lowlight = createLowlight();
 lowlight.register("javascript", javascript);
 lowlight.register("typescript", typescript);
 lowlight.register("bash", bash);
 lowlight.register("json", json);
-
-const API = `${import.meta.env.VITE_ENDPOINT}/api/docs`;
 
 interface DocMeta {
   _id: string;
@@ -36,15 +36,14 @@ const DocumentationPage: React.FC = () => {
   const { slug: urlSlug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
 
-  const [docList, setDocList] = useState<DocMeta[]>([]);
-  const [docData, setDocData] = useState<DocData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
   const [search, setSearch] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(
     new Set(),
   );
+
+  const endpoint = useAppConfig((s) => s.endpoint);
 
   const editor = useEditor({
     editable: false,
@@ -60,40 +59,48 @@ const DocumentationPage: React.FC = () => {
     immediatelyRender: false,
   });
 
-  useEffect(() => {
-    fetch(`${API}/list`)
-      .then((res) => res.json())
-      .then((json) => {
-        const list: DocMeta[] = json.success ? json.data : [];
-        const published = list.filter((d) => d.status === "published");
-        setDocList(published);
-        if (!urlSlug && published.length > 0) {
-          navigate(`/documentation/${published[0].slug}`, { replace: true });
-        }
-      })
-      .catch(() => setDocList([]));
-  }, [urlSlug, navigate]);
+  const { data: docListData } = useQuery({
+    queryKey: ["docsList"],
+    queryFn: async () => {
+      const res = await fetch(`${endpoint}/api/docs/list`);
+      if (!res.ok) throw new Error("Failed to fetch doc list");
+      const json = await res.json();
+      return json.success ? json.data : [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const docList = useMemo(() => {
+    if (!docListData) return [];
+    return docListData.filter((d: DocMeta) => d.status === "published");
+  }, [docListData]);
 
   useEffect(() => {
-    if (!urlSlug) return;
-    setLoading(true);
-    setNotFound(false);
-    setDocData(null);
+    if (!urlSlug && docList.length > 0) {
+      navigate(`/documentation/${docList[0].slug}`, { replace: true });
+    }
+  }, [urlSlug, docList, navigate]);
+
+  const { data: docResp, isLoading: docLoading, isError: docError } = useQuery<DocData | null>({
+    queryKey: ["doc", urlSlug],
+    queryFn: async () => {
+      if (!urlSlug) return null;
+      const res = await fetch(`${endpoint}/api/docs/get/${urlSlug}`);
+      if (!res.ok) throw new Error("Not Found");
+      const json = await res.json();
+      if (!json.success || !json.data) throw new Error("Not Found");
+      return json.data as DocData;
+    },
+    enabled: !!urlSlug,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const docData = docResp || null;
+  const loading = (docLoading && !!urlSlug) || (!docListData && !docList.length);
+  const notFound = docError;
+
+  useEffect(() => {
     setSidebarOpen(false); // close sidebar on mobile when navigating
-    fetch(`${API}/get/${urlSlug}`)
-      .then((res) => {
-        if (!res.ok) throw new Error();
-        return res.json();
-      })
-      .then((json) => {
-        if (json.success && json.data) setDocData(json.data);
-        else setNotFound(true);
-        setLoading(false);
-      })
-      .catch(() => {
-        setNotFound(true);
-        setLoading(false);
-      });
   }, [urlSlug]);
 
   useEffect(() => {
@@ -104,7 +111,7 @@ const DocumentationPage: React.FC = () => {
   const filteredList = useMemo(() => {
     if (!search.trim()) return docList;
     return docList.filter(
-      (d) =>
+      (d: DocMeta) =>
         d.title.toLowerCase().includes(search.toLowerCase()) ||
         d.category.toLowerCase().includes(search.toLowerCase()),
     );
@@ -112,7 +119,7 @@ const DocumentationPage: React.FC = () => {
 
   const groupedDocs = useMemo(() => {
     return filteredList.reduce(
-      (acc, doc) => {
+      (acc: Record<string, DocMeta[]>, doc: DocMeta) => {
         const cat = doc.category || "General";
         if (!acc[cat]) acc[cat] = [];
         acc[cat].push(doc);
@@ -142,16 +149,29 @@ const DocumentationPage: React.FC = () => {
   const SidebarContent = () => (
     <>
       <div className="px-5 pt-6 pb-4">
-        <div className="flex items-center justify-between mb-5">
+        <div className={`flex items-center mb-5 ${isSidebarCollapsed ? "justify-center" : "justify-between"}`}>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-white" />
-            <span
-              className="font-bold tracking-widest text-[10px] uppercase"
-              style={{ color: "var(--brand-muted)" }}
-            >
-              Documentation
-            </span>
+            <div className="w-6 h-6 shrink-0 flex items-center justify-center">
+              <img src="/vite.svg" alt="Logo" className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(255,255,255,0.05)]" />
+            </div>
+            {!isSidebarCollapsed && (
+              <span
+                className="font-bold tracking-widest text-[10px] uppercase truncate"
+                style={{ color: "var(--brand-muted)" }}
+              >
+                Documentation
+              </span>
+            )}
           </div>
+          
+          {/* Desktop Toggle Button */}
+          <button 
+             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+             className="hidden md:flex text-brand-muted hover:text-white transition-colors"
+          >
+             <ChevronRight size={14} className={`transition-transform duration-200 ${isSidebarCollapsed ? "" : "rotate-180"}`} />
+          </button>
+
           {/* Close button — mobile only */}
           <button
             onClick={() => setSidebarOpen(false)}
@@ -164,20 +184,22 @@ const DocumentationPage: React.FC = () => {
         <div className="relative">
           <Search
             size={12}
-            className="absolute left-3 top-1/2 -translate-y-1/2"
+            className={`absolute top-1/2 -translate-y-1/2 ${isSidebarCollapsed ? "left-1/2 -translate-x-1/2" : "left-3"}`}
             style={{ color: "var(--brand-muted)" }}
           />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search docs..."
-            className="w-full bg-white/[0.03] border rounded-lg pl-8 pr-8 py-2 text-xs transition-colors outline-none"
-            style={{
-              borderColor: "rgba(255,255,255,0.06)",
-              color: "var(--brand-text)",
-            }}
-          />
-          {search && (
+          {!isSidebarCollapsed && (
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search docs..."
+              className="w-full bg-white/[0.03] border rounded-lg pl-8 pr-8 py-2 text-xs transition-colors outline-none"
+              style={{
+                borderColor: "rgba(255,255,255,0.06)",
+                color: "var(--brand-text)",
+              }}
+            />
+          )}
+          {!isSidebarCollapsed && search && (
             <button
               onClick={() => setSearch("")}
               className="absolute right-2.5 top-1/2 -translate-y-1/2"
@@ -189,8 +211,8 @@ const DocumentationPage: React.FC = () => {
         </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 pb-8">
-        {Object.keys(groupedDocs).length === 0 && (
+      <nav className={`flex-1 overflow-y-auto px-3 pb-8 ${isSidebarCollapsed ? "flex flex-col items-center" : ""}`}>
+        {Object.keys(groupedDocs).length === 0 && !isSidebarCollapsed && (
           <p
             className="text-[11px] font-mono px-3 py-4"
             style={{ color: "var(--brand-muted)" }}
@@ -199,35 +221,50 @@ const DocumentationPage: React.FC = () => {
           </p>
         )}
         {Object.entries(groupedDocs).map(([cat, catDocs]) => (
-          <div key={cat} className="mb-2">
-            <button
-              onClick={() => toggleCategory(cat)}
-              className="w-full flex items-center justify-between px-2 py-1.5 mb-0.5 text-[10px] font-mono font-bold uppercase tracking-widest hover:opacity-80 transition-opacity"
-              style={{ color: "var(--brand-muted)" }}
-            >
-              <span>{cat}</span>
-              <ChevronRight
-                size={9}
-                className={`transition-transform duration-200 ${collapsedCategories.has(cat) ? "" : "rotate-90"}`}
-              />
-            </button>
-            {!collapsedCategories.has(cat) &&
-              catDocs.map((item) => (
+          <div key={cat} className={`mb-2 w-full ${isSidebarCollapsed ? "flex flex-col items-center" : ""}`}>
+            {!isSidebarCollapsed && (
+              <button
+                onClick={() => toggleCategory(cat)}
+                className="w-full flex items-center justify-between px-2 py-1.5 mb-0.5 text-[10px] font-mono font-bold uppercase tracking-widest hover:opacity-80 transition-opacity"
+                style={{ color: "var(--brand-muted)" }}
+              >
+                <span>{cat}</span>
+                <ChevronRight
+                  size={9}
+                  className={`transition-transform duration-200 ${collapsedCategories.has(cat) ? "" : "rotate-90"}`}
+                />
+              </button>
+            )}
+            
+            {isSidebarCollapsed && (
+                <div className="w-8 h-px bg-white/5 my-2" />
+            )}
+
+            {(!isSidebarCollapsed && collapsedCategories.has(cat)) ? null : (
+              (catDocs as DocMeta[]).map((item: DocMeta) => (
                 <Link
                   key={item.slug}
                   to={`/documentation/${item.slug}`}
-                  className={`flex items-center py-2 px-3 rounded-lg text-sm transition-all duration-150 ${
+                  title={isSidebarCollapsed ? item.title : ""}
+                  className={`flex items-center rounded-lg transition-all duration-150 ${
+                    isSidebarCollapsed ? "justify-center p-2.5 w-10 h-10 mb-1" : "py-2 px-3 text-sm"
+                  } ${
                     urlSlug === item.slug
                       ? "bg-white/[0.06] font-semibold text-white"
                       : "text-brand-muted hover:text-white hover:bg-white/[0.03]"
                   }`}
                 >
-                  {urlSlug === item.slug && (
+                  {urlSlug === item.slug && !isSidebarCollapsed && (
                     <span className="w-[2px] h-4 rounded-full mr-2.5 shrink-0 bg-white" />
                   )}
-                  <span className="truncate text-[13px]">{item.title}</span>
+                  {isSidebarCollapsed ? (
+                      <span className="text-[10px] font-mono font-black uppercase text-brand-primary">{item.title.charAt(0)}</span>
+                  ) : (
+                      <span className="truncate text-[13px]">{item.title}</span>
+                  )}
                 </Link>
-              ))}
+              ))
+            )}
           </div>
         ))}
       </nav>
@@ -256,26 +293,26 @@ const DocumentationPage: React.FC = () => {
 
       {/* ── Sidebar — desktop always visible, mobile drawer ───────────────── */}
       <aside
-        className="flex flex-col shrink-0 border-r"
+        className="flex flex-col shrink-0 border-r transition-all duration-300 ease-in-out"
         style={{
-          width: 272,
+          width: isSidebarCollapsed ? 80 : 272,
           borderColor: "rgba(255,255,255,0.05)",
           backgroundColor: "var(--brand-card)",
-          // Mobile: fixed drawer
+          // Mobile: fixed drawer, Desktop: persistent
           position: "fixed" as const,
           top: 64,
           left: 0,
           bottom: 0,
           zIndex: 40,
-          transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)",
-          transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1)",
+          transform: sidebarOpen || (typeof window !== 'undefined' && window.matchMedia("(min-width: 768px)").matches) ? "translateX(0)" : "translateX(-100%)",
+          transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1), width 0.3s ease-in-out",
         }}
       >
         <SidebarContent />
       </aside>
 
       {/* ── Desktop sidebar spacer ─────────────────────────────────────────── */}
-      <div className="hidden md:block shrink-0" style={{ width: 272 }} />
+      <div className="hidden md:block shrink-0 transition-all duration-300 ease-in-out" style={{ width: isSidebarCollapsed ? 80 : 272 }} />
 
       {/* ── Main Content ──────────────────────────────────────────────────── */}
       <main
@@ -399,7 +436,7 @@ const DocumentationPage: React.FC = () => {
             !notFound &&
             docData &&
             (() => {
-              const currentIndex = docList.findIndex((d) => d.slug === urlSlug);
+              const currentIndex = docList.findIndex((d: DocMeta) => d.slug === urlSlug);
               const prev = currentIndex > 0 ? docList[currentIndex - 1] : null;
               const next =
                 currentIndex < docList.length - 1

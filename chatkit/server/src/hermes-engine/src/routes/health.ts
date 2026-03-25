@@ -2,12 +2,17 @@ import { Router } from "express";
 import type { Request, Response } from "express";
 import os from "os";
 import mongoose from "mongoose";
+import { hermesApiLimiter } from "../middleware/rateLimit.js";
+import { getCached, setCached } from "../../../config/redis.js";
 
 const router = Router();
 const startTime = Date.now();
 
-router.get("/health", (_req: Request, res: Response) => {
+router.get("/health", hermesApiLimiter, async (_req: Request, res: Response) => {
   try {
+    const cached = await getCached("hermes:health");
+    if (cached) return res.json(JSON.parse(cached));
+
     const mem = process.memoryUsage();
     const mongoState = [
       "disconnected",
@@ -16,7 +21,7 @@ router.get("/health", (_req: Request, res: Response) => {
       "disconnecting",
     ];
 
-    res.json({
+    const healthData = {
       status: "ok",
       uptime: Math.floor((Date.now() - startTime) / 1000),
       version: "1.0.0",
@@ -42,7 +47,10 @@ router.get("/health", (_req: Request, res: Response) => {
         name: mongoose.connection.name || "hermes",
       },
       instances: 1,
-    });
+    };
+
+    await setCached("hermes:health", JSON.stringify(healthData), 3); // Cache 3s
+    res.json(healthData);
   } catch {
     res.status(500).json({ status: "error" });
   }

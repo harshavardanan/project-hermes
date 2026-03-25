@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-   "build": "tsc && echo 'Build complete' && ls dist/",
+    "build": "tsc && echo 'Build complete' && ls dist/",
     "start": "node dist/index.js"
   },
   "keywords": [],
@@ -12,10 +12,11 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@socket.io/redis-adapter": "^8.3.0",
+    "@types/node-cron": "^3.0.11",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.9.0",
-    "typescript": "^5.9.3",
     "connect-mongo": "^6.0.0",
     "consoleartist": "^1.1.1",
     "cors": "^2.8.6",
@@ -29,12 +30,14 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.2.2",
     "multer": "^2.0.2",
+    "node-cron": "^4.2.1",
     "passport": "^0.7.0",
     "passport-github2": "^0.1.12",
     "passport-google-oauth20": "^2.0.0",
     "passport-microsoft": "^2.1.0",
     "pg": "^8.16.3",
     "socket.io": "^4.8.3",
+    "typescript": "^5.9.3",
     "uuid": "^13.0.0",
     "zod": "^4.3.5"
   },

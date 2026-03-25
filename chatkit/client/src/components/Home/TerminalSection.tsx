@@ -33,8 +33,8 @@ export default function TerminalSection() {
             {[
               "One-line install via npm",
               "Zero config WebSocket setup",
-              "React hooks for every feature",
-              "Edge-deployed in 30+ regions",
+              "Preparing connection to Hermes mothership",
+              "Initializing distributed WebSocket broker",
             ].map((f) => (
               <div
                 key={f}
@@ -51,7 +51,7 @@ export default function TerminalSection() {
         <Terminal
           script={SCRIPT}
           prompt="~/hermes $ "
-          typingSpeed={60}
+          typingSpeed={80}
           pauseAfterCommand={400}
           delayBetweenCommands={800}
           loop={false}

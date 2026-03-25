@@ -8,7 +8,7 @@ interface SettingsCardProps {
 
 // Card wrapper for settings sections
 const SettingsCard = ({ title, icon, children }: SettingsCardProps) => (
-  <div className="bg-[#111] border border-white/10 rounded-2xl p-6 lg:p-8">
+  <div className="bg-brand-card border border-white/10 rounded-2xl p-6 lg:p-8">
     <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
       <div className="text-slate-400 bg-white/5 p-2 rounded-lg">{icon}</div>
       <h3 className="font-sans text-lg font-bold text-white tracking-tight">

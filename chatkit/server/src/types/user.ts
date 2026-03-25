@@ -9,5 +9,9 @@ export interface IUser extends Document {
   isAdmin?: boolean;
   email: string;
   avatar?: string;
+  status?: "Active" | "Suspended";
+  plan?: any;
+  dailyTokensUsed?: number;
+  dailyTokensReset?: Date;
   createdAt: Date;
 }

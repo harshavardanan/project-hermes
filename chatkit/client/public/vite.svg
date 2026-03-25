@@ -1,1 +1,9 @@
-<svg width="214px" height="214px" viewBox="-5.79 -5.79 69.45 69.45" xmlns="http://www.w3.org/2000/svg" fill="#1f1f1f" stroke="#1f1f1f" transform="rotate(0)matrix(1, 0, 0, 1, 0, 0)"><g id="SVGRepo_bgCarrier" stroke-width="0" transform="translate(0,0), scale(1)"><rect x="-5.79" y="-5.79" width="69.45" height="69.45" rx="34.725" fill="#ababab" strokewidth="0"></rect></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round" stroke="#CCCCCC" stroke-width="0.46299999999999997"></g><g id="SVGRepo_iconCarrier"> <g id="Group_37" data-name="Group 37" transform="translate(-1209.722 -1357.465)"> <path id="Path_95" data-name="Path 95" d="M1224.729,1387.963v16.4l26.032-28.734Z" fill="#d1d3d4" stroke="#231f20" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5465"></path> <path id="Path_96" data-name="Path 96" d="M1228.118,1390.522l37.479-30.686-17.1,45.207Z" fill="#ffffff" stroke="#231f20" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5465"></path> <path id="Path_97" data-name="Path 97" d="M1211.722,1378.673l16.4,11.712,37.479-30.92Z" fill="#ffffff" stroke="#231f20" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5465"></path> </g> </g></svg>
+<svg width="214px" height="214px" viewBox="-5.79 -5.79 69.45 69.45" xmlns="http://www.w3.org/2000/svg" fill="none" transform="rotate(0)matrix(1, 0, 0, 1, 0, 0)">
+  <g id="SVGRepo_iconCarrier">
+    <g id="Group_37" data-name="Group 37" transform="translate(-1209.722 -1357.465)">
+      <path id="Path_95" data-name="Path 95" d="M1224.729,1387.963v16.4l26.032-28.734Z" fill="#ffffff" opacity="0.4"></path>
+      <path id="Path_96" data-name="Path 96" d="M1228.118,1390.522l37.479-30.686-17.1,45.207Z" fill="#ffffff"></path>
+      <path id="Path_97" data-name="Path 97" d="M1211.722,1378.673l16.4,11.712,37.479-30.92Z" fill="#ffffff" opacity="0.8"></path>
+    </g>
+  </g>
+</svg>

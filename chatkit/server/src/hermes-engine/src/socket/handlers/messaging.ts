@@ -18,6 +18,17 @@ export const handleMessaging = (socket: Socket, io: Server) => {
         return ack?.({ success: false, error: "Rate limit exceeded" });
       }
 
+      // Check per-user token limit
+      if (socket.data.dailyTokensUsed >= socket.data.planLimit) {
+        socket.emit("quota:exceeded", {
+          message: "Daily message limit reached for your plan. Upgrade your plan to send more.",
+        });
+        return ack?.({
+          success: false,
+          error: "Daily message limit reached. Upgrade your plan.",
+        });
+      }
+
       const {
         roomId,
         type,
@@ -49,6 +60,15 @@ export const handleMessaging = (socket: Socket, io: Server) => {
       });
 
       if (result.error) return ack?.({ success: false, error: result.error });
+
+      // Increment token tracking
+      socket.data.dailyTokensUsed++;
+      import("../../../../models/Users.js").then(({ default: User }) => {
+        User.updateOne(
+          { _id: socket.data.user._id },
+          { $inc: { dailyTokensUsed: 1 } },
+        ).catch((err) => logger.error("Failed to increment user token", err));
+      });
 
       io.to(roomId).emit("message:receive", result.message);
       ack?.({ success: true, message: result.message });

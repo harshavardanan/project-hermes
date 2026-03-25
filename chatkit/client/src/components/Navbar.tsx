@@ -3,28 +3,21 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
   Menu,
   X,
-  LogOut,
   LayoutDashboard,
-  FilePen,
-  ShieldCheck,
 } from "lucide-react";
-
-import type { UserData } from "../types";
+import { useUserStore } from "../store/userStore";
 
 interface NavbarProps {
   onSignInClick: () => void;
-  user: UserData | null;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ onSignInClick, user }) => {
+const Navbar: React.FC<NavbarProps> = ({ onSignInClick }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const user = useUserStore((s) => s.user);
 
-  const handleLogout = () => {
-    navigate("/");
-    window.location.href = `${import.meta.env.VITE_ENDPOINT}/auth/logout`;
-  };
+
 
   const navLinks = [
     { name: "SDK", path: "/" },
@@ -46,14 +39,10 @@ const Navbar: React.FC<NavbarProps> = ({ onSignInClick, user }) => {
             className="flex items-center gap-2 font-black text-xl text-white cursor-pointer group"
             onClick={() => navigate("/")}
           >
-            <div className="w-7 h-7 bg-white rounded-md flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 overflow-hidden">
-              <img
-                src="/vite.svg"
-                alt="Hermes"
-                className="w-5 h-5 object-contain"
-              />
+            <div className="w-8 h-8 flex items-center justify-center shrink-0 transition-transform group-hover:scale-110">
+              <img src="/vite.svg" alt="Hermes Logo" className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(255,255,255,0.1)]" />
             </div>
-            <span className="tracking-tighter uppercase">
+            <span className="tracking-tighter uppercase whitespace-nowrap">
               Project <span className="text-white">Hermes</span>
             </span>
           </div>
@@ -87,63 +76,22 @@ const Navbar: React.FC<NavbarProps> = ({ onSignInClick, user }) => {
               </button>
             )}
 
-            {user?.isAdmin && (
-              <>
-                <div className="h-6 w-[1px] bg-brand-border" />
-                <button
-                  onClick={() => navigate("/doceditor")}
-                  className={`text-xs font-semibold uppercase tracking-widest transition-all duration-200 flex items-center gap-1.5 ${
-                    isActivePath("/doceditor")
-                      ? "text-white"
-                      : "text-brand-muted hover:text-white"
-                  }`}
-                >
-                  <FilePen size={14} /> Doc Editor
-                </button>
-                <button
-                  onClick={() => navigate("/admin")}
-                  className={`text-xs font-semibold uppercase tracking-widest transition-all duration-200 flex items-center gap-1.5 ${
-                    isActivePath("/admin")
-                      ? "text-white"
-                      : "text-brand-muted hover:text-white"
-                  }`}
-                >
-                  <ShieldCheck size={14} /> Admin
-                </button>
-              </>
-            )}
-
             <div className="h-6 w-[1px] bg-brand-border mx-2" />
 
             {user ? (
-              <div className="flex items-center gap-3 pl-2">
-                <div className="flex flex-col items-end">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="text-white text-[10px] font-bold leading-none uppercase tracking-tighter">
-                      {user.displayName}
-                    </span>
-                    {user.isAdmin && (
-                      <span className="text-[8px] font-bold uppercase tracking-widest bg-white/10 text-white border border-white/20 px-1.5 py-0.5 rounded-full leading-none">
-                        Admin
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    onClick={handleLogout}
-                    className="text-[8px] text-brand-muted hover:text-red-400 uppercase tracking-widest font-bold transition-colors"
-                  >
-                    Logout
-                  </button>
-                </div>
+              <button 
+                onClick={() => navigate("/dashboard/profile")}
+                className="flex items-center gap-3 pl-2 group"
+              >
                 <img
                   src={
                     user.avatar ||
                     `https://ui-avatars.com/api/?name=${user.displayName}&background=18181b&color=ffffff`
                   }
                   alt="User avatar"
-                  className="w-8 h-8 rounded-full border border-brand-border hover:border-white/40 transition-all p-0.5 bg-brand-card"
+                  className="w-8 h-8 rounded-full border border-brand-border group-hover:border-white/40 transition-all p-0.5 bg-brand-card shadow-lg"
                 />
-              </div>
+              </button>
             ) : (
               <button
                 onClick={onSignInClick}
@@ -206,36 +154,18 @@ const Navbar: React.FC<NavbarProps> = ({ onSignInClick, user }) => {
                 Dashboard
               </button>
             )}
-
-            {user?.isAdmin && (
-              <>
-                <div className="h-px bg-brand-border" />
-                <button
-                  onClick={() => {
-                    navigate("/doceditor");
-                    setIsOpen(false);
-                  }}
-                  className="flex items-center gap-2 w-full text-left font-bold text-lg uppercase tracking-tighter text-white"
-                >
-                  <FilePen size={18} /> Doc Editor
-                </button>
-                <button
-                  onClick={() => {
-                    navigate("/admin");
-                    setIsOpen(false);
-                  }}
-                  className="flex items-center gap-2 w-full text-left font-bold text-lg uppercase tracking-tighter text-white"
-                >
-                  <ShieldCheck size={18} /> Admin
-                </button>
-              </>
-            )}
           </div>
 
           <div className="pt-4 border-t border-brand-border">
             {user ? (
               <div className="space-y-3">
-                <div className="flex items-center gap-3 pb-3 border-b border-brand-border">
+                <button
+                  onClick={() => {
+                    navigate("/dashboard/profile");
+                    setIsOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 pb-3 border-b border-brand-border"
+                >
                   <img
                     src={
                       user.avatar ||
@@ -252,12 +182,6 @@ const Navbar: React.FC<NavbarProps> = ({ onSignInClick, user }) => {
                       {user.isAdmin ? "Admin" : "Member"}
                     </p>
                   </div>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="w-full bg-red-500/10 text-red-400 py-4 rounded-xl font-bold uppercase tracking-widest flex items-center justify-center gap-2"
-                >
-                  <LogOut size={18} /> Logout
                 </button>
               </div>
             ) : (

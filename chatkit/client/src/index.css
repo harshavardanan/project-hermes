@@ -2,11 +2,13 @@
 
 @theme {
   --color-brand-primary: var(--brand-primary);
+  --color-brand-primary-fg: var(--brand-primary-fg);
   --color-brand-bg: var(--brand-bg);
   --color-brand-card: var(--brand-card);
   --color-brand-border: var(--brand-border);
   --color-brand-text: var(--brand-text);
   --color-brand-muted: var(--brand-muted);
+  --color-brand-accent: var(--brand-accent);
 }
 
 :root {
@@ -25,6 +27,7 @@ body {
   background-color: var(--brand-bg);
   color: var(--brand-text);
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Glass surface */

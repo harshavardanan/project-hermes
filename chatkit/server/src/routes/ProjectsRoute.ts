@@ -1,10 +1,10 @@
 import express from "express";
 import type { Request, Response } from "express";
 import { Project } from "../models/Projects.js";
-import { Plan } from "../models/Plans.js";
-import { HermesUser } from "./../hermes-engine/src/models/HermesUser.js"; // 🚨 Ensure this path matches your folder structure
-import { Room } from "./../hermes-engine/src/models/Room.js"; // 🚨 Ensure this path matches your folder structure
-import { Message } from "./../hermes-engine/src/models/Message.js"; // 🚨 Ensure this path matches your folder structure
+import { HermesUser } from "./../hermes-engine/src/models/HermesUser.js";
+import { Room } from "./../hermes-engine/src/models/Room.js";
+import { Message } from "./../hermes-engine/src/models/Message.js";
+import { Member } from "./../hermes-engine/src/models/Member.js";
 import crypto from "crypto";
 import { isAuthenticated } from "../middleware/auth.js";
 
@@ -27,7 +27,6 @@ router.get("/projects", async (req: Request, res: Response) => {
     );
 
     const projects = await Project.find({ userId })
-      .populate("plan")
       .sort({ createdAt: -1 });
     res.json(projects);
   } catch (err: any) {
@@ -57,7 +56,7 @@ router.get("/projects/:id", async (req: Request, res: Response) => {
     const project = await Project.findOne({
       _id: req.params.id,
       userId,
-    }).populate("plan");
+    });
 
     if (!project) return res.status(404).json({ error: "Project not found" });
 
@@ -93,8 +92,8 @@ router.get("/projects/:id", async (req: Request, res: Response) => {
       activeUsers: activeUsersCount,
       totalRooms: totalRoomsCount,
       totalMessages: totalMessagesCount,
-      avgLatency: 12, // Hardcoded simulation for UI
-      uptime: 99.9, // Hardcoded simulation for UI
+      avgLatency: 12,
+      uptime: 99.9,
     };
 
     // Attach Users List
@@ -110,21 +109,12 @@ router.get("/projects/:id", async (req: Request, res: Response) => {
 // --- Create New Project ---
 router.post("/projects", async (req: Request, res: Response) => {
   try {
-    const { projectName, region } = req.body;
+    const { projectName } = req.body;
     const userId = (req.user as any)._id;
-
-    const freePlan = await Plan.findOne({ planId: "free" });
-    if (!freePlan) {
-      return res
-        .status(500)
-        .json({ error: "Default 'free' plan missing in database" });
-    }
 
     const newProject = new Project({
       projectName,
       userId,
-      region: region || "us-east-1",
-      plan: freePlan._id,
       projectId: `${projectName.toLowerCase().replace(/\s+/g, "-")}-${crypto.randomBytes(3).toString("hex")}`,
       apiKey: crypto.randomBytes(20).toString("hex").toUpperCase(),
       secret: crypto.randomBytes(22).toString("base64url").slice(0, 30),
@@ -137,28 +127,38 @@ router.post("/projects", async (req: Request, res: Response) => {
     });
 
     await newProject.save();
-    const populated = await newProject.populate("plan");
-    res.status(201).json(populated);
+    res.status(201).json(newProject);
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }
 });
 
-// --- Delete Project ---
+// --- Delete Project (CASCADE) ---
 router.delete("/projects/:id", async (req: Request, res: Response) => {
   try {
     const userId = (req.user as any)._id;
-    const deleteProject = await Project.findOneAndDelete({
+
+    // 1. Verify ownership first
+    const project = await Project.findOne({
       _id: req.params.id,
       userId,
     });
+    if (!project) return res.status(404).json({ error: "Project not found" });
 
-    if (!deleteProject)
-      return res.status(404).json({ error: "Project not found" });
+    const projectId = project._id;
 
-    // Optional: You could also delete associated HermesUsers, Rooms, and Messages here
+    // 2. Cascade: find all rooms first (needed to find messages by roomId)
+    const rooms = await Room.find({ projectId }, { _id: 1 });
+    const roomIds = rooms.map((r) => r._id);
 
-    res.status(200).json({ message: "Project deleted successfully" });
+    // 3. Delete in safe order: messages → members → rooms → hermesUsers → project
+    await Message.deleteMany({ roomId: { $in: roomIds } });
+    await Member.deleteMany({ roomId: { $in: roomIds } });
+    await Room.deleteMany({ projectId });
+    await HermesUser.deleteMany({ projectId });
+    await Project.findByIdAndDelete(projectId);
+
+    res.status(200).json({ message: "Project and all associated data deleted successfully" });
   } catch (err: any) {
     res.status(400).json({ error: err.message });
   }
@@ -204,7 +204,7 @@ router.post(
           },
         ],
         { new: true },
-      ).populate("plan");
+      );
 
       if (!project) {
         return res.status(404).json({ error: "Project not found" });

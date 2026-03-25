@@ -1,5 +1,8 @@
 import type { Server } from "socket.io";
+import { createAdapter } from "@socket.io/redis-adapter";
+import { getRedis } from "../../../config/redis.js";
 import { hermesSocketAuth } from "../middleware/auth.js";
+import { tokenMiddleware } from "../middleware/tokenMiddleware.js";
 import { handleConnection } from "./handlers/connection.js";
 import { handleMessaging } from "./handlers/messaging.js";
 import { handleRooms } from "./handlers/rooms.js";
@@ -13,8 +16,18 @@ import { logger } from "../utils/logger.js";
 
 export const initHermesSocket = (io: Server) => {
   const hermes = io.of("/hermes");
+  const redisClient = getRedis();
+
+  if (redisClient) {
+    // Duplicate the client for sub/pub as required by @socket.io/redis-adapter
+    const pubClient = redisClient.duplicate();
+    const subClient = redisClient.duplicate();
+    io.adapter(createAdapter(pubClient, subClient));
+    logger.info("[Socket] Redis adapter attached");
+  }
 
   hermes.use(hermesSocketAuth);
+  hermes.use(tokenMiddleware);
 
   hermes.on("connection", async (socket) => {
     // ✅ Use hermesUserId — matches what auth middleware sets

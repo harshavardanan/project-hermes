@@ -13,12 +13,29 @@ export const handlePresence = (socket: Socket, io: Server) => {
 };
 
 // ── Typing ────────────────────────────────────────────────────────────────────
+const typingTimers = new Map<string, NodeJS.Timeout>();
+
 export const handleTyping = (socket: Socket, io: Server) => {
   const { hermesUserId, displayName } = (socket as any).hermesUser;
 
   socket.on("typing:start", (data) => {
     const { roomId } = data;
     if (!roomId) return;
+    
+    const key = `${hermesUserId}:${roomId}`;
+    
+    // Clear existing timer if any
+    if (typingTimers.has(key)) {
+      clearTimeout(typingTimers.get(key));
+    }
+    
+    // Set 5s TTL
+    const timer = setTimeout(() => {
+      typingTimers.delete(key);
+      socket.to(roomId).emit("typing:stopped", { userId: hermesUserId, displayName, roomId });
+    }, 5000);
+    typingTimers.set(key, timer);
+
     socket
       .to(roomId)
       .emit("typing:started", { userId: hermesUserId, displayName, roomId });
@@ -27,6 +44,13 @@ export const handleTyping = (socket: Socket, io: Server) => {
   socket.on("typing:stop", (data) => {
     const { roomId } = data;
     if (!roomId) return;
+    
+    const key = `${hermesUserId}:${roomId}`;
+    if (typingTimers.has(key)) {
+      clearTimeout(typingTimers.get(key));
+      typingTimers.delete(key);
+    }
+    
     socket
       .to(roomId)
       .emit("typing:stopped", { userId: hermesUserId, displayName, roomId });

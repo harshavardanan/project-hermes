@@ -47,13 +47,12 @@ lowlight.register("json", json);
 lowlight.register("css", css);
 lowlight.register("html", xml);
 
-const API = `${import.meta.env.VITE_ENDPOINT}/api/docs`;
-const UPLOAD = `${import.meta.env.VITE_ENDPOINT}/hermes/upload`;
+import { useAppConfig } from "../../store/appConfig";
 
-const uploadImage = async (file: File, token: string): Promise<string> => {
+const uploadImage = async (file: File, token: string, endpoint: string): Promise<string> => {
   const form = new FormData();
   form.append("file", file);
-  const res = await fetch(UPLOAD, {
+  const res = await fetch(`${endpoint}/hermes/upload`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: form,
@@ -76,7 +75,7 @@ const DocumentEditor = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [collapsedCats, setCollapsedCats] = useState<Set<string>>(new Set());
@@ -95,7 +94,7 @@ const DocumentEditor = () => {
     }
     setImageUploading(true);
     try {
-      const url = await uploadImage(file, token.current);
+      const url = await uploadImage(file, token.current, endpoint);
       editor?.chain().focus().setImage({ src: url }).run();
       showToast("Image uploaded ✓", "success");
     } catch (err: unknown) {
@@ -144,9 +143,11 @@ const DocumentEditor = () => {
     },
   });
 
+  const endpoint = useAppConfig((s) => s.endpoint);
+
   const fetchDocs = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/list`, { credentials: "include" });
+      const res = await fetch(`${endpoint}/api/docs/list`, { credentials: "include" });
       const json = await res.json();
       if (json.success) setDocs(json.data);
     } catch {
@@ -180,7 +181,7 @@ const DocumentEditor = () => {
     if (!editor) return;
     setIsLoading(true);
     try {
-      const res = await fetch(`${API}/get/${docSlug}`, {
+      const res = await fetch(`${endpoint}/api/docs/get/${docSlug}`, {
         credentials: "include",
       });
       const json = await res.json();
@@ -231,7 +232,7 @@ const DocumentEditor = () => {
       const derivedTitle = extractTitle();
       const derivedSlug = slugManuallyEdited ? slug : toSlug(derivedTitle);
       const res = await fetch(
-        activeDocId ? `${API}/update/${activeDocId}` : `${API}/save`,
+        activeDocId ? `${endpoint}/api/docs/update/${activeDocId}` : `${endpoint}/api/docs/save`,
         {
           method: activeDocId ? "PUT" : "POST",
           headers: { "Content-Type": "application/json" },
@@ -261,7 +262,7 @@ const DocumentEditor = () => {
   const handleDelete = async (slugToDelete: string) => {
     setIsDeleting(true);
     try {
-      const res = await fetch(`${API}/delete/${slugToDelete}`, {
+      const res = await fetch(`${endpoint}/api/docs/delete/${slugToDelete}`, {
         method: "DELETE",
         credentials: "include",
       });
@@ -294,7 +295,7 @@ const DocumentEditor = () => {
   const handleDragEnd = async () => {
     setDraggedId(null);
     try {
-      await fetch(`${API}/reorder`, {
+      await fetch(`${endpoint}/api/docs/reorder`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -336,12 +337,13 @@ const DocumentEditor = () => {
         <div className="px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 flex-grow min-w-0">
             <button
-              onClick={() => setSidebarOpen((p) => !p)}
-              className="text-[var(--brand-muted)] hover:text-[var(--brand-text)] transition-colors p-1 rounded"
+               onClick={() => setIsSidebarCollapsed((p) => !p)}
+               className="text-[var(--brand-muted)] hover:text-[var(--brand-text)] transition-colors p-1 rounded"
+               title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
             >
               <ChevronRight
                 size={18}
-                className={`transition-transform duration-200 ${sidebarOpen ? "rotate-180" : ""}`}
+                className={`transition-transform duration-200 ${isSidebarCollapsed ? "" : "rotate-180"}`}
               />
             </button>
             <div className="flex flex-col min-w-0 flex-grow">
@@ -568,32 +570,51 @@ const DocumentEditor = () => {
       {/* ── Body ── */}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        {sidebarOpen && (
-          <aside
-            className="w-64 shrink-0 border-r flex flex-col"
-            style={{
-              backgroundColor: "var(--brand-card)",
-              borderColor: "rgba(255,255,255,0.05)",
-            }}
+        <aside
+          className={`shrink-0 border-r flex flex-col transition-all duration-300 ease-in-out ${
+            isSidebarCollapsed ? "w-20" : "w-64"
+          }`}
+          style={{
+            backgroundColor: "var(--brand-card)",
+            borderColor: "rgba(255,255,255,0.05)",
+          }}
+        >
+          <div
+            className={`p-4 border-b ${isSidebarCollapsed ? "flex justify-center" : "flex items-center gap-3"}`}
+            style={{ borderColor: "rgba(255,255,255,0.05)" }}
           >
-            <div
-              className="p-3 border-b"
-              style={{ borderColor: "rgba(255,255,255,0.05)" }}
-            >
-              <button
-                onClick={handleNew}
-                className="w-full flex items-center justify-center gap-2 text-sm py-2 px-3 rounded-lg border border-dashed transition-all"
-                style={{
-                  borderColor: "rgba(255,255,255,0.1)",
-                  color: "var(--brand-muted)",
-                }}
-              >
-                <Plus size={14} /> New Document
-              </button>
+            <div className="w-6 h-6 shrink-0 flex items-center justify-center">
+              <img src="/vite.svg" alt="Logo" className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(255,255,255,0.05)]" />
             </div>
-            <div className="flex-1 overflow-y-auto p-2">
-              {Object.entries(groupedDocs).map(([cat, catDocs]) => (
-                <div key={cat} className="mb-2">
+            {!isSidebarCollapsed && (
+              <span className="font-bold tracking-widest text-[10px] uppercase text-brand-muted">
+                Editor
+              </span>
+            )}
+          </div>
+          <div
+            className={`p-3 border-b ${isSidebarCollapsed ? "flex justify-center" : ""}`}
+            style={{ borderColor: "rgba(255,255,255,0.05)" }}
+          >
+            <button
+              onClick={handleNew}
+              title="New Document"
+              className={`flex items-center justify-center gap-2 text-sm py-2 px-3 rounded-lg border border-dashed transition-all ${
+                isSidebarCollapsed ? "w-10 h-10 p-0" : "w-full"
+              }`}
+              style={{
+                borderColor: "rgba(255,255,255,0.1)",
+                color: "var(--brand-muted)",
+              }}
+            >
+              <Plus size={14} />
+              {!isSidebarCollapsed && "New Document"}
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-2">
+            {Object.entries(groupedDocs).map(([cat, catDocs]) => (
+              <div key={cat} className="mb-2">
+                {!isSidebarCollapsed && (
                   <button
                     onClick={() => toggleCat(cat)}
                     className="w-full flex items-center justify-between px-2 py-1.5 text-[10px] font-mono font-bold uppercase tracking-widest hover:text-[var(--brand-text)] transition-colors"
@@ -605,77 +626,92 @@ const DocumentEditor = () => {
                       className={`transition-transform duration-200 ${collapsedCats.has(cat) ? "" : "rotate-90"}`}
                     />
                   </button>
-                  {!collapsedCats.has(cat) &&
-                    catDocs.map((doc) => (
-                      <div
-                        key={doc._id}
-                        draggable
-                        onDragStart={() => handleDragStart(doc._id)}
-                        onDragOver={(e) => handleDragOver(e, doc._id)}
-                        onDragEnd={handleDragEnd}
-                        onClick={() => openDoc(doc.slug)}
-                        className={`group flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all ${
-                          activeDocId === doc._id
-                            ? "bg-white/5 text-[var(--brand-text)]"
-                            : "text-[var(--brand-muted)] hover:bg-white/[0.03] hover:text-[var(--brand-text)]"
-                        } ${draggedId === doc._id ? "opacity-40 scale-95" : ""}`}
-                      >
+                )}
+                
+                {isSidebarCollapsed && (
+                    <div className="w-full h-px bg-white/5 my-2" />
+                )}
+
+                {(!isSidebarCollapsed && collapsedCats.has(cat)) ? null : (
+                  catDocs.map((doc) => (
+                    <div
+                      key={doc._id}
+                      draggable
+                      onDragStart={() => handleDragStart(doc._id)}
+                      onDragOver={(e) => handleDragOver(e, doc._id)}
+                      onDragEnd={handleDragEnd}
+                      onClick={() => openDoc(doc.slug)}
+                      title={isSidebarCollapsed ? `${cat}: ${doc.title}` : ""}
+                      className={`group flex items-center rounded-lg cursor-pointer transition-all ${
+                        isSidebarCollapsed ? "justify-center p-2.5 mb-1" : "gap-2 px-3 py-2.5"
+                      } ${
+                        activeDocId === doc._id
+                          ? "bg-white/5 text-[var(--brand-text)]"
+                          : "text-[var(--brand-muted)] hover:bg-white/[0.03] hover:text-[var(--brand-text)]"
+                      } ${draggedId === doc._id ? "opacity-40 scale-95" : ""}`}
+                    >
+                      {!isSidebarCollapsed && (
                         <GripVertical
                           size={12}
                           className="shrink-0 opacity-20 group-hover:opacity-100 cursor-grab"
                         />
-                        <FileText size={13} className="shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium truncate">
-                            {doc.title}
-                          </p>
-                          <p className="text-[10px] font-mono opacity-40 truncate">
-                            {timeAgo(doc.lastUpdated)}
-                            {doc.status === "draft" && (
-                              <span className="ml-1 text-yellow-600">
-                                • draft
-                              </span>
-                            )}
-                          </p>
-                        </div>
-                        {confirmDelete === doc.slug ? (
-                          <div
-                            className="flex items-center gap-1"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <button
-                              onClick={() => handleDelete(doc.slug)}
-                              disabled={isDeleting}
-                              className="text-[10px] text-red-400 font-mono"
-                            >
-                              yes
-                            </button>
-                            <span className="opacity-20 text-[10px]">/</span>
-                            <button
-                              onClick={() => setConfirmDelete(null)}
-                              className="text-[10px] opacity-40 font-mono"
-                            >
-                              no
-                            </button>
+                      )}
+                      <FileText size={16} className="shrink-0" />
+                      {!isSidebarCollapsed && (
+                        <>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium truncate">
+                              {doc.title}
+                            </p>
+                            <p className="text-[10px] font-mono opacity-40 truncate">
+                              {timeAgo(doc.lastUpdated)}
+                              {doc.status === "draft" && (
+                                <span className="ml-1 text-yellow-600">
+                                  • draft
+                                </span>
+                              )}
+                            </p>
                           </div>
-                        ) : (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setConfirmDelete(doc.slug);
-                            }}
-                            className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 transition-all"
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                </div>
-              ))}
-            </div>
-          </aside>
-        )}
+                          {confirmDelete === doc.slug ? (
+                            <div
+                              className="flex items-center gap-1"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <button
+                                onClick={() => handleDelete(doc.slug)}
+                                disabled={isDeleting}
+                                className="text-[10px] text-red-400 font-mono"
+                              >
+                                yes
+                              </button>
+                              <span className="opacity-20 text-[10px]">/</span>
+                              <button
+                                onClick={() => setConfirmDelete(null)}
+                                className="text-[10px] opacity-40 font-mono"
+                              >
+                                no
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConfirmDelete(doc.slug);
+                              }}
+                              className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 transition-all"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            ))}
+          </div>
+        </aside>
 
         {/* Editor */}
         <main className="flex-1 overflow-y-auto relative">

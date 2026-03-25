@@ -20,7 +20,7 @@ const ChartCard = ({ title, data, color, value }: ChartCardProps) => {
           .join(" ")
       : "";
   return (
-    <div className="bg-[#111] border border-white/10 rounded-xl p-5 overflow-hidden">
+    <div className="bg-brand-card border border-white/10 rounded-xl p-5 overflow-hidden">
       <div className="flex justify-between items-start mb-4">
         <div className="font-sans text-[10px] font-bold text-slate-500 uppercase tracking-widest">
           {title}

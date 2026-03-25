@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { X, ShieldCheck } from "lucide-react";
+import { useAppConfig } from "../store/appConfig";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -33,6 +34,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [isNewUser, setIsNewUser] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  const endpoint = useAppConfig((s) => s.endpoint);
 
   const stopPolling = () => {
     if (pollRef.current) clearInterval(pollRef.current);
@@ -49,17 +52,17 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     setUserName(name);
     setIsNewUser(isNew);
     setState("success");
-    setTimeout(() => {
+    timeoutRef.current = setTimeout(() => {
       onClose();
-      window.location.reload();
-    }, 2500);
+      // App.tsx will handle the query invalidation or the reload if needed.
+    }, 2000);
   };
 
   const startPolling = () => {
     stopPolling();
     pollRef.current = setInterval(async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_ENDPOINT}/auth/me`, {
+        const res = await fetch(`${endpoint}/auth/me`, {
           credentials: "include",
         });
         if (res.ok) {
@@ -69,32 +72,30 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       } catch {
         // not logged in yet, keep polling
       }
-    }, 1000);
+    }, 1500);
 
     // stop after 2 minutes
     timeoutRef.current = setTimeout(stopPolling, 120000);
   };
 
-  // Keep postMessage as fallback for desktop
+  // The AuthModal only handles the UI "Success" animation.
+  // The actual window reload is centralized in App.tsx to avoid race conditions.
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== import.meta.env.VITE_ENDPOINT) return;
-      const isSuccess =
-        event.data === "auth_success" ||
-        (event.data && event.data.type === "AUTH_SUCCESS");
-      if (!isSuccess) return;
-      fetch(`${import.meta.env.VITE_ENDPOINT}/auth/me`, {
-        credentials: "include",
-      })
-        .then((r) => (r.ok ? r.json() : null))
-        .then((user) => {
-          if (user?._id) handleAuthSuccess(user);
-        })
-        .catch(() => {});
+      if (event.data?.type === "HERMES_AUTH_SUCCESS" || event.data === "auth_success") {
+        // We just let App.tsx handle the reload.
+        // We can show the success UI here if we want, but since App.tsx reloads,
+        // keep it simple or show the success state immediately.
+        if (state === "idle") {
+           // We'll trust the centralized listener to do the reload.
+           // If we want to show the 'Success' checkmark here, we'd need to avoid the App.tsx reload 
+           // for a second or two. For now, transparency is better.
+        }
+      }
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [onClose]);
+  }, [state]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -114,7 +115,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     const left = window.screenX + (window.outerWidth - width) / 2;
     const top = window.screenY + (window.outerHeight - height) / 2;
     window.open(
-      `${import.meta.env.VITE_ENDPOINT}/auth/google`,
+      `${endpoint}/auth/google`,
       "auth-popup",
       `width=${width},height=${height},left=${left},top=${top},resizable=yes`,
     );
@@ -197,7 +198,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
             <div className="px-8 pt-10 pb-8">
               <div className="mb-8">
-                <p className="text-[10px] font-mono text-white/20 uppercase tracking-widest mb-2">
+                <div className="w-8 h-8 mb-4">
+                  <img src="/vite.svg" alt="Hermes Logo" className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(255,255,255,0.05)]" />
+                </div>
+                <p className="text-[10px] font-mono text-white/20 uppercase tracking-widest mb-1 leading-none">
                   Project Hermes
                 </p>
                 <h2 className="text-2xl font-black text-white tracking-tight">

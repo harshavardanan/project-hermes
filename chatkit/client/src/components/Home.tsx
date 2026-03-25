@@ -6,26 +6,24 @@ import FeaturesSection from "./Home/FeaturesSection";
 import TerminalSection from "./Home/TerminalSection";
 import Stats from "./Home/Stats";
 import Footer from "./Home/Footer";
-import type { UserData } from "../types";
+import { useAppConfig } from "../store/appConfig";
 
 export default function Home({
-  user,
   onSignInClick,
 }: {
-  user: UserData | null;
   onSignInClick: () => void;
 }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [healthData, setHealthData] = useState<any>(null);
   const [latency, setLatency] = useState<number | null>(null);
 
+  const endpoint = useAppConfig((s) => s.endpoint);
+
   useEffect(() => {
     const fetchHealth = async () => {
       const start = Date.now();
       try {
-        const res = await fetch(
-          `${import.meta.env.VITE_ENDPOINT}/hermes/health`,
-        );
+        const res = await fetch(`${endpoint}/hermes/health`);
         if (res.ok) {
           const data = await res.json();
           setHealthData(data);
@@ -39,12 +37,12 @@ export default function Home({
     fetchHealth();
     const interval = setInterval(fetchHealth, 15000);
     return () => clearInterval(interval);
-  }, []);
+  }, [endpoint]);
 
   return (
     <div className="bg-brand-bg text-brand-text min-h-screen font-sans selection:bg-brand-primary/30 flex flex-col overflow-x-hidden">
       <main className="flex flex-col items-center">
-        <Hero user={user} onSignInClick={onSignInClick} />
+        <Hero onSignInClick={onSignInClick} />
         <LiveStatsBar healthData={healthData} latency={latency} />
         <FeaturesSection />
         <TerminalSection />

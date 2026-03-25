@@ -111,7 +111,7 @@ export function Terminal({
 
   return (
     <div
-      className={`relative bg-[#0c0c0e] rounded-2xl border border-white/10 overflow-hidden shadow-2xl flex flex-col h-[350px] ${className}`}
+      className={`relative bg-brand-card rounded-2xl border border-white/10 overflow-hidden shadow-2xl flex flex-col h-[350px] ${className}`}
     >
       {/* Mac OS Window Header */}
       <div className="flex items-center gap-1.5 px-4 py-3 border-b border-white/5 bg-white/[0.02] shrink-0">

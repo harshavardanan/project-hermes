@@ -3,6 +3,7 @@ import { Message, type IMessage, type MessageType } from "../models/Message.js";
 import { Room } from "../models/Room.js";
 import { Member } from "../models/Member.js";
 import { Project } from "../../../models/Projects.js";
+import User from "../../../models/Users.js";
 import { encrypt, decrypt } from "../utils/encryption.js";
 import { logger } from "../utils/logger.js";
 
@@ -27,26 +28,25 @@ export const sendMessage = async (
 ): Promise<{ message?: any; error?: string }> => {
   const { roomId, senderId } = input;
 
-  // 1. Fetch room and populate Project + Plan to check limits
-  const room = await Room.findById(roomId).populate({
-    path: "projectId",
-    populate: { path: "plan" },
-  });
+  // 1. Fetch room and populate Project
+  const room = await Room.findById(roomId).populate("projectId");
 
   if (!room || room.isDeleted) return { error: "Room not found" };
 
-  // 2. 🛡️ TOKEN GUARD CLAUSE
+  // 2. 🛡️ ACCOUNT-WIDE TOKEN GUARD
   const project = room.projectId as any;
-  if (project && project.plan) {
-    const dailyLimit = project.plan.dailyLimit || 0;
-    const usedToday = project.usage?.dailyTokens || 0;
+  if (project?.userId) {
+    const owner = await User.findById(project.userId).populate("plan");
+    if (owner) {
+      const dailyLimit = (owner.plan as any)?.dailyLimit || 1000;
+      const usedToday = owner.dailyTokensUsed || 0;
 
-    // Check if user is over the limit
-    if (usedToday >= dailyLimit) {
-      console.log(
-        `[Hermes] 🛑 LIMIT HIT: Project ${project.projectName} (${usedToday}/${dailyLimit})`,
-      );
-      return { error: "TOKEN_LIMIT_EXCEEDED" };
+      if (usedToday >= dailyLimit) {
+        logger.warn(
+          `[Hermes] 🛑 ACCOUNT LIMIT HIT: User ${owner.displayName} (${usedToday}/${dailyLimit})`,
+        );
+        return { error: "TOKEN_LIMIT_EXCEEDED" };
+      }
     }
   }
 
@@ -93,13 +93,20 @@ export const sendMessage = async (
 
   logger.socket("MSG_SENT", senderId, `room:${roomId} type:${input.type}`);
 
-  // 4. 🚀 ATOMIC TOKEN TRACKING
+  // 4. 🚀 ATOMIC TOKEN TRACKING (Account-wide + per-project)
   if (project?._id) {
     try {
       const charCount = input.text ? input.text.length : 0;
       const tokensUsed = 5 + Math.ceil(charCount / 4);
 
-      // Use findByIdAndUpdate for atomic incrementing
+      // Increment on User (account-wide pool)
+      if (project.userId) {
+        await User.findByIdAndUpdate(project.userId, {
+          $inc: { dailyTokensUsed: tokensUsed },
+        }).exec();
+      }
+
+      // Also track on Project for per-project breakdown
       await Project.findByIdAndUpdate(project._id, {
         $inc: {
           "usage.dailyTokens": tokensUsed,
@@ -107,11 +114,11 @@ export const sendMessage = async (
         },
       }).exec();
 
-      console.log(
+      logger.info(
         `[Hermes Engine] 🪙 Logged ${tokensUsed} tokens for ${project.projectName}`,
       );
     } catch (err) {
-      console.error("❌ Token tracking error:", err);
+      logger.error("Token tracking error:", err);
     }
   }
 

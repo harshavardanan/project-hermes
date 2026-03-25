@@ -1,4 +1,4 @@
-import { Share2, Rss, Zap, Terminal, Code2, ArrowRight } from "lucide-react";
+import { Share2, Rss, Terminal, Code2, ArrowRight } from "lucide-react";
 
 const Footer = () => {
   return (
@@ -8,8 +8,8 @@ const Footer = () => {
           {/* Brand Column */}
           <div className="col-span-1 md:col-span-2 lg:col-span-3 flex flex-col gap-6">
             <div className="flex items-center gap-3">
-              <div className="size-8 flex items-center justify-center bg-brand-primary rounded-lg text-black">
-                <Zap size={20} fill="currentColor" />
+              <div className="size-8 flex items-center justify-center">
+                <img src="/vite.svg" alt="Hermes Logo" className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(255,255,255,0.05)]" />
               </div>
               <h2 className="text-white text-xl font-extrabold tracking-tight uppercase">
                 Hermes

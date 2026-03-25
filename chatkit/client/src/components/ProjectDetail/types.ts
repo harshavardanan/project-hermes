@@ -13,7 +13,6 @@ export interface Project {
   secret: string;
   createdAt: string;
   endpoint?: string;
-  region?: string;
   plan?: {
     name?: string;
     dailyLimit?: number;

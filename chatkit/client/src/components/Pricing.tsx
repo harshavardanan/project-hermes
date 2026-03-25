@@ -1,5 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronDown } from "lucide-react";
+import { useAppConfig } from "../store/appConfig";
+import { useUserStore } from "../store/userStore";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface Plan {
   _id: string;
@@ -11,29 +15,52 @@ interface Plan {
 }
 
 const Pricing = () => {
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">(
-    "monthly",
-  );
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
+  const endpoint = useAppConfig((s) => s.endpoint);
+  const { user, setUser } = useUserStore();
+  const queryClient = useQueryClient();
+  const [upgradingId, setUpgradingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchPlans = async () => {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_ENDPOINT}/api/plans`, {
-          credentials: "include",
-        });
-        if (!res.ok) throw new Error("Failed to fetch plans.");
-        const data = await res.json();
-        setPlans(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error("Failed to fetch plans", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPlans();
-  }, []);
+  const handleUpgrade = async (planId: string) => {
+    if (!user) {
+      alert("Please login to upgrade your plan.");
+      return;
+    }
+    
+    setUpgradingId(planId);
+    try {
+      const res = await fetch(`${endpoint}/api/user/upgrade`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetPlanId: planId }),
+        credentials: "include",
+      });
+
+      if (!res.ok) throw new Error("Upgrade failed");
+      
+      const data = await res.json();
+      setUser(data.user);
+      // Refresh all auth-related queries
+      queryClient.invalidateQueries({ queryKey: ["auth_me"] });
+      alert(`Success: ${data.message}`);
+    } catch (err: any) {
+      alert(err.message || "Something went wrong during upgrade.");
+    } finally {
+      setUpgradingId(null);
+    }
+  };
+
+  const { data: plansData, isLoading: loading } = useQuery<Plan[]>({
+    queryKey: ["plans"],
+    queryFn: async () => {
+      const res = await fetch(`${endpoint}/api/plans`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch plans.");
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
+  const plans: Plan[] = Array.isArray(plansData) ? plansData : [];
 
   if (loading)
     return (
@@ -131,13 +158,21 @@ const Pricing = () => {
                 </ul>
 
                 <button
-                  className={`w-full py-4 rounded-xl font-black uppercase tracking-widest transition-all active:scale-95 ${
+                  disabled={upgradingId === plan._id || (user?.plan as any)?._id === plan._id}
+                  onClick={() => handleUpgrade(plan._id)}
+                  className={`w-full py-4 rounded-xl font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
                     isPopular
                       ? "bg-[var(--brand-primary)] text-black  hover:brightness-110"
                       : "bg-[var(--brand-bg)] text-white border border-[var(--brand-border)] hover:bg-[var(--brand-border)]"
                   }`}
                 >
-                  {plan.planId === "pro" ? "Contact Sales" : "Start Building"}
+                  {upgradingId === plan._id 
+                    ? "Processing..." 
+                    : (user?.plan as any)?._id === plan._id 
+                      ? "Current Plan" 
+                      : plan.planId === "pro" 
+                        ? "Contact Sales" 
+                        : "Start Building"}
                 </button>
               </div>
             );

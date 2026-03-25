@@ -90,6 +90,7 @@ import projectRoutes from "./routes/ProjectsRoute.js";
 import authRoutes from "./routes/auth.js";
 import pricingRoutes from "./routes/PricingRoute.js";
 import docRoutes from "./routes/Docroute.js";
+import adminRoutes from "./routes/AdminRoute.js";
 import { initHermes } from "./hermes-engine/src/index.js";
 
 export async function start() {
@@ -118,8 +119,8 @@ export async function start() {
       store: MongoStore.create({ mongoUrl: mongoUri }),
       cookie: {
         maxAge: 7 * 24 * 60 * 60 * 1000,
-        secure: true,
-        sameSite: "none",
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         httpOnly: true,
       },
     }),
@@ -132,6 +133,7 @@ export async function start() {
   app.use("/api", pricingRoutes);
   app.use("/auth", authRoutes);
   app.use("/api", projectRoutes);
+  app.use("/api/admin", adminRoutes);
 
   const server = http.createServer(app);
   const io = new Server(server, {

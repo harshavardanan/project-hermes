@@ -3,6 +3,7 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { Strategy as GitHubStrategy } from "passport-github2";
 import { Strategy as MicrosoftStrategy } from "passport-microsoft";
 import User from "../models/Users.js";
+import { Plan } from "../models/Plans.js";
 import type { IUser } from "../types/user.js";
 
 passport.serializeUser((user: any, done) => {
@@ -44,14 +45,27 @@ const authHandler = async (
 
     // 3. If still no user, perform SIGNUP (Create new user)
     if (!user) {
+      // Auto-assign the free plan to new users
+      const freePlan = await Plan.findOne({ planId: "free" });
+
       user = await User.create({
         [idField]: profile.id,
         displayName: profile.displayName,
         email: email,
         avatar: profile.photos?.[0]?.value,
         isAdmin: false, // 🔒 Mandatory: Always default to false for new signups
+        plan: freePlan?._id || null,
       });
       console.log(`New Project Hermes user created: ${email}`);
+    }
+
+    // Ensure existing users without a plan get one on next login
+    if (user && !user.plan) {
+      const freePlan = await Plan.findOne({ planId: "free" });
+      if (freePlan) {
+        user.plan = freePlan._id;
+        await user.save();
+      }
     }
 
     return done(null, user);

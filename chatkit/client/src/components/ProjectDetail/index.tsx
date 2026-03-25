@@ -1,11 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import {
   BarChart3,
   Settings,
   Key,
-  Globe,
-  Zap,
   Loader2,
   Users,
   MessageSquare,
@@ -17,6 +16,9 @@ import {
   Cpu,
   Database,
   Radio,
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 import type { Project } from "./types";
@@ -27,18 +29,21 @@ import HermesConfigJson from "./HermesConfigJson";
 import SectionHeader from "./SectionHeader";
 import SettingsCard from "./SettingsCard";
 import ChartCard from "./ChartCard";
-
-const BASE = import.meta.env.VITE_ENDPOINT;
+import { useAppConfig } from "../../store/appConfig";
+import { useUserStore } from "../../store/userStore";
 
 const ProjectDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const endpoint = useAppConfig((s) => s.endpoint);
+  const user = useUserStore((s) => s.user);
+  
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [tab, setTab] = useState("overview");
-  const [project, setProject] = useState<Project | null>(null);
-  const [loading, setLoading] = useState(true);
   const [deleteModal, setDeleteModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleting, setDeleting] = useState(false);
+  
   const [tokenHistory, setTokenHistory] = useState<number[]>([]);
   const [userHistory, setUserHistory] = useState<number[]>([]);
   const [msgHistory, setMsgHistory] = useState<number[]>([]);
@@ -46,35 +51,31 @@ const ProjectDetail = () => {
 
   const PAGE_SIZE = 10;
 
-  const fetchProject = async () => {
-    try {
-      const res = await fetch(`${BASE}/api/projects/${id}`, {
+  const { data: project, isLoading: loading } = useQuery<Project>({
+    queryKey: ["project", id],
+    queryFn: async () => {
+      const res = await fetch(`${endpoint}/api/projects/${id}`, {
         credentials: "include",
       });
-      if (res.ok) {
-        const data = await res.json();
-        setProject(data);
-        setTokenHistory((h) => [...h.slice(-19), data.usage?.dailyTokens ?? 0]);
-        setUserHistory((h) => [...h.slice(-19), data.stats?.totalUsers ?? 0]);
-        setMsgHistory((h) => [...h.slice(-19), data.stats?.totalMessages ?? 0]);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (!res.ok) throw new Error("Failed to fetch project");
+      const data = await res.json();
+      
+      // Update charts
+      setTokenHistory((h) => [...h.slice(-19), data.usage?.dailyTokens ?? 0]);
+      setUserHistory((h) => [...h.slice(-19), data.stats?.totalUsers ?? 0]);
+      setMsgHistory((h) => [...h.slice(-19), data.stats?.totalMessages ?? 0]);
+      
+      return data;
+    },
+    refetchInterval: 5000, // Still poll every 5s for dashboard
+  });
 
-  useEffect(() => {
-    fetchProject();
-    const iv = setInterval(fetchProject, 5000);
-    return () => clearInterval(iv);
-  }, [id]);
+// UseEffect removed in favor of React Query cache polling
 
   const handleDelete = async () => {
     if (!project || deleteConfirm !== project.projectName) return;
     setDeleting(true);
-    const res = await fetch(`${BASE}/api/projects/${id}`, {
+    const res = await fetch(`${endpoint}/api/projects/${id}`, {
       method: "DELETE",
       credentials: "include",
     });
@@ -101,12 +102,13 @@ const ProjectDetail = () => {
       </div>
     );
 
-  const dailyLimit = project.plan?.dailyLimit ?? 0;
-  const usedTokens = project.usage?.dailyTokens ?? 0;
+  // Use account-wide limits from the User store
+  const dailyLimit = (user?.plan as any)?.dailyLimit ?? 0;
+  const usedTokens = user?.dailyTokensUsed ?? 0; // Shared total across all projects
   const totalAllTime = project.usage?.totalTokensAllTime ?? 0;
   const usagePct = dailyLimit > 0 ? (usedTokens / dailyLimit) * 100 : 0;
-  const planName = project.plan?.name ?? "Free";
-  const planPrice = project.plan?.monthlyPrice ?? 0;
+  const planName = (user?.plan as any)?.name ?? "Free";
+  const planPrice = (user?.plan as any)?.monthlyPrice ?? 0;
   const totalUsers =
     project.stats?.totalUsers ?? project.usage?.totalUsers ?? 0;
   const activeUsers =
@@ -149,23 +151,49 @@ const ProjectDetail = () => {
   return (
     <div className="flex min-h-[calc(100vh-64px)] bg-brand-bg text-white">
       {/* ── Sidebar ── */}
-      <aside className="w-64 shrink-0 fixed top-16 left-0 h-[calc(100vh-64px)] flex flex-col bg-[#0a0a0a] border-r border-white/10 z-40 p-4">
-        <div className="pb-5 border-b border-white/10 mb-4 px-2 mt-2">
-          <div className="flex items-center gap-2 mb-2">
-            <Globe size={14} className="text-brand-primary shrink-0" />
-            <span className="font-sans text-[10px] font-bold text-slate-500 tracking-[0.15em] uppercase">
-              {project.region || "Global Edge"}
-            </span>
-          </div>
-          <div className="font-sans text-lg font-black text-white tracking-tight break-words leading-tight">
-            {project.projectName}
-          </div>
-          <div className="flex items-center gap-2 mt-3 bg-brand-primary/10 w-fit px-2 py-1 rounded-md border border-brand-primary/20">
-            <div className="w-1.5 h-1.5 rounded-full bg-brand-primary shadow-none " />
-            <span className="font-sans text-[9px] font-bold text-brand-primary tracking-widest uppercase">
-              Operational
-            </span>
-          </div>
+      <aside 
+        className={`shrink-0 fixed top-16 left-0 h-[calc(100vh-64px)] flex flex-col bg-brand-bg border-r border-white/10 z-40 p-4 transition-all duration-300 ease-in-out ${
+          isSidebarCollapsed ? "w-20" : "w-64"
+        }`}
+      >
+        <div className={`pb-5 border-b border-white/10 mb-4 px-2 mt-2 relative ${isSidebarCollapsed ? "flex flex-col items-center" : ""}`}>
+          <button
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="absolute -right-7 top-6 p-1 rounded-md bg-brand-bg border border-white/10 text-slate-500 hover:text-white transition-colors z-50"
+          >
+            {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+          </button>
+
+          <button
+            onClick={() => navigate("/dashboard")}
+            title="Back to Dashboard"
+            className={`flex items-center gap-2 text-[10px] font-bold text-slate-500 hover:text-white transition-colors uppercase tracking-[0.2em] mb-6 group ${isSidebarCollapsed ? "justify-center" : ""}`}
+          >
+            <ArrowLeft
+              size={12}
+              className="group-hover:-translate-x-1 transition-transform shrink-0"
+            />
+            {!isSidebarCollapsed && "Back to Dashboard"}
+          </button>
+
+          {!isSidebarCollapsed && (
+            <>
+              <div className="font-sans text-lg font-black text-white tracking-tight break-words leading-tight">
+                {project.projectName}
+              </div>
+              <div className="flex items-center gap-2 mt-3 bg-brand-primary/10 w-fit px-2 py-1 rounded-md border border-brand-primary/20">
+                <div className="w-1.5 h-1.5 rounded-full bg-brand-primary shadow-none " />
+                <span className="font-sans text-[9px] font-bold text-brand-primary tracking-widest uppercase">
+                  Operational
+                </span>
+              </div>
+            </>
+          )}
+          {isSidebarCollapsed && (
+            <div className="w-8 h-8 rounded-lg bg-brand-primary/10 flex items-center justify-center text-brand-primary border border-brand-primary/20 font-black text-xs">
+              {project.projectName.charAt(0).toUpperCase()}
+            </div>
+          )}
         </div>
         <nav className="flex-1 flex flex-col gap-1.5">
           {navItems.map((n) => (
@@ -176,24 +204,32 @@ const ProjectDetail = () => {
               active={tab === n.id}
               onClick={() => handleTabChange(n.id)}
               badge={n.badge}
+              isCollapsed={isSidebarCollapsed}
             />
           ))}
         </nav>
-        <div className="mt-auto p-4 bg-[#111] border border-white/10 rounded-xl">
-          <div className="font-sans text-[10px] font-bold text-slate-500 tracking-widest uppercase mb-1">
-            Current Plan
+        
+        {!isSidebarCollapsed && (
+          <div className="mt-auto p-4 bg-brand-card border border-white/10 rounded-xl">
+            <div className="font-sans text-[10px] font-bold text-slate-500 tracking-widest uppercase mb-1">
+              Current Plan
+            </div>
+            <div className="font-sans text-sm font-black text-brand-primary tracking-tight">
+              {planName.toUpperCase()}
+            </div>
+            <div className="font-sans text-xs text-slate-400 font-medium mt-1">
+              {planPrice > 0 ? `$${planPrice}/mo` : "Free tier"}
+            </div>
           </div>
-          <div className="font-sans text-sm font-black text-brand-primary tracking-tight">
-            {planName.toUpperCase()}
-          </div>
-          <div className="font-sans text-xs text-slate-400 font-medium mt-1">
-            {planPrice > 0 ? `$${planPrice}/mo` : "Free tier"}
-          </div>
-        </div>
+        )}
       </aside>
 
       {/* ── Main ── */}
-      <main className="flex-1 ml-64 p-8 pt-24 lg:p-12 lg:pt-28 overflow-y-auto">
+      <main 
+        className={`flex-1 overflow-y-auto w-full transition-all duration-300 ease-in-out ${
+          isSidebarCollapsed ? "ml-20" : "ml-64"
+        } p-8 pt-24 lg:p-12 lg:pt-28`}
+      >
         <div className="max-w-5xl mx-auto animate-in fade-in duration-500">
           {/* OVERVIEW */}
           {tab === "overview" && (
@@ -235,11 +271,11 @@ const ProjectDetail = () => {
                   accent="#ffffff"
                 />
               </div>
-              <div className="bg-[#111] border border-white/10 rounded-2xl p-6 lg:p-8">
+              <div className="bg-brand-card border border-white/10 rounded-2xl p-6 lg:p-8">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 gap-4">
                   <div>
                     <div className="font-sans text-xs font-bold text-slate-500 tracking-[0.15em] uppercase mb-2">
-                      Daily Token Consumption
+                      Total Account Consumption (Daily)
                     </div>
                     <div className="flex items-baseline gap-2">
                       <span className="font-mono text-4xl font-black text-white tracking-tight">
@@ -289,7 +325,7 @@ const ProjectDetail = () => {
                     icon: <Clock size={16} />,
                     label: "Created",
                     value: createdAt,
-                    sub: project.region || "Global",
+                    sub: "Date",
                   },
                 ].map(({ icon, label, value, sub }) => (
                   <div
@@ -342,7 +378,7 @@ const ProjectDetail = () => {
                   color="#a855f7"
                   value={`${activeUsers} online`}
                 />
-                <div className="bg-[#111] border border-white/10 rounded-2xl p-6">
+                <div className="bg-brand-card border border-white/10 rounded-2xl p-6">
                   <div className="font-sans text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-5">
                     Plan Limits
                   </div>
@@ -356,13 +392,13 @@ const ProjectDetail = () => {
                     {
                       label: "Active Users",
                       used: activeUsers,
-                      max: project.plan?.maxUsers ?? 100,
+                      max: (user?.plan as any)?.maxUsers ?? 100,
                       color: "#a855f7",
                     },
                     {
                       label: "Rooms",
                       used: totalRooms,
-                      max: project.plan?.maxRooms ?? 500,
+                      max: (user?.plan as any)?.maxRooms ?? 500,
                       color: "#3b82f6",
                     },
                   ].map(({ label, used, max, color }) => (
@@ -419,7 +455,7 @@ const ProjectDetail = () => {
                 ].map(({ label, value, icon, color }) => (
                   <div
                     key={label}
-                    className="bg-[#111] border border-white/10 rounded-xl p-5"
+                    className="bg-brand-card border border-white/10 rounded-xl p-5"
                   >
                     <div className="flex justify-between items-center mb-2">
                       <span className="font-sans text-[10px] font-bold text-slate-500 uppercase tracking-widest">
@@ -448,7 +484,7 @@ const ProjectDetail = () => {
                   (usersPage + 1) * PAGE_SIZE,
                 );
                 return (
-                  <div className="bg-[#111] border border-white/10 rounded-xl overflow-hidden">
+                  <div className="bg-brand-card border border-white/10 rounded-xl overflow-hidden">
                     <div className="grid grid-cols-4 p-4 bg-black/40 border-b border-white/10 font-sans text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                       <span>User</span>
                       <span>Status</span>
@@ -546,7 +582,7 @@ const ProjectDetail = () => {
                 title="Settings"
                 sub="Manage your project configuration"
               />
-              <SettingsCard title="Subscription Plan" icon={<Zap size={18} />}>
+              <SettingsCard title="Subscription Plan" icon={<div className="w-4 h-4 flex items-center justify-center"><img src="/vite.svg" alt="Plan" className="w-full h-full object-contain" /></div>}>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <div className="font-sans text-base font-black text-brand-primary mb-1">
@@ -601,7 +637,7 @@ const ProjectDetail = () => {
       {/* ── Delete modal ── */}
       {deleteModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="bg-[#111] border border-red-500/30 rounded-2xl p-8 w-full max-w-md shadow-[0_0_50px_rgba(239,68,68,0.15)]">
+          <div className="bg-brand-card border border-red-500/30 rounded-2xl p-8 w-full max-w-md shadow-[0_0_50px_rgba(239,68,68,0.15)]">
             <div className="font-sans text-xl font-bold text-red-500 mb-3 tracking-tight">
               Delete Project?
             </div>

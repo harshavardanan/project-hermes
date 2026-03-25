@@ -10,7 +10,6 @@ const HermesConfigJson = ({ project, showSecret = false }: { project: Project; s
     apiKey: project.apiKey ?? "",
     secret: project.secret ?? "",
     endpoint: project.endpoint ?? "",
-    region: project.region ?? "",
   };
 
   const raw = JSON.stringify(config, null, 2);
@@ -48,7 +47,7 @@ const HermesConfigJson = ({ project, showSecret = false }: { project: Project; s
   };
 
   return (
-    <div className="bg-[#0d1117] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
+    <div className="bg-brand-card border border-white/10 rounded-2xl overflow-hidden shadow-xl">
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-black/40">
         <div className="flex items-center gap-3">
           <div className="flex gap-1.5">
