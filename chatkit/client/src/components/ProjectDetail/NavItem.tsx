@@ -21,7 +21,7 @@ const NavItem = ({
   <button
     onClick={onClick}
     title={isCollapsed ? label : ""}
-    className={`w-full flex items-center rounded-lg border-none cursor-pointer transition-all duration-200 text-left font-sans text-sm
+    className={`md:w-full w-auto whitespace-nowrap shrink-0 flex items-center rounded-lg border-none cursor-pointer transition-all duration-200 text-left font-sans text-sm
       ${isCollapsed ? "justify-center p-2.5" : "gap-3 px-3 py-2.5"}
       ${
         active

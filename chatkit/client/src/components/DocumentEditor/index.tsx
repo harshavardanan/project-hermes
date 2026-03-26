@@ -564,11 +564,11 @@ const DocumentEditor = () => {
       </header>
 
       {/* ── Body ── */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
         {/* Sidebar */}
         <aside
-          className={`shrink-0 border-r flex flex-col transition-all duration-300 ease-in-out ${
-            isSidebarCollapsed ? "w-20" : "w-64"
+          className={`shrink-0 md:border-r border-b flex flex-col transition-all duration-300 ease-in-out ${
+            isSidebarCollapsed ? "hidden md:flex md:w-20" : "w-full md:w-64 max-h-[30vh] md:max-h-none overflow-y-auto"
           }`}
           style={{
             backgroundColor: "var(--brand-card)",

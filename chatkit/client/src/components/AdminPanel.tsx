@@ -193,22 +193,22 @@ const Admin = () => {
   ];
 
   return (
-    <div className="flex bg-brand-bg min-h-screen text-white">
+    <div className="flex flex-col md:flex-row bg-brand-bg min-h-screen text-white">
       {/* Admin Sidebar */}
       <aside
-        className={`border-r border-brand-border bg-brand-card flex flex-col pt-24 shrink-0 transition-all duration-300 ease-in-out relative ${
-          isCollapsed ? "w-20" : "w-64"
+        className={`md:border-r border-b border-brand-border bg-brand-card flex flex-col md:pt-24 shrink-0 transition-all duration-300 ease-in-out relative w-full ${
+          isCollapsed ? "md:w-20" : "md:w-64"
         }`}
       >
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute -right-3 top-28 p-1 rounded-md bg-brand-card border border-brand-border text-brand-muted hover:text-white transition-colors z-50"
+          className="hidden md:block absolute -right-3 top-28 p-1 rounded-md bg-brand-card border border-brand-border text-brand-muted hover:text-white transition-colors z-50"
         >
           {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
 
         <div
-          className={`px-6 mb-8 ${isCollapsed ? "flex flex-col items-center px-2" : ""}`}
+          className={`px-4 md:px-6 mb-4 md:mb-8 pt-20 md:pt-0 ${isCollapsed ? "md:flex md:flex-col md:items-center px-2" : ""}`}
         >
           <Link
             to="/dashboard"
@@ -243,14 +243,14 @@ const Admin = () => {
             </div>
           )}
         </div>
-        <nav className="flex-1 px-4 flex flex-col gap-1">
+        <nav className="flex-1 px-4 flex flex-row md:flex-col gap-2 md:gap-1 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
           {navItems.map((n) => (
             <button
               key={n.id}
               onClick={() => setActiveTab(n.id)}
               title={isCollapsed ? n.label : ""}
-              className={`flex items-center rounded-lg font-bold text-sm transition-all ${
-                isCollapsed ? "justify-center p-3" : "gap-3 px-4 py-3"
+              className={`flex items-center rounded-lg font-bold text-sm transition-all whitespace-nowrap shrink-0 ${
+                isCollapsed ? "md:justify-center p-3" : "gap-3 px-4 py-3"
               } ${
                 activeTab === n.id
                   ? "bg-brand-primary/10 text-brand-primary"
@@ -265,7 +265,7 @@ const Admin = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-10 pt-24 overflow-y-auto">
+      <main className="flex-1 p-4 md:p-10 pt-8 md:pt-24 overflow-x-hidden overflow-y-auto">
         <div className="max-w-5xl mx-auto">
           {activeTab === "overview" && (
             <div className="animate-in fade-in duration-500">
@@ -344,7 +344,8 @@ const Admin = () => {
                   Loading users...
                 </div>
               ) : (
-                <div className="bg-brand-card border border-brand-border rounded-2xl overflow-hidden">
+                <div className="bg-brand-card border border-brand-border rounded-2xl overflow-hidden overflow-x-auto">
+                  <div className="min-w-[800px]">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-black/40 border-b border-brand-border">
@@ -445,6 +446,7 @@ const Admin = () => {
                       )}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               )}
             </div>
@@ -506,10 +508,10 @@ const Admin = () => {
 
       {/* Editor Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
           <form
             onSubmit={handleSubmit}
-            className="bg-brand-card border border-brand-border p-8 rounded-3xl w-full max-w-lg shadow-2xl"
+            className="bg-brand-card border border-brand-border p-6 md:p-8 rounded-3xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto"
           >
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-2xl font-black uppercase tracking-tight">

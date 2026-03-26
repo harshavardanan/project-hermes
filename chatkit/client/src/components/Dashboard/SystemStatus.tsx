@@ -543,21 +543,10 @@ const SystemStatus: React.FC = () => {
       }}
     >
       {/* ── Bento grid ─────────────────────────────────────────────────────── */}
-      <div
-        style={{
-          display: "grid",
-          gap: 12,
-          gridTemplateColumns: "repeat(12, 1fr)",
-          gridTemplateAreas: `
-          "la la la th th th cp cp cp me me me"
-          "ch ch ch ch ch ch ch ch ch ch ch ch"
-          "db db db db mm mm mm mm mm cn cn cn"
-          "sy sy sy sy sy sy sy sy sy sy sy sy"
-        `,
-        }}
-      >
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Latency */}
-        <Card style={{ gridArea: "la" }}>
+        <div className="col-span-1">
+          <Card>
           <CardLabel text="Latency" theme={T.perf} />
           <div
             style={{
@@ -577,9 +566,11 @@ const SystemStatus: React.FC = () => {
             color={T.perf.accent}
           />
         </Card>
+        </div>
 
         {/* Throughput */}
-        <Card style={{ gridArea: "th" }}>
+        <div className="col-span-1">
+          <Card>
           <CardLabel text="Throughput" theme={T.perf} />
           <div
             style={{
@@ -595,18 +586,20 @@ const SystemStatus: React.FC = () => {
             </span>
           </div>
           <Sparkline data={samples.map((s) => s.mps)} color={T.perf.accent} />
-        </Card>
+          </Card>
+        </div>
 
         {/* CPU gauge */}
-        <Card
-          style={{
-            gridArea: "cp",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
+        <div className="col-span-1">
+          <Card
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              height: "100%",
+            }}
+          >
           <CardLabel text="CPU Usage" theme={T.sys} />
           <Gauge value={cpu} color={T.sys.accent} label="CPU" />
           {cores > 0 && (
@@ -627,17 +620,19 @@ const SystemStatus: React.FC = () => {
             </div>
           )}
         </Card>
+        </div>
 
         {/* Memory gauge */}
-        <Card
-          style={{
-            gridArea: "me",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
+        <div className="col-span-1">
+          <Card
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              height: "100%",
+            }}
+          >
           <CardLabel text="Heap Memory" theme={T.mem} />
           <Gauge
             value={heapTotal > 0 ? Math.round((heapUsed / heapTotal) * 100) : 0}
@@ -647,10 +642,12 @@ const SystemStatus: React.FC = () => {
           <div style={{ fontSize: 10, color: "#6b7280", marginTop: 6 }}>
             {heapUsed} / {heapTotal} MB
           </div>
-        </Card>
+          </Card>
+        </div>
 
         {/* Live telemetry chart */}
-        <Card style={{ gridArea: "ch" }}>
+        <div className="col-span-1 md:col-span-2 lg:col-span-4">
+          <Card>
           <div
             style={{
               display: "flex",
@@ -691,10 +688,12 @@ const SystemStatus: React.FC = () => {
             </div>
           </div>
           <DualChart samples={samples} />
-        </Card>
+          </Card>
+        </div>
 
         {/* System info */}
-        <Card style={{ gridArea: "sy" }}>
+        <div className="col-span-1 md:col-span-2">
+          <Card>
           <CardLabel text="System" theme={T.sys} />
           <div
             style={{
@@ -715,10 +714,12 @@ const SystemStatus: React.FC = () => {
           <Row label="Platform" value={health?.platform || "—"} />
           <Row label="PID" value={health?.pid || "—"} />
           <Row label="Instances" value={health?.instances || 1} />
-        </Card>
+          </Card>
+        </div>
 
         {/* Database */}
-        <Card style={{ gridArea: "db" }}>
+        <div className="col-span-1 md:col-span-1">
+          <Card>
           <CardLabel text="Database" theme={T.db} />
           <div
             style={{
@@ -759,10 +760,12 @@ const SystemStatus: React.FC = () => {
             value={metrics?.rooms ?? 0}
             color={T.db.accent}
           />
-        </Card>
+          </Card>
+        </div>
 
         {/* Memory breakdown */}
-        <Card style={{ gridArea: "mm" }}>
+        <div className="col-span-1 md:col-span-1">
+          <Card>
           <CardLabel text="Memory Breakdown" theme={T.mem} />
           <Bar
             used={heapUsed}
@@ -818,10 +821,12 @@ const SystemStatus: React.FC = () => {
               <span style={{ color: T.mem.accent }}>{sysTotal} MB</span>
             </div>
           )}
-        </Card>
+          </Card>
+        </div>
 
         {/* Connections */}
-        <Card style={{ gridArea: "cn" }}>
+        <div className="col-span-1 md:col-span-2">
+          <Card>
           <CardLabel text="Connections" theme={T.conn} />
           <div
             style={{
@@ -888,7 +893,8 @@ const SystemStatus: React.FC = () => {
               h={36}
             />
           </div>
-        </Card>
+          </Card>
+        </div>
 
         {/* Engine Logs — commented out
         <Card style={{ gridArea:"lo" }}>

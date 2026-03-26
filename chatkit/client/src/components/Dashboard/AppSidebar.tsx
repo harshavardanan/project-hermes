@@ -38,7 +38,7 @@ export default function AppSidebar({ activeTab }: Props) {
 
   return (
     <aside
-      className={`sticky top-16 h-[calc(100vh-4rem)] flex flex-col border-r bg-brand-card border-brand-border p-4 transition-all duration-300 ease-in-out z-40 shrink-0 ${
+      className={`hidden md:flex sticky top-16 h-[calc(100vh-4rem)] flex-col border-r bg-brand-card border-brand-border p-4 transition-all duration-300 ease-in-out z-40 shrink-0 ${
         isCollapsed ? "w-20" : "w-64"
       }`}
     >

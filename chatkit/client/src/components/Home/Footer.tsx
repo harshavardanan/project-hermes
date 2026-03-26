@@ -1,4 +1,4 @@
-import { Share2, Rss, Terminal, Code2, ArrowRight } from "lucide-react";
+import { Github, Terminal, Code2, ArrowRight } from "lucide-react";
 
 const Footer = () => {
   return (
@@ -20,12 +20,14 @@ const Footer = () => {
               speed, security, and scalability.
             </p>
             <div className="flex gap-4 mt-2">
-              <button className="size-10 rounded-full border border-brand-border flex items-center justify-center text-brand-muted hover:text-brand-primary hover:border-brand-primary transition-all">
-                <Share2 size={18} />
-              </button>
-              <button className="size-10 rounded-full border border-brand-border flex items-center justify-center text-brand-muted hover:text-brand-primary hover:border-brand-primary transition-all">
-                <Rss size={18} />
-              </button>
+              <a 
+                href="https://github.com/harshavardanan" 
+                target="_blank" 
+                rel="noreferrer" 
+                className="size-10 rounded-full border border-brand-border flex items-center justify-center text-brand-muted hover:text-white hover:border-white transition-all"
+              >
+                <Github size={18} />
+              </a>
             </div>
           </div>
 

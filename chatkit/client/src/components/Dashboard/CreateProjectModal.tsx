@@ -76,7 +76,7 @@ export default function CreateProjectModal({
     // ── BACKDROP (z-[100] ensures it covers the pure CSS animations) ──
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       {/* ── MODAL BOX ── */}
-      <div className="bg-brand-card border border-white/10 rounded-2xl w-full max-w-lg relative overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 m-4">
+      <div className="bg-brand-card border border-white/10 rounded-2xl w-full max-w-[90vw] md:max-w-lg relative overflow-y-auto max-h-[90vh] shadow-2xl animate-in zoom-in-95 duration-200 m-4">
         {/* Top Gradient Accent Line */}
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500" />
 

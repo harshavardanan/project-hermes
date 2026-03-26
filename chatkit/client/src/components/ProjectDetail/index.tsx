@@ -145,11 +145,11 @@ const ProjectDetail = () => {
     usagePct > 90 ? "#ef4444" : usagePct > 70 ? "#fbbf24" : "#ffffff";
 
   return (
-    <div className="flex min-h-[calc(100vh-64px)] bg-brand-bg text-white">
+    <div className="flex flex-col md:flex-row min-h-[calc(100vh-64px)] bg-brand-bg text-white">
       {/* ── Sidebar ── */}
       <aside 
-        className={`shrink-0 fixed top-16 left-0 h-[calc(100vh-64px)] flex flex-col bg-brand-bg border-r border-white/10 z-40 p-4 transition-all duration-300 ease-in-out ${
-          isSidebarCollapsed ? "w-20" : "w-64"
+        className={`shrink-0 md:fixed top-16 left-0 md:h-[calc(100vh-64px)] flex flex-col bg-brand-bg border-b md:border-b-0 md:border-r border-white/10 md:z-40 p-4 pt-16 md:pt-4 transition-all duration-300 ease-in-out w-full max-w-[100vw] ${
+          isSidebarCollapsed ? "md:w-20" : "md:w-64"
         }`}
       >
         <div className={`pb-5 border-b border-white/10 mb-4 px-2 mt-2 relative ${isSidebarCollapsed ? "flex flex-col items-center" : ""}`}>
@@ -191,7 +191,7 @@ const ProjectDetail = () => {
             </div>
           )}
         </div>
-        <nav className="flex-1 flex flex-col gap-1.5">
+        <nav className="flex-1 flex flex-row md:flex-col gap-3 md:gap-1.5 overflow-x-auto pb-1">
           {navItems.map((n) => (
             <NavItem
               key={n.id}
@@ -206,7 +206,7 @@ const ProjectDetail = () => {
         </nav>
         
         {!isSidebarCollapsed && (
-          <div className="mt-auto p-4 bg-brand-card border border-white/10 rounded-xl">
+          <div className="mt-auto p-4 bg-brand-card border border-white/10 rounded-xl hidden md:block">
             <div className="font-sans text-[10px] font-bold text-slate-500 tracking-widest uppercase mb-1">
               Current Plan
             </div>
@@ -222,9 +222,10 @@ const ProjectDetail = () => {
 
       {/* ── Main ── */}
       <main 
-        className={`flex-1 overflow-y-auto w-full transition-all duration-300 ease-in-out ${
-          isSidebarCollapsed ? "ml-20" : "ml-64"
-        } p-8 pt-24 lg:p-12 lg:pt-28`}
+        className={`flex-1 overflow-x-hidden overflow-y-auto w-full transition-all duration-300 ease-in-out 
+          p-4 pt-8 md:p-8 md:pt-24 lg:p-12 lg:pt-28
+          ${isSidebarCollapsed ? "md:ml-20" : "md:ml-64"} 
+        `}
       >
         <div className="max-w-5xl mx-auto animate-in fade-in duration-500">
           {/* OVERVIEW */}
@@ -480,8 +481,9 @@ const ProjectDetail = () => {
                   (usersPage + 1) * PAGE_SIZE,
                 );
                 return (
-                  <div className="bg-brand-card border border-white/10 rounded-xl overflow-hidden">
-                    <div className="grid grid-cols-4 p-4 bg-black/40 border-b border-white/10 font-sans text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  <div className="bg-brand-card border border-white/10 rounded-xl overflow-hidden overflow-x-auto">
+                    <div className="min-w-[600px]">
+                      <div className="grid grid-cols-4 p-4 bg-black/40 border-b border-white/10 font-sans text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                       <span>User</span>
                       <span>Status</span>
                       <span>Last Seen</span>
@@ -555,6 +557,7 @@ const ProjectDetail = () => {
                         </button>
                       </div>
                     )}
+                    </div>
                   </div>
                 );
               })()}
