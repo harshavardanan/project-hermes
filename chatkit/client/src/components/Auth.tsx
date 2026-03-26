@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { X, ShieldCheck } from "lucide-react";
 import { useAppConfig } from "../store/appConfig";
+import { getToken, authFetch } from "../lib/authFetch";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -34,7 +35,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [isNewUser, setIsNewUser] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  
+
   const endpoint = useAppConfig((s) => s.endpoint);
 
   const stopPolling = () => {
@@ -54,7 +55,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     setState("success");
     timeoutRef.current = setTimeout(() => {
       onClose();
-      // App.tsx will handle the query invalidation or the reload if needed.
     }, 2000);
   };
 
@@ -62,9 +62,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     stopPolling();
     pollRef.current = setInterval(async () => {
       try {
-        const res = await fetch(`${endpoint}/auth/me`, {
-          credentials: "include",
-        });
+        const token = getToken();
+        if (!token) return; // Token not yet received from popup
+
+        const res = await authFetch("/auth/me");
         if (res.ok) {
           const user = await res.json();
           if (user?._id) handleAuthSuccess(user);
@@ -78,19 +79,22 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     timeoutRef.current = setTimeout(stopPolling, 120000);
   };
 
-  // The AuthModal only handles the UI "Success" animation.
-  // The actual window reload is centralized in App.tsx to avoid race conditions.
+  // Listen for auth success from popup — App.tsx handles the token storage
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === "HERMES_AUTH_SUCCESS" || event.data === "auth_success") {
-        // We just let App.tsx handle the reload.
-        // We can show the success UI here if we want, but since App.tsx reloads,
-        // keep it simple or show the success state immediately.
-        if (state === "idle") {
-           // We'll trust the centralized listener to do the reload.
-           // If we want to show the 'Success' checkmark here, we'd need to avoid the App.tsx reload 
-           // for a second or two. For now, transparency is better.
-        }
+      if (event.data?.type === "HERMES_AUTH_SUCCESS" && event.data.token) {
+        // App.tsx stores the token — we just check for user data
+        setTimeout(async () => {
+          try {
+            const res = await authFetch("/auth/me");
+            if (res.ok) {
+              const user = await res.json();
+              if (user?._id) handleAuthSuccess(user);
+            }
+          } catch {
+            // App.tsx will handle the reload fallback
+          }
+        }, 300);
       }
     };
     window.addEventListener("message", handleMessage);

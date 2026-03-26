@@ -47,7 +47,7 @@ lowlight.register("json", json);
 lowlight.register("css", css);
 lowlight.register("html", xml);
 
-import { useAppConfig } from "../../store/appConfig";
+import { authFetch } from "../../lib/authFetch";
 
 const uploadImage = async (file: File, token: string, endpoint: string): Promise<string> => {
   const form = new FormData();
@@ -143,11 +143,10 @@ const DocumentEditor = () => {
     },
   });
 
-  const endpoint = useAppConfig((s) => s.endpoint);
 
   const fetchDocs = useCallback(async () => {
     try {
-      const res = await fetch(`${endpoint}/api/docs/list`, { credentials: "include" });
+      const res = await authFetch("/api/docs/list");
       const json = await res.json();
       if (json.success) setDocs(json.data);
     } catch {
@@ -181,9 +180,7 @@ const DocumentEditor = () => {
     if (!editor) return;
     setIsLoading(true);
     try {
-      const res = await fetch(`${endpoint}/api/docs/get/${docSlug}`, {
-        credentials: "include",
-      });
+      const res = await authFetch(`/api/docs/get/${docSlug}`);
       const json = await res.json();
       if (!json.success) throw new Error(json.message || "Failed to load");
       const doc = json.data;
@@ -231,12 +228,11 @@ const DocumentEditor = () => {
     try {
       const derivedTitle = extractTitle();
       const derivedSlug = slugManuallyEdited ? slug : toSlug(derivedTitle);
-      const res = await fetch(
-        activeDocId ? `${endpoint}/api/docs/update/${activeDocId}` : `${endpoint}/api/docs/save`,
+      const res = await authFetch(
+        activeDocId ? `/api/docs/update/${activeDocId}` : `/api/docs/save`,
         {
           method: activeDocId ? "PUT" : "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
           body: JSON.stringify({
             title: derivedTitle,
             slug: derivedSlug,
@@ -262,9 +258,8 @@ const DocumentEditor = () => {
   const handleDelete = async (slugToDelete: string) => {
     setIsDeleting(true);
     try {
-      const res = await fetch(`${endpoint}/api/docs/delete/${slugToDelete}`, {
+      const res = await authFetch(`/api/docs/delete/${slugToDelete}`, {
         method: "DELETE",
-        credentials: "include",
       });
       const result = await res.json();
       if (!result.success) throw new Error(result.message);
@@ -295,10 +290,9 @@ const DocumentEditor = () => {
   const handleDragEnd = async () => {
     setDraggedId(null);
     try {
-      await fetch(`${endpoint}/api/docs/reorder`, {
+      await authFetch("/api/docs/reorder", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ ids: docs.map((d) => d._id) }),
       });
     } catch {

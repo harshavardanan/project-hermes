@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 export interface DashboardUser {
   _id: string;
@@ -6,7 +7,14 @@ export interface DashboardUser {
   email: string;
   avatar?: string;
   isAdmin: boolean;
-  plan?: string | null;
+  plan?: {
+    _id?: string;
+    planId?: string;
+    name?: string;
+    dailyLimit?: number;
+    monthlyPrice?: number;
+    features?: string[];
+  } | string | null;
   dailyTokensUsed: number;
   dailyTokensReset: Date;
 }
@@ -19,10 +27,15 @@ interface UserStore {
   clearUser: () => void;
 }
 
-export const useUserStore = create<UserStore>((set) => ({
-  user: null,
-  isLoading: true,
-  setUser: (user) => set({ user, isLoading: false }),
-  setLoading: (isLoading) => set({ isLoading }),
-  clearUser: () => set({ user: null, isLoading: false }),
-}));
+export const useUserStore = create<UserStore>()(
+  persist(
+    (set) => ({
+      user: null,
+      isLoading: true,
+      setUser: (user: DashboardUser | null) => set({ user, isLoading: false }),
+      setLoading: (isLoading: boolean) => set({ isLoading }),
+      clearUser: () => set({ user: null, isLoading: false }),
+    }),
+    { name: "hermes-auth-storage" }
+  )
+);

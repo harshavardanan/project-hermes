@@ -8,7 +8,7 @@ import {
   ShieldCheck,
   Terminal,
 } from "lucide-react";
-import { useAppConfig } from "../../store/appConfig";
+import { authFetch } from "../../lib/authFetch";
 
 interface Props {
   show: boolean;
@@ -26,8 +26,6 @@ export default function CreateProjectModal({
   const [data, setData] = useState<Record<string, unknown> | null>(null);
   const [copied, setCopied] = useState(false);
   
-  const endpoint = useAppConfig((s) => s.endpoint);
-
   if (!show) return null;
 
   const createProject = async () => {
@@ -35,11 +33,10 @@ export default function CreateProjectModal({
     setCreating(true);
 
     try {
-      const res = await fetch(`${endpoint}/api/projects`, {
+      const res = await authFetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projectName }),
-        credentials: "include",
       });
 
       const json = await res.json();

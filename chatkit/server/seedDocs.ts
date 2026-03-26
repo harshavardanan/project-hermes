@@ -48,10 +48,10 @@ async function seedDocs() {
   try {
     console.log("Connecting to MongoDB database at", MONGO_URI, "...");
     await mongoose.connect(MONGO_URI);
-    
+
     // Clear existing docs in the category to avoid duplicates
     await Doc.deleteMany({ category: "hermes-chat-react" });
-    
+
     for (const doc of docs) {
       await Doc.create({
         ...doc,

@@ -13,6 +13,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { authFetch } from "../lib/authFetch";
 import { Link } from "react-router-dom";
 import { useAppConfig } from "../store/appConfig";
 
@@ -68,9 +69,7 @@ const Admin = () => {
   const { data: plans = [] } = useQuery<Plan[]>({
     queryKey: ["admin_plans"],
     queryFn: async () => {
-      const res = await fetch(`${endpoint}/api/plans`, {
-        credentials: "include",
-      });
+      const res = await authFetch("/api/plans");
       if (!res.ok) throw new Error("Failed to load plans");
       const data = await res.json();
       return Array.isArray(data) ? data : [];
@@ -80,9 +79,7 @@ const Admin = () => {
   const { data: users = [], isLoading: loadingUsers } = useQuery<UserData[]>({
     queryKey: ["admin_users"],
     queryFn: async () => {
-      const res = await fetch(`${endpoint}/api/admin/users`, {
-        credentials: "include",
-      });
+      const res = await authFetch("/api/admin/users");
       if (!res.ok) throw new Error("Failed to load users");
       return res.json();
     },
@@ -92,9 +89,7 @@ const Admin = () => {
   const { data: stats, isLoading: loadingStats } = useQuery<StatsData>({
     queryKey: ["admin_stats"],
     queryFn: async () => {
-      const res = await fetch(`${endpoint}/api/admin/stats`, {
-        credentials: "include",
-      });
+      const res = await authFetch("/api/admin/stats");
       if (!res.ok) throw new Error("Failed to load stats");
       return res.json();
     },
@@ -104,10 +99,9 @@ const Admin = () => {
   // Mutations
   const saveMutation = useMutation({
     mutationFn: async (payload: any) => {
-      const res = await fetch(`${endpoint}/api/admin/plans`, {
+      const res = await authFetch("/api/admin/plans", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
@@ -125,9 +119,8 @@ const Admin = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`${endpoint}/api/admin/plans/${id}`, {
+      const res = await authFetch(`/api/admin/plans/${id}`, {
         method: "DELETE",
-        credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to delete plan");
     },
@@ -137,10 +130,9 @@ const Admin = () => {
 
   const updateUserMutation = useMutation({
     mutationFn: async ({ id, payload }: { id: string; payload: any }) => {
-      const res = await fetch(`${endpoint}/api/admin/users/${id}`, {
+      const res = await authFetch(`/api/admin/users/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("Failed to update user");

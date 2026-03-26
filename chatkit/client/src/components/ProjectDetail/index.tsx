@@ -31,11 +31,11 @@ import SettingsCard from "./SettingsCard";
 import ChartCard from "./ChartCard";
 import { useAppConfig } from "../../store/appConfig";
 import { useUserStore } from "../../store/userStore";
+import { authFetch } from "../../lib/authFetch";
 
 const ProjectDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const endpoint = useAppConfig((s) => s.endpoint);
   const user = useUserStore((s) => s.user);
   
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -54,9 +54,7 @@ const ProjectDetail = () => {
   const { data: project, isLoading: loading } = useQuery<Project>({
     queryKey: ["project", id],
     queryFn: async () => {
-      const res = await fetch(`${endpoint}/api/projects/${id}`, {
-        credentials: "include",
-      });
+      const res = await authFetch(`/api/projects/${id}`);
       if (!res.ok) throw new Error("Failed to fetch project");
       const data = await res.json();
       
@@ -75,9 +73,8 @@ const ProjectDetail = () => {
   const handleDelete = async () => {
     if (!project || deleteConfirm !== project.projectName) return;
     setDeleting(true);
-    const res = await fetch(`${endpoint}/api/projects/${id}`, {
+    const res = await authFetch(`/api/projects/${id}`, {
       method: "DELETE",
-      credentials: "include",
     });
     if (res.ok) navigate("/dashboard");
     setDeleting(false);

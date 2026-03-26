@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Check, ChevronDown } from "lucide-react";
-import { useAppConfig } from "../store/appConfig";
+import { authFetch } from "../lib/authFetch";
 import { useUserStore } from "../store/userStore";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -16,7 +16,7 @@ interface Plan {
 
 const Pricing = () => {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
-  const endpoint = useAppConfig((s) => s.endpoint);
+
   const { user, setUser } = useUserStore();
   const queryClient = useQueryClient();
   const [upgradingId, setUpgradingId] = useState<string | null>(null);
@@ -29,11 +29,10 @@ const Pricing = () => {
     
     setUpgradingId(planId);
     try {
-      const res = await fetch(`${endpoint}/api/user/upgrade`, {
+      const res = await authFetch("/api/user/upgrade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ targetPlanId: planId }),
-        credentials: "include",
       });
 
       if (!res.ok) throw new Error("Upgrade failed");
@@ -53,7 +52,7 @@ const Pricing = () => {
   const { data: plansData, isLoading: loading } = useQuery<Plan[]>({
     queryKey: ["plans"],
     queryFn: async () => {
-      const res = await fetch(`${endpoint}/api/plans`, { credentials: "include" });
+      const res = await authFetch("/api/plans");
       if (!res.ok) throw new Error("Failed to fetch plans.");
       return res.json();
     },

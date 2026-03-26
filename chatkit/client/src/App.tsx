@@ -5,8 +5,6 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-
 import Dashboard from "./components/Dashboard/Dashboard";
 import Home from "./components/Home";
 import Pricing from "./components/Pricing";
@@ -17,8 +15,8 @@ import ProjectDetail from "./components/ProjectDetail";
 import AdminPanel from "./components/AdminPanel";
 import DocEditor from "./components/DocumentEditor";
 import { useUserStore } from "./store/userStore";
-import { useAppConfig } from "./store/appConfig";
 import NotFound from "./components/NotFound";
+import { getToken, setToken, clearToken, authFetch } from "./lib/authFetch";
 
 const AppContent: React.FC<{
   isAuthOpen: boolean;
@@ -79,54 +77,83 @@ const AppContent: React.FC<{
 
 const App: React.FC = () => {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const { setUser, clearUser, setLoading } = useUserStore();
-  const endpoint = useAppConfig((s) => s.endpoint);
+  const [isLoading, setIsLoading] = useState(true);
+  const { setUser, clearUser } = useUserStore();
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["auth_me"],
-    queryFn: async () => {
-      const res = await fetch(`${endpoint}/auth/me`, {
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Not authenticated");
-      return res.json();
-    },
-    retry: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-
+  // Check auth on mount — read token from localStorage, fetch fresh user from /auth/me
   useEffect(() => {
-    setLoading(isLoading);
-    if (data) {
-      if (data.token) sessionStorage.setItem("hermes_token", data.token);
-      setUser(data);
-    } else if (!isLoading) {
-      clearUser();
-    }
-  }, [data, isLoading, setUser, clearUser, setLoading]);
-
-  // Centralized Auth Listener
-  useEffect(() => {
-    const handleAuthMessage = (event: MessageEvent) => {
-      // Security Check: Origin validation
-      const allowedOrigins = [endpoint, "http://localhost:5173", "https://antigravity.dev"];
-      if (!allowedOrigins.some(o => event.origin.includes(o))) {
-        // In dev, sometimes origin might be a variation, so we check carefully
-        if (!event.origin.includes("localhost") && !event.origin.includes("railway.app")) return;
+    const checkAuth = async () => {
+      const token = getToken();
+      if (!token) {
+        clearUser();
+        setIsLoading(false);
+        return;
       }
 
-      if (event.data?.type === "HERMES_AUTH_SUCCESS" || event.data === "auth_success") {
+      // Quick client-side expiry check
+      try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        if (payload.exp * 1000 < Date.now()) {
+          clearToken();
+          clearUser();
+          setIsLoading(false);
+          return;
+        }
+      } catch {
+        clearToken();
+        clearUser();
+        setIsLoading(false);
+        return;
+      }
+
+      // Fetch fresh user data from server
+      try {
+        const res = await authFetch("/auth/me");
+        if (res.ok) {
+          const userData = await res.json();
+          if (userData?._id) {
+            setUser(userData);
+          } else {
+            clearUser();
+          }
+        } else {
+          clearToken();
+          clearUser();
+        }
+      } catch {
+        clearUser();
+      }
+      setIsLoading(false);
+    };
+
+    checkAuth();
+  }, [setUser, clearUser]);
+
+  // Listen for auth success from popup
+  useEffect(() => {
+    const handleAuthMessage = (event: MessageEvent) => {
+      if (event.data?.type === "HERMES_AUTH_SUCCESS" && event.data.token) {
+        setToken(event.data.token);
         setIsAuthOpen(false);
-        // Smoother than window.location.reload()
-        window.location.reload(); 
-        // Note: keeping reload for now as it's the most robust way to sync all cookies 
-        // across origins, but we can improve this if needed.
+
+        // Fetch user data with the new token
+        authFetch("/auth/me")
+          .then((res) => res.json())
+          .then((userData) => {
+            if (userData?._id) {
+              setUser(userData);
+            }
+          })
+          .catch(() => {
+            // Fallback: reload
+            window.location.reload();
+          });
       }
     };
 
     window.addEventListener("message", handleAuthMessage);
     return () => window.removeEventListener("message", handleAuthMessage);
-  }, [endpoint]);
+  }, [setUser]);
 
   if (isLoading) return <div className="bg-black min-h-screen" />;
 

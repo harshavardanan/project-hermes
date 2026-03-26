@@ -2,15 +2,15 @@ import { useState } from "react";
 import { User, Activity, ArrowRight, ShieldCheck, CreditCard, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useUserStore } from "../../store/userStore";
-import { useAppConfig } from "../../store/appConfig";
+import { authFetch, clearToken } from "../../lib/authFetch";
 
 export default function Profile() {
-  const { user, setUser } = useUserStore();
-  const endpoint = useAppConfig((s) => s.endpoint);
+  const { user, setUser, clearUser } = useUserStore();
   const navigate = useNavigate();
   const handleLogout = () => {
+    clearToken();
+    clearUser();
     navigate("/");
-    window.location.href = `${endpoint}/auth/logout`;
   };
   const [displayName, setDisplayName] = useState(user?.displayName || "");
   const [isSaving, setIsSaving] = useState(false);
@@ -24,13 +24,12 @@ export default function Profile() {
     setSuccessMsg("");
 
     try {
-      const res = await fetch(`${endpoint}/auth/me`, {
+      const res = await authFetch("/auth/me", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ displayName }),
-        credentials: "include",
       });
 
       if (!res.ok) {

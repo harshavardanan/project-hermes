@@ -1,28 +1,38 @@
-import type { Request, Response, NextFunction } from "express"; // 👈 Add 'type' here
+import type { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
 
-// Standard check for James and Tom
+// JWT-based authentication middleware
 export const isAuthenticated = (
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
-  if (req.isAuthenticated()) {
-    return next();
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith("Bearer ")) {
+    return res
+      .status(401)
+      .json({ error: "Unauthorized", message: "Please log in to continue." });
   }
-  res
-    .status(401)
-    .json({ error: "Unauthorized", message: "Please log in to continue." });
+
+  try {
+    const token = authHeader.split(" ")[1];
+    const payload = jwt.verify(token, process.env.SESSION_SECRET!);
+    (req as any).user = payload;
+    return next();
+  } catch {
+    return res
+      .status(401)
+      .json({ error: "Unauthorized", message: "Invalid or expired token." });
+  }
 };
 
-// Specialized check for YOU
+// Admin check — requires valid JWT + isAdmin flag
 export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
-  // Check if session exists AND the user document has isAdmin: true
-  const user = req.user as any;
-  if (req.isAuthenticated() && user?.isAdmin === true) {
+  const user = (req as any).user;
+  if (user?.isAdmin === true) {
     return next();
   }
 
-  // If they are logged in but NOT an admin
   res.status(403).json({
     error: "Forbidden",
     message: "Access denied. Administrator privileges required.",

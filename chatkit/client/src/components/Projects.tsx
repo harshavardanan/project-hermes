@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Globe, Terminal, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { useAppConfig } from "../store/appConfig";
+import { authFetch } from "../lib/authFetch";
 
 interface Project {
   _id: string;
@@ -17,14 +17,10 @@ interface Project {
 }
 
 export default function Projects({ onOpenForm }: { onOpenForm: () => void }) {
-  const endpoint = useAppConfig((s) => s.endpoint);
-
   const { data: projects = [], isLoading, error } = useQuery<Project[]>({
     queryKey: ["projects"],
     queryFn: async () => {
-      const response = await fetch(`${endpoint}/api/projects`, {
-        credentials: "include",
-      });
+      const response = await authFetch("/api/projects");
 
       if (!response.ok) {
         if (response.status === 401)

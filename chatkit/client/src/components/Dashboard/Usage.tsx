@@ -1,6 +1,6 @@
 import { useUserStore } from "../../store/userStore";
 import { useQuery } from "@tanstack/react-query";
-import { useAppConfig } from "../../store/appConfig";
+import { authFetch } from "../../lib/authFetch";
 import { 
   BarChart3, 
   CreditCard, 
@@ -13,13 +13,12 @@ import { useNavigate } from "react-router-dom";
 
 export default function Usage() {
   const { user } = useUserStore();
-  const endpoint = useAppConfig((s) => s.endpoint);
   const navigate = useNavigate();
 
   const { data: projects = [] } = useQuery({
     queryKey: ["projects"],
     queryFn: async () => {
-      const res = await fetch(`${endpoint}/api/projects`, { credentials: "include" });
+      const res = await authFetch("/api/projects");
       return res.json();
     }
   });
