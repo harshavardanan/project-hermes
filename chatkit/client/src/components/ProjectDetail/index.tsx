@@ -29,7 +29,6 @@ import HermesConfigJson from "./HermesConfigJson";
 import SectionHeader from "./SectionHeader";
 import SettingsCard from "./SettingsCard";
 import ChartCard from "./ChartCard";
-import { useAppConfig } from "../../store/appConfig";
 import { useUserStore } from "../../store/userStore";
 import { authFetch } from "../../lib/authFetch";
 

@@ -26,7 +26,7 @@ export async function start() {
 
   app.use(
     cors({
-      origin: process.env.FRONTEND_URL || true,
+      origin: (origin, callback) => callback(null, origin || true),
       credentials: true,
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],

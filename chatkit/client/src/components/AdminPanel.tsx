@@ -15,7 +15,6 @@ import {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { authFetch } from "../lib/authFetch";
 import { Link } from "react-router-dom";
-import { useAppConfig } from "../store/appConfig";
 
 interface Plan {
   _id: string;
@@ -44,12 +43,15 @@ interface UserData {
 interface StatsData {
   totalUsers: number;
   totalProjects: number;
-  planDistribution: { planId: string | null; planName: string; count: number }[];
+  planDistribution: {
+    planId: string | null;
+    planName: string;
+    count: number;
+  }[];
 }
 
 const Admin = () => {
   const queryClient = useQueryClient();
-  const endpoint = useAppConfig((s) => s.endpoint);
 
   const [activeTab, setActiveTab] = useState("overview");
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -138,7 +140,8 @@ const Admin = () => {
       if (!res.ok) throw new Error("Failed to update user");
       return res.json();
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin_users"] }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["admin_users"] }),
   });
 
   // Handlers
@@ -192,7 +195,7 @@ const Admin = () => {
   return (
     <div className="flex bg-brand-bg min-h-screen text-white">
       {/* Admin Sidebar */}
-      <aside 
+      <aside
         className={`border-r border-brand-border bg-brand-card flex flex-col pt-24 shrink-0 transition-all duration-300 ease-in-out relative ${
           isCollapsed ? "w-20" : "w-64"
         }`}
@@ -204,20 +207,26 @@ const Admin = () => {
           {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
         </button>
 
-        <div className={`px-6 mb-8 ${isCollapsed ? "flex flex-col items-center px-2" : ""}`}>
+        <div
+          className={`px-6 mb-8 ${isCollapsed ? "flex flex-col items-center px-2" : ""}`}
+        >
           <Link
             to="/dashboard"
             title="Back to Dashboard"
             className={`text-brand-muted hover:text-white flex items-center gap-2 font-bold uppercase tracking-widest text-[10px] transition-colors mb-6 ${isCollapsed ? "justify-center" : ""}`}
           >
-            <ArrowLeft size={14} className="shrink-0" /> 
+            <ArrowLeft size={14} className="shrink-0" />
             {!isCollapsed && "Back to Dashboard"}
           </Link>
-          
+
           {!isCollapsed && (
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 shrink-0 flex items-center justify-center">
-                <img src="/vite.svg" alt="Hermes Admin Logo" className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(255,255,255,0.05)]" />
+                <img
+                  src="/vite.svg"
+                  alt="Hermes Admin Logo"
+                  className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(255,255,255,0.05)]"
+                />
               </div>
               <h1 className="text-xl font-black uppercase tracking-tight">
                 Hermes Admin
@@ -226,7 +235,11 @@ const Admin = () => {
           )}
           {isCollapsed && (
             <div className="w-6 h-6 shrink-0 flex items-center justify-center">
-              <img src="/vite.svg" alt="Hermes Admin Logo" className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(255,255,255,0.05)]" />
+              <img
+                src="/vite.svg"
+                alt="Hermes Admin Logo"
+                className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(255,255,255,0.05)]"
+              />
             </div>
           )}
         </div>
@@ -361,10 +374,10 @@ const Admin = () => {
                     <tbody className="divide-y divide-brand-border">
                       {users.length === 0 ? (
                         <tr>
-                            <td
-                              colSpan={7}
-                              className="p-8 text-center text-brand-muted text-sm font-medium"
-                            >
+                          <td
+                            colSpan={7}
+                            className="p-8 text-center text-brand-muted text-sm font-medium"
+                          >
                             No users registered yet.
                           </td>
                         </tr>
@@ -390,20 +403,32 @@ const Admin = () => {
                               <select
                                 className="bg-black/50 border border-brand-border rounded px-2 py-1 text-xs text-brand-muted outline-none hover:border-brand-primary focus:border-brand-primary cursor-pointer transition-colors"
                                 value={u.plan?._id || "none"}
-                                onChange={(e) => updateUserMutation.mutate({ id: u._id, payload: { plan: e.target.value } })}
+                                onChange={(e) =>
+                                  updateUserMutation.mutate({
+                                    id: u._id,
+                                    payload: { plan: e.target.value },
+                                  })
+                                }
                                 disabled={updateUserMutation.isPending}
                               >
                                 <option value="none">None</option>
                                 {plans.map((p) => (
-                                  <option key={p._id} value={p._id}>{p.name}</option>
+                                  <option key={p._id} value={p._id}>
+                                    {p.name}
+                                  </option>
                                 ))}
                               </select>
                             </td>
                             <td className="p-4">
                               <select
-                                className={`bg-black/50 border border-brand-border rounded px-2 py-1 text-xs font-bold uppercase tracking-widest outline-none hover:border-brand-primary focus:border-brand-primary cursor-pointer transition-colors ${u.status === 'Suspended' ? 'text-red-400' : 'text-emerald-400'}`}
+                                className={`bg-black/50 border border-brand-border rounded px-2 py-1 text-xs font-bold uppercase tracking-widest outline-none hover:border-brand-primary focus:border-brand-primary cursor-pointer transition-colors ${u.status === "Suspended" ? "text-red-400" : "text-emerald-400"}`}
                                 value={u.status || "Active"}
-                                onChange={(e) => updateUserMutation.mutate({ id: u._id, payload: { status: e.target.value } })}
+                                onChange={(e) =>
+                                  updateUserMutation.mutate({
+                                    id: u._id,
+                                    payload: { status: e.target.value },
+                                  })
+                                }
                                 disabled={updateUserMutation.isPending}
                               >
                                 <option value="Active">Active</option>

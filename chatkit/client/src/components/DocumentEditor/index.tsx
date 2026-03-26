@@ -48,6 +48,7 @@ lowlight.register("css", css);
 lowlight.register("html", xml);
 
 import { authFetch } from "../../lib/authFetch";
+import { useAppConfig } from "../../store/appConfig";
 
 const uploadImage = async (file: File, token: string, endpoint: string): Promise<string> => {
   const form = new FormData();
@@ -63,6 +64,7 @@ const uploadImage = async (file: File, token: string, endpoint: string): Promise
 };
 
 const DocumentEditor = () => {
+  const endpoint = useAppConfig((s) => s.endpoint);
   const [docs, setDocs] = useState<DocMeta[]>([]);
   const [activeDocId, setActiveDocId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
