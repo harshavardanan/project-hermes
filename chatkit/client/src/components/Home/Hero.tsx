@@ -6,30 +6,31 @@ import type { UserData } from "../../types";
 export default function Hero({
   onSignInClick,
   user,
+  loading = false,
 }: {
   onSignInClick: () => void;
   user?: UserData | null;
+  loading?: boolean;
 }) {
   const navigate = useNavigate();
 
   const handleCtaClick = () => {
+    if (loading) return;
     if (user) navigate("/dashboard");
     else onSignInClick();
   };
 
   return (
     <section className="relative pt-40 pb-28 px-6 w-full overflow-hidden">
-      {/* Background glow */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 1.5, ease: "easeOut" }}
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-brand-primary/10 blur-[120px] rounded-full -z-10" 
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-brand-primary/10 blur-[120px] rounded-full -z-10"
       />
 
       <div className="max-w-4xl mx-auto text-center">
-        {/* Headline */}
-        <motion.h1 
+        <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1, ease: "easeOut" }}
@@ -40,8 +41,7 @@ export default function Hero({
           <span className="text-brand-muted">without the backend work.</span>
         </motion.h1>
 
-        {/* Subtext */}
-        <motion.p 
+        <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.2, ease: "easeOut" }}
@@ -51,8 +51,7 @@ export default function Hero({
           presence, reactions, and history — with a single SDK import.
         </motion.p>
 
-        {/* CTAs */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.3, ease: "easeOut" }}
@@ -60,10 +59,15 @@ export default function Hero({
         >
           <button
             onClick={handleCtaClick}
-            className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-brand-primary hover:bg-brand-primary/90 text-brand-primary-fg rounded-lg font-bold text-sm transition-all active:scale-95 shadow-xl shadow-brand-primary/20"
+            disabled={loading}
+            className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-brand-primary hover:bg-brand-primary/90 text-brand-primary-fg rounded-lg font-bold text-sm transition-all active:scale-95 shadow-xl shadow-brand-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {user ? "Go to Dashboard" : "Start for free"}
-            <ArrowRight size={16} />
+            {loading
+              ? "Loading..."
+              : user
+                ? "Go to Dashboard"
+                : "Start for free"}
+            {!loading && <ArrowRight size={16} />}
           </button>
           <button
             onClick={() => navigate("/documentation")}

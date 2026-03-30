@@ -13,7 +13,6 @@ import type {
   UploadResult,
 } from "../types/index";
 
-// Manual interface — avoids Extract<> returning never on discriminated union
 interface ApiKeyConfig {
   endpoint: string;
   apiKey: string;
@@ -58,7 +57,7 @@ export class HermesClient extends EventEmitter {
           apiKey: cfg.apiKey,
           secret: cfg.secret,
           userId: cfg.userId,
-          displayName: cfg.displayName ?? cfg.userId,
+          displayName: cfg.displayName,
           avatar: cfg.avatar,
           email: cfg.email,
         }),

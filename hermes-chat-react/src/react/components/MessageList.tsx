@@ -1,516 +1,138 @@
-import React, { useEffect, useRef, useState } from "react";
-import type { Message, HermesUser, Reaction } from "../../types/index";
+import React, { useEffect, useRef } from "react";
+import type { Message as MessageType, HermesUser } from "../../types/index";
+import { Message as DefaultMessage } from "./Message/Message";
+import { DateSeparator as DefaultDateSeparator } from "./DateSeparator/DateSeparator";
+import { EmptyStateIndicator as DefaultEmptyState } from "./EmptyStateIndicator/EmptyStateIndicator";
+import { LoadingIndicator as DefaultLoading } from "./Loading/LoadingIndicator";
+import { TypingIndicator as DefaultTypingIndicator } from "./TypingIndicator";
+import { useRoomStateContext } from "../context/RoomStateContext";
+import { useRoomActionContext } from "../context/RoomActionContext";
+import { useChatContext } from "../context/ChatContext";
+import { useTypingContext } from "../context/TypingContext";
+import { useComponentContext } from "../context/ComponentContext";
 
-interface MessageListProps {
-  messages: Message[];
-  currentUser: HermesUser;
+export interface MessageListProps {
+  /** Messages array (optional if inside <Room>) */
+  messages?: MessageType[];
+  /** Current user (optional if inside <Chat>) */
+  currentUser?: HermesUser;
+  /** Loading state */
   loading?: boolean;
+  /** Loading more state */
   loadingMore?: boolean;
+  /** Has more messages */
   hasMore?: boolean;
+  /** Load more callback */
   onLoadMore?: () => void;
+  /** Edit callback */
   onEdit?: (messageId: string, text: string) => void;
+  /** Delete callback */
   onDelete?: (messageId: string) => void;
+  /** Reaction callback */
   onReact?: (messageId: string, emoji: string) => void;
-  onReply?: (message: Message) => void;
-  renderMessage?: (message: Message, isOwn: boolean) => React.ReactNode;
+  /** Reply (quote) callback */
+  onReply?: (message: MessageType) => void;
+  /** Thread open callback */
+  onOpenThread?: (message: MessageType) => void;
+  /** Custom message renderer (full override) */
+  renderMessage?: (message: MessageType, isOwn: boolean) => React.ReactNode;
+  /** Custom avatar renderer */
   renderAvatar?: (senderId: string) => React.ReactNode;
+  /** Additional class name */
   className?: string;
+  /** Auto-scroll to bottom on new messages */
   autoScroll?: boolean;
-  
+  /** Typing users (optional if inside <Room>) */
   typingUsers?: { userId: string; displayName: string }[];
+  /** Whether to show date separators between days */
+  disableDateSeparator?: boolean;
+  /** Typing indicator text (optional if inside <Room>) */
+  typingText?: string | null;
 }
 
-const formatTime = (iso: string) =>
-  new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-const formatFileSize = (bytes?: number) => {
-  if (!bytes) return "";
-  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${bytes} B`;
-};
-
-const REACTION_EMOJIS = [
-  "🫠",
-  "🥹",
-  "🫡",
-  "🤌",
-  "🫶",
-  "💀",
-  "🔥",
-  "✨",
-  "🫣",
-  "😮‍💨",
-  "🪄",
-  "🥲",
-  "💅",
-  "🫦",
-  "🤯",
-  "🌚",
-  "👁️",
-  "🫀",
-  "🦋",
-  "🪐",
-];
-
-const EmojiPicker: React.FC<{
-  onPick: (emoji: string) => void;
-  onClose: () => void;
-  isOwn: boolean;
-}> = ({ onPick, onClose, isOwn }) => {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [onClose]);
-
+const isSameDay = (d1: string, d2: string) => {
+  const a = new Date(d1);
+  const b = new Date(d2);
   return (
-    <div
-      ref={ref}
-      style={{
-        position: "absolute",
-        bottom: "calc(100% + 8px)",
-        [isOwn ? "right" : "left"]: 0,
-        zIndex: 100,
-        background: "#1a1a2e",
-        border: "1px solid rgba(255,255,255,0.1)",
-        borderRadius: 14,
-        padding: "8px 10px",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-        display: "grid",
-        gridTemplateColumns: "repeat(5, 1fr)",
-        gap: 4,
-        animation: "hermes-pop 0.15s ease",
-      }}
-    >
-      {REACTION_EMOJIS.map((emoji) => (
-        <button
-          key={emoji}
-          onClick={() => {
-            onPick(emoji);
-            onClose();
-          }}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            fontSize: 20,
-            padding: "4px",
-            borderRadius: 8,
-            lineHeight: 1,
-            transition: "transform 0.1s, background 0.1s",
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.transform =
-              "scale(1.3)";
-            (e.currentTarget as HTMLButtonElement).style.background =
-              "rgba(255,255,255,0.08)";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)";
-            (e.currentTarget as HTMLButtonElement).style.background = "none";
-          }}
-        >
-          {emoji}
-        </button>
-      ))}
-    </div>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
   );
 };
 
-const TypingIndicator: React.FC<{
-  typingUsers: { userId: string; displayName: string }[];
-}> = ({ typingUsers }) => {
-  if (!typingUsers.length) return null;
+/**
+ * Displays a scrollable list of messages with date separators,
+ * typing indicators, and infinite scroll.
+ *
+ * **Context-aware:** When used inside `<Room>`, reads messages, loading state,
+ * and typing state automatically. When used standalone, accepts all data via props.
+ *
+ * @example
+ * ```tsx
+ * // Context-aware (recommended)
+ * <Room roomId={id}>
+ *   <Window>
+ *     <MessageList />
+ *     <ChatInput />
+ *   </Window>
+ * </Room>
+ *
+ * // Standalone (prop-driven)
+ * <MessageList
+ *   messages={messages}
+ *   currentUser={user}
+ *   onEdit={handleEdit}
+ *   onDelete={handleDelete}
+ * />
+ * ```
+ */
+export const MessageList: React.FC<MessageListProps> = (props) => {
+  // Try to get context values — these will be empty objects if not in a provider
+  const chatCtx = useChatContext("MessageList");
+  const roomStateCtx = useRoomStateContext("MessageList");
+  const roomActionCtx = useRoomActionContext("MessageList");
+  const typingCtx = useTypingContext("MessageList");
+  const componentCtx = useComponentContext("MessageList");
 
-  const text =
-    typingUsers.length === 1
-      ? `${typingUsers[0].displayName} is typing`
-      : typingUsers.length === 2
-        ? `${typingUsers[0].displayName} and ${typingUsers[1].displayName} are typing`
-        : `${typingUsers[0].displayName} and ${typingUsers.length - 1} others are typing`;
+  // Merge: props override context
+  const messages = props.messages ?? roomStateCtx.messages ?? [];
+  const currentUser = props.currentUser ?? (chatCtx.currentUser as HermesUser);
+  const loading = props.loading ?? roomStateCtx.loading ?? false;
+  const loadingMore = props.loadingMore ?? roomStateCtx.loadingMore ?? false;
+  const hasMore = props.hasMore ?? roomStateCtx.hasMore ?? false;
+  const onLoadMore = props.onLoadMore ?? roomActionCtx.loadMore;
+  const onEdit = props.onEdit ?? (roomActionCtx.editMessage ? (id: string, text: string) => roomActionCtx.editMessage(id, text) : undefined);
+  const onDelete = props.onDelete ?? (roomActionCtx.deleteMessage ? (id: string) => roomActionCtx.deleteMessage(id) : undefined);
+  const onReact = props.onReact ?? (roomActionCtx.addReaction ? (id: string, emoji: string) => roomActionCtx.addReaction(id, emoji) : undefined);
+  const onReply = props.onReply;
+  const onOpenThread = props.onOpenThread ?? (roomActionCtx.openThread ? (msg: MessageType) => roomActionCtx.openThread(msg) : undefined);
+  const autoScroll = props.autoScroll ?? true;
+  const disableDateSeparator = props.disableDateSeparator ?? false;
+  const className = props.className ?? "";
+  const renderMessage = props.renderMessage;
+  const renderAvatar = props.renderAvatar;
 
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        padding: "6px 16px 2px",
-        minHeight: 28,
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 3,
-          background: "#f0f0f0",
-          borderRadius: 12,
-          padding: "6px 10px",
-        }}
-      >
-        {[0, 1, 2].map((i) => (
-          <span
-            key={i}
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              background: "#999",
-              display: "block",
-              animation: `hermes-bounce 1.2s ease-in-out ${i * 0.18}s infinite`,
-            }}
-          />
-        ))}
-      </div>
-      <span style={{ fontSize: 11, color: "#999" }}>{text}</span>
-    </div>
-  );
-};
+  // Typing
+  const typingText = props.typingText ?? typingCtx.typingText ?? null;
 
-const DefaultMessage: React.FC<{
-  message: Message;
-  isOwn: boolean;
-  onEdit?: (messageId: string, text: string) => void;
-  onDelete?: (messageId: string) => void;
-  onReact?: (messageId: string, emoji: string) => void;
-  onReply?: (message: Message) => void;
-  renderAvatar?: (senderId: string) => React.ReactNode;
-}> = ({ message, isOwn, onEdit, onDelete, onReact, onReply, renderAvatar }) => {
-  const [hovered, setHovered] = useState(false);
-  const [pickerOpen, setPickerOpen] = useState(false);
+  // Component overrides
+  const MessageComponent = componentCtx.Message || DefaultMessage;
+  const DateSepComponent = componentCtx.DateSeparator || DefaultDateSeparator;
+  const EmptyComponent = componentCtx.EmptyStateIndicator || DefaultEmptyState;
+  const LoadingComponent = componentCtx.LoadingIndicator || DefaultLoading;
+  const TypingComponent = componentCtx.TypingIndicator || DefaultTypingIndicator;
 
-  if (message.isDeleted) {
-    return (
-      <div
-        style={{
-          opacity: 0.5,
-          fontStyle: "italic",
-          padding: "4px 16px",
-          fontSize: 13,
-        }}
-      >
-        This message was deleted.
-      </div>
-    );
-  }
-
-  return (
-    <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => {
-        setHovered(false);
-      }}
-      style={{
-        display: "flex",
-        flexDirection: isOwn ? "row-reverse" : "row",
-        alignItems: "flex-end",
-        gap: 8,
-        marginBottom: 4,
-        position: "relative",
-      }}
-    >
-      {}
-      {!isOwn && (
-        <div style={{ flexShrink: 0 }}>
-          {renderAvatar ? (
-            renderAvatar(message.senderId)
-          ) : (
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: "50%",
-                background: "#e0e0e0",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 12,
-                fontWeight: 600,
-              }}
-            >
-              {message.senderId.slice(-2).toUpperCase()}
-            </div>
-          )}
-        </div>
-      )}
-
-      {}
-      <div
-        style={{
-          maxWidth: "70%",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: isOwn ? "flex-end" : "flex-start",
-        }}
-      >
-        {}
-        {(onEdit || onDelete || onReact || onReply) && (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: isOwn ? "row-reverse" : "row",
-              gap: 2,
-              marginBottom: 4,
-              opacity: hovered ? 1 : 0,
-              pointerEvents: hovered ? "auto" : "none",
-              transition: "opacity 0.15s ease",
-              position: "relative",
-            }}
-          >
-            {}
-            {onReact && (
-              <div style={{ position: "relative" }}>
-                <ActionBtn
-                  onClick={() => setPickerOpen((p) => !p)}
-                  title="React"
-                >
-                  🫠
-                </ActionBtn>
-                {pickerOpen && (
-                  <EmojiPicker
-                    isOwn={isOwn}
-                    onPick={(emoji) => onReact(message._id, emoji)}
-                    onClose={() => setPickerOpen(false)}
-                  />
-                )}
-              </div>
-            )}
-            {onReply && (
-              <ActionBtn onClick={() => onReply(message)} title="Reply">
-                ↩
-              </ActionBtn>
-            )}
-            {isOwn && onEdit && message.type === "text" && (
-              <ActionBtn
-                onClick={() => {
-                  const text = window.prompt("Edit message:", message.text);
-                  if (text) onEdit(message._id, text);
-                }}
-                title="Edit"
-              >
-                ✏️
-              </ActionBtn>
-            )}
-            {isOwn && onDelete && (
-              <ActionBtn onClick={() => onDelete(message._id)} title="Delete">
-                🗑
-              </ActionBtn>
-            )}
-          </div>
-        )}
-
-        {}
-        <div
-          style={{
-            padding: "8px 12px",
-            borderRadius: isOwn ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
-            background: isOwn ? "#0084ff" : "#f0f0f0",
-            color: isOwn ? "#fff" : "#000",
-          }}
-        >
-          {}
-          {message.replyTo && (
-            <div
-              style={{
-                borderLeft: "3px solid rgba(255,255,255,0.4)",
-                paddingLeft: 8,
-                marginBottom: 6,
-                fontSize: 12,
-                opacity: 0.75,
-              }}
-            >
-              Replying to a message
-            </div>
-          )}
-
-          {message.type === "text" && (
-            <p style={{ margin: 0, wordBreak: "break-word" }}>
-              {message.text}
-              {message.editedAt && (
-                <span style={{ fontSize: 10, opacity: 0.6, marginLeft: 6 }}>
-                  (edited)
-                </span>
-              )}
-            </p>
-          )}
-          {message.type === "link" && (
-            <div>
-              {message.text && (
-                <p style={{ margin: "0 0 4px" }}>{message.text}</p>
-              )}
-              <a
-                href={message.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  color: isOwn ? "#cce4ff" : "#0084ff",
-                  wordBreak: "break-all",
-                }}
-              >
-                {message.url}
-              </a>
-            </div>
-          )}
-          {message.type === "image" && (
-            <img
-              src={message.url}
-              alt={message.fileName || "image"}
-              style={{ maxWidth: "100%", borderRadius: 8, display: "block" }}
-            />
-          )}
-          {message.type === "video" && (
-            <video
-              src={message.url}
-              controls
-              style={{ maxWidth: "100%", borderRadius: 8 }}
-            />
-          )}
-          {message.type === "audio" && (
-            <audio src={message.url} controls style={{ width: "100%" }} />
-          )}
-          {message.type === "document" && (
-            <a
-              href={message.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                color: isOwn ? "#fff" : "#333",
-                textDecoration: "none",
-              }}
-            >
-              <span style={{ fontSize: 24 }}>📄</span>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 13 }}>
-                  {message.fileName}
-                </div>
-                <div style={{ fontSize: 11, opacity: 0.7 }}>
-                  {formatFileSize(message.fileSize)}
-                </div>
-              </div>
-            </a>
-          )}
-
-          {}
-          <div
-            style={{
-              fontSize: 10,
-              opacity: 0.6,
-              textAlign: "right",
-              marginTop: 4,
-            }}
-          >
-            {formatTime(message.createdAt)}
-          </div>
-        </div>
-
-        {}
-        {message.reactions?.filter((r: Reaction) => r.users.length > 0).length >
-          0 && (
-          <div
-            style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 4 }}
-          >
-            {message.reactions
-              .filter((r: Reaction) => r.users.length > 0)
-              .map((r: Reaction) => (
-                <span
-                  key={r.emoji}
-                  onClick={() => onReact?.(message._id, r.emoji)}
-                  style={{
-                    background: "#f0f0f0",
-                    border: "1px solid rgba(0,0,0,0.08)",
-                    borderRadius: 20,
-                    padding: "2px 8px",
-                    fontSize: 13,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                    transition: "transform 0.1s",
-                    userSelect: "none",
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.transform = "scale(1.1)")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.transform = "scale(1)")
-                  }
-                >
-                  {r.emoji}
-                  <span
-                    style={{ fontSize: 11, fontWeight: 600, color: "#555" }}
-                  >
-                    {r.users.length}
-                  </span>
-                </span>
-              ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const ActionBtn: React.FC<{
-  onClick: () => void;
-  title?: string;
-  children: React.ReactNode;
-}> = ({ onClick, title, children }) => (
-  <button
-    onClick={onClick}
-    title={title}
-    style={{
-      background: "#fff",
-      border: "1px solid rgba(0,0,0,0.1)",
-      borderRadius: 8,
-      cursor: "pointer",
-      fontSize: 14,
-      padding: "3px 6px",
-      lineHeight: 1,
-      boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
-      transition: "transform 0.1s",
-    }}
-    onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.15)")}
-    onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-  >
-    {children}
-  </button>
-);
-
-export const MessageList: React.FC<MessageListProps> = ({
-  messages,
-  currentUser,
-  loading = false,
-  loadingMore = false,
-  hasMore = false,
-  onLoadMore,
-  onEdit,
-  onDelete,
-  onReact,
-  onReply,
-  renderMessage,
-  renderAvatar,
-  className = "",
-  autoScroll = true,
-  typingUsers = [],
-}) => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Auto-scroll
   useEffect(() => {
     if (autoScroll && bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, autoScroll]);
 
+  // Infinite scroll
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !onLoadMore) return;
@@ -529,12 +151,26 @@ export const MessageList: React.FC<MessageListProps> = ({
           alignItems: "center",
           justifyContent: "center",
           height: "100%",
+          flex: 1,
         }}
       >
-        Loading messages...
+        <LoadingComponent text="Loading messages..." />
       </div>
     );
   }
+
+  // Compute group styles
+  const getGroupStyle = (index: number): "top" | "middle" | "bottom" | "single" => {
+    const msg = messages[index];
+    const prev = index > 0 ? messages[index - 1] : null;
+    const next = index < messages.length - 1 ? messages[index + 1] : null;
+    const sameSenderPrev = prev && prev.senderId === msg.senderId && !prev.isDeleted && isSameDay(prev.createdAt, msg.createdAt);
+    const sameSenderNext = next && next.senderId === msg.senderId && !next.isDeleted && isSameDay(next.createdAt, msg.createdAt);
+    if (sameSenderPrev && sameSenderNext) return "middle";
+    if (sameSenderPrev) return "bottom";
+    if (sameSenderNext) return "top";
+    return "single";
+  };
 
   return (
     <>
@@ -556,17 +192,15 @@ export const MessageList: React.FC<MessageListProps> = ({
           overflowY: "auto",
           display: "flex",
           flexDirection: "column",
-          height: "100%",
+          flex: 1,
           padding: "16px",
         }}
       >
-        {}
+        {/* Load more */}
         {hasMore && (
           <div style={{ textAlign: "center", marginBottom: 12 }}>
             {loadingMore ? (
-              <span style={{ fontSize: 12, opacity: 0.5 }}>
-                Loading older messages...
-              </span>
+              <LoadingComponent size={20} text="Loading older messages..." />
             ) : (
               <button
                 onClick={onLoadMore}
@@ -585,42 +219,49 @@ export const MessageList: React.FC<MessageListProps> = ({
           </div>
         )}
 
-        {messages.length === 0 && (
-          <div
-            style={{
-              textAlign: "center",
-              opacity: 0.4,
-              margin: "auto",
-              fontSize: 14,
-            }}
-          >
-            No messages yet. Say hello! 👋
-          </div>
-        )}
+        {/* Empty state */}
+        {messages.length === 0 && <EmptyComponent listType="message" />}
 
-        {messages.map((message) => {
-          const isOwn = message.senderId === currentUser.userId;
+        {/* Messages */}
+        {messages.map((message, index) => {
+          const isOwn = message.senderId === currentUser?.userId;
+          const groupStyle = getGroupStyle(index);
+
+          // Date separator
+          const showDateSep =
+            !disableDateSeparator &&
+            (index === 0 ||
+              !isSameDay(messages[index - 1].createdAt, message.createdAt));
+
           return (
-            <div key={message._id} style={{ marginBottom: 8 }}>
-              {renderMessage ? (
-                renderMessage(message, isOwn)
-              ) : (
-                <DefaultMessage
-                  message={message}
-                  isOwn={isOwn}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                  onReact={onReact}
-                  onReply={onReply}
-                  renderAvatar={renderAvatar}
-                />
+            <React.Fragment key={message._id}>
+              {showDateSep && (
+                <DateSepComponent date={new Date(message.createdAt)} />
               )}
-            </div>
+              <div style={{ marginBottom: groupStyle === "bottom" || groupStyle === "single" ? 8 : 2 }}>
+                {renderMessage ? (
+                  renderMessage(message, isOwn)
+                ) : (
+                  <MessageComponent
+                    message={message}
+                    isOwn={isOwn}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    onReact={onReact}
+                    onReply={onReply}
+                    onOpenThread={onOpenThread}
+                    renderAvatar={renderAvatar}
+                    groupStyle={groupStyle}
+                    showAvatar
+                  />
+                )}
+              </div>
+            </React.Fragment>
           );
         })}
 
-        {}
-        <TypingIndicator typingUsers={typingUsers} />
+        {/* Typing indicator */}
+        {typingText && <TypingComponent typingText={typingText} />}
 
         <div ref={bottomRef} />
       </div>

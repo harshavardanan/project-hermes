@@ -7,6 +7,7 @@ const REQUIRED_ENV = [
   "MONGO_URI",
   "SESSION_SECRET",
   "HERMES_JWT_SECRET",
+  "HERMES_ENCRYPTION_KEY",
 ] as const;
 
 const missing = REQUIRED_ENV.filter((key) => !process.env[key]);

@@ -25,6 +25,10 @@ export interface IMessage extends Document {
   mimeType?: string;
   thumbnail?: string;
   replyTo?: Types.ObjectId;
+  threadParentId?: Types.ObjectId; // ref to parent message for threaded replies
+  replyCount: number; // cached count of thread replies
+  pinnedAt?: Date;
+  pinnedBy?: Types.ObjectId; // ref HermesUser._id — who pinned the message
   reactions: IReaction[];
   deliveryStatus: DeliveryStatus;
   seenBy: Types.ObjectId[]; // ref HermesUser._id array
@@ -63,6 +67,10 @@ const messageSchema = new Schema<IMessage>(
     mimeType: { type: String },
     thumbnail: { type: String },
     replyTo: { type: Schema.Types.ObjectId, ref: "HermesMessage" },
+    threadParentId: { type: Schema.Types.ObjectId, ref: "HermesMessage" },
+    replyCount: { type: Number, default: 0 },
+    pinnedAt: { type: Date },
+    pinnedBy: { type: Schema.Types.ObjectId, ref: "HermesUser" },
     reactions: [reactionSchema],
     deliveryStatus: {
       type: String,
@@ -77,7 +85,11 @@ const messageSchema = new Schema<IMessage>(
   { timestamps: true },
 );
 
+// ── Indexes ───────────────────────────────────────────────────────────────────
 messageSchema.index({ roomId: 1, createdAt: -1 });
 messageSchema.index({ senderId: 1 });
+messageSchema.index({ threadParentId: 1, createdAt: -1 }); // thread replies
+messageSchema.index({ roomId: 1, pinnedAt: 1 }); // pinned messages per room
+messageSchema.index({ roomId: 1, text: "text" }); // text search index
 
 export const Message = model<IMessage>("HermesMessage", messageSchema);

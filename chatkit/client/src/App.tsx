@@ -21,18 +21,25 @@ import { getToken, setToken, clearToken, authFetch } from "./lib/authFetch";
 const AppContent: React.FC<{
   isAuthOpen: boolean;
   setIsAuthOpen: (v: boolean) => void;
-}> = ({ isAuthOpen, setIsAuthOpen }) => {
+  isLoading: boolean;
+}> = ({ isAuthOpen, setIsAuthOpen, isLoading }) => {
   const user = useUserStore((s) => s.user);
 
   return (
     <div className="bg-black text-white min-h-screen">
       <Navbar onSignInClick={() => setIsAuthOpen(true)} />
 
-      <main className={`min-h-screen bg-black text-white `}>
+      <main className="min-h-screen bg-black text-white">
         <Routes>
           <Route
             path="/"
-            element={<Home onSignInClick={() => setIsAuthOpen(true)} />}
+            element={
+              <Home
+                user={user}
+                loading={isLoading}
+                onSignInClick={() => setIsAuthOpen(true)}
+              />
+            }
           />
 
           <Route path="/pricing" element={<Pricing />} />
@@ -80,7 +87,6 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { setUser, clearUser } = useUserStore();
 
-  // Check auth on mount — read token from localStorage, fetch fresh user from /auth/me
   useEffect(() => {
     const checkAuth = async () => {
       const token = getToken();
@@ -90,7 +96,6 @@ const App: React.FC = () => {
         return;
       }
 
-      // Quick client-side expiry check
       try {
         const payload = JSON.parse(atob(token.split(".")[1]));
         if (payload.exp * 1000 < Date.now()) {
@@ -106,7 +111,6 @@ const App: React.FC = () => {
         return;
       }
 
-      // Fetch fresh user data from server
       try {
         const res = await authFetch("/auth/me");
         if (res.ok) {
@@ -129,14 +133,12 @@ const App: React.FC = () => {
     checkAuth();
   }, [setUser, clearUser]);
 
-  // Listen for auth success from popup
   useEffect(() => {
     const handleAuthMessage = (event: MessageEvent) => {
       if (event.data?.type === "HERMES_AUTH_SUCCESS" && event.data.token) {
         setToken(event.data.token);
         setIsAuthOpen(false);
 
-        // Fetch user data with the new token
         authFetch("/auth/me")
           .then((res) => res.json())
           .then((userData) => {
@@ -145,7 +147,6 @@ const App: React.FC = () => {
             }
           })
           .catch(() => {
-            // Fallback: reload
             window.location.reload();
           });
       }
@@ -159,7 +160,11 @@ const App: React.FC = () => {
 
   return (
     <Router>
-      <AppContent isAuthOpen={isAuthOpen} setIsAuthOpen={setIsAuthOpen} />
+      <AppContent
+        isAuthOpen={isAuthOpen}
+        setIsAuthOpen={setIsAuthOpen}
+        isLoading={isLoading}
+      />
     </Router>
   );
 };

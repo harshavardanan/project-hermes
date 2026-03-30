@@ -7,13 +7,17 @@ import TerminalSection from "./Home/TerminalSection";
 import Stats from "./Home/Stats";
 import Footer from "./Home/Footer";
 import { useAppConfig } from "../store/appConfig";
+import type { UserData } from "../types";
 
 export default function Home({
   onSignInClick,
+  user,
+  loading,
 }: {
   onSignInClick: () => void;
+  user?: UserData | null;
+  loading?: boolean;
 }) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [healthData, setHealthData] = useState<any>(null);
   const [latency, setLatency] = useState<number | null>(null);
 
@@ -42,7 +46,7 @@ export default function Home({
   return (
     <div className="bg-brand-bg text-brand-text min-h-screen font-sans selection:bg-brand-primary/30 flex flex-col overflow-x-hidden">
       <main className="flex flex-col items-center">
-        <Hero onSignInClick={onSignInClick} />
+        <Hero onSignInClick={onSignInClick} user={user} loading={loading} />
         <LiveStatsBar healthData={healthData} latency={latency} />
         <FeaturesSection />
         <TerminalSection />

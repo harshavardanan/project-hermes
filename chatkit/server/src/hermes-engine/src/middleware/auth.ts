@@ -103,7 +103,7 @@ export const validateProjectCredentials = async (
   secret: string,
 ): Promise<{ valid: boolean; project?: any; error?: string }> => {
   try {
-    const project = await Project.findOne({ apiKey }).populate("plan");
+    const project = await Project.findOne({ apiKey });
     if (!project) return { valid: false, error: "Invalid API key" };
     if (project.secret !== secret)
       return { valid: false, error: "Invalid secret" };

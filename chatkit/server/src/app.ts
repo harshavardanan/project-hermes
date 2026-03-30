@@ -3,6 +3,7 @@ import http from "http";
 import express from "express";
 import type { Application } from "express";
 import cors from "cors";
+import helmet from "helmet";
 import passport from "passport";
 import { Server } from "socket.io";
 import "dotenv/config";
@@ -24,6 +25,14 @@ export async function start() {
 
   app.set("trust proxy", 1);
 
+  // ── Security headers ────────────────────────────────────────────────────────
+  app.use(
+    helmet({
+      contentSecurityPolicy: false, // CSP managed by frontend/CDN
+      crossOriginEmbedderPolicy: false, // Allow cross-origin embeds (Cloudinary etc.)
+    }),
+  );
+
   app.use(
     cors({
       origin: (origin, callback) => callback(null, origin || true),
@@ -35,8 +44,6 @@ export async function start() {
 
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
-
-  // Passport for OAuth flow only — no sessions needed
   app.use(passport.initialize());
 
   app.use("/api/docs", docRoutes);
@@ -51,6 +58,11 @@ export async function start() {
       origin: (origin, callback) => callback(null, origin || true),
       credentials: true,
     },
+    // Performance tuning for Socket.IO
+    pingTimeout: 30000,
+    pingInterval: 25000,
+    maxHttpBufferSize: 1e7, // 10MB max payload
+    transports: ["websocket", "polling"],
   });
 
   initHermes(io, app);
@@ -59,6 +71,28 @@ export async function start() {
   server.listen(PORT, () =>
     console.log(`🚀 Server on http://localhost:${PORT}`),
   );
+
+  // ── Graceful shutdown ───────────────────────────────────────────────────────
+  const gracefulShutdown = async (signal: string) => {
+    console.log(`\n${signal} received. Shutting down gracefully...`);
+
+    // Stop accepting new connections
+    server.close(() => {
+      console.log("HTTP server closed.");
+    });
+
+    // Close all socket connections
+    io.disconnectSockets(true);
+
+    // Allow 5s for in-flight requests
+    setTimeout(() => {
+      console.log("Force shutdown after timeout.");
+      process.exit(0);
+    }, 5000);
+  };
+
+  process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+  process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
   return { app, server, io };
 }

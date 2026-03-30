@@ -1,43 +1,89 @@
 import React, { useState, useRef, useCallback } from "react";
 import type { Message, UploadResult } from "../../types/index";
+import { useRoomActionContext } from "../context/RoomActionContext";
+import { useTypingContext } from "../context/TypingContext";
+import { useChatContext } from "../context/ChatContext";
 
-interface ChatInputProps {
-  onSendText: (text: string) => Promise<void> | void;
+export interface ChatInputProps {
+  /** Send text callback (optional if inside <Room>) */
+  onSendText?: (text: string) => Promise<void> | void;
+  /** Send file callback */
   onSendFile?: (file: File) => Promise<void> | void;
+  /** Typing start callback (optional if inside <Room>) */
   onTypingStart?: () => void;
+  /** Typing stop callback (optional if inside <Room>) */
   onTypingStop?: () => void;
+  /** Message being replied to */
   replyingTo?: Message | null;
+  /** Cancel reply callback */
   onCancelReply?: () => void;
+  /** Whether input is disabled */
   disabled?: boolean;
+  /** Placeholder text */
   placeholder?: string;
+  /** Maximum character length */
   maxLength?: number;
+  /** Additional class name */
   className?: string;
+  /** Input element class name */
   inputClassName?: string;
+  /** Custom attach icon renderer */
   renderAttachIcon?: () => React.ReactNode;
+  /** Custom send icon renderer */
   renderSendIcon?: () => React.ReactNode;
 }
 
-export const ChatInput: React.FC<ChatInputProps> = ({
-  onSendText,
-  onSendFile,
-  onTypingStart,
-  onTypingStop,
-  replyingTo,
-  onCancelReply,
-  disabled = false,
-  placeholder = "Type a message...",
-  maxLength = 4000,
-  className = "",
-  inputClassName = "",
-  renderAttachIcon,
-  renderSendIcon,
-}) => {
+/**
+ * Message composer with text input, file upload, and reply preview.
+ *
+ * **Context-aware:** When used inside `<Room>`, automatically binds to
+ * `sendMessage` and typing events. When used standalone, accepts all callbacks via props.
+ *
+ * @example
+ * ```tsx
+ * // Context-aware
+ * <Room roomId={id}>
+ *   <Window>
+ *     <MessageList />
+ *     <ChatInput />
+ *   </Window>
+ * </Room>
+ *
+ * // Standalone
+ * <ChatInput onSendText={handleSend} onSendFile={handleFile} />
+ * ```
+ */
+export const ChatInput: React.FC<ChatInputProps> = (props) => {
+  const roomActionCtx = useRoomActionContext("ChatInput");
+  const typingCtx = useTypingContext("ChatInput");
+  const chatCtx = useChatContext("ChatInput");
+
+  const onSendText = props.onSendText ?? (roomActionCtx.sendMessage
+    ? async (text: string) => {
+        await roomActionCtx.sendMessage({ type: "text", text });
+      }
+    : undefined);
+  const onSendFile = props.onSendFile;
+  const onTypingStart = props.onTypingStart ?? typingCtx.startTyping;
+  const onTypingStop = props.onTypingStop ?? typingCtx.stopTyping;
+
+  const {
+    replyingTo,
+    onCancelReply,
+    disabled = false,
+    placeholder = "Type a message...",
+    maxLength = 4000,
+    className = "",
+    inputClassName = "",
+    renderAttachIcon,
+    renderSendIcon,
+  } = props;
+
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  
   const resizeTextarea = useCallback(() => {
     const el = textareaRef.current;
     if (!el) return;
@@ -53,8 +99,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   const handleSend = async () => {
     const trimmed = text.trim();
-    if (!trimmed || sending || disabled) return;
-
+    if (!trimmed || sending || disabled || !onSendText) return;
     setSending(true);
     try {
       await onSendText(trimmed);
@@ -77,7 +122,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     const file = e.target.files?.[0];
     if (!file || !onSendFile) return;
     await onSendFile(file);
-    
     if (fileRef.current) fileRef.current.value = "";
   };
 
@@ -91,7 +135,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         borderTop: "1px solid #e0e0e0",
       }}
     >
-      {}
+      {/* Reply preview */}
       {replyingTo && (
         <div
           className="hermes-chat-input__reply"
@@ -108,9 +152,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           }}
         >
           <div style={{ overflow: "hidden" }}>
-            <span style={{ fontWeight: 600, marginRight: 4 }}>
-              Replying to:
-            </span>
+            <span style={{ fontWeight: 600, marginRight: 4 }}>Replying to:</span>
             <span style={{ opacity: 0.7 }}>
               {replyingTo.type === "text"
                 ? replyingTo.text?.slice(0, 60)
@@ -132,12 +174,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         </div>
       )}
 
-      {}
+      {/* Input row */}
       <div
         className="hermes-chat-input__row"
         style={{ display: "flex", alignItems: "flex-end", gap: 8 }}
       >
-        {}
+        {/* Attach button */}
         {onSendFile && (
           <>
             <button
@@ -156,16 +198,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               {renderAttachIcon ? (
                 renderAttachIcon()
               ) : (
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
                 </svg>
               )}
@@ -180,7 +213,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           </>
         )}
 
-        {}
+        {/* Textarea */}
         <textarea
           ref={textareaRef}
           value={text}
@@ -206,7 +239,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           }}
         />
 
-        {}
+        {/* Send button */}
         <button
           onClick={handleSend}
           disabled={!text.trim() || sending || disabled}
@@ -230,16 +263,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         </button>
       </div>
 
-      {}
+      {/* Character count */}
       {text.length > maxLength * 0.8 && (
-        <div
-          style={{
-            fontSize: 10,
-            textAlign: "right",
-            opacity: 0.5,
-            marginTop: 2,
-          }}
-        >
+        <div style={{ fontSize: 10, textAlign: "right", opacity: 0.5, marginTop: 2 }}>
           {text.length}/{maxLength}
         </div>
       )}

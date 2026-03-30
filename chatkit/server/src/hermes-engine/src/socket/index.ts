@@ -6,12 +6,10 @@ import { tokenMiddleware } from "../middleware/tokenMiddleware.js";
 import { handleConnection } from "./handlers/connection.js";
 import { handleMessaging } from "./handlers/messaging.js";
 import { handleRooms } from "./handlers/rooms.js";
-import {
-  handlePresence,
-  handleTyping,
-  handleReceipts,
-  handleReactions,
-} from "./handlers/presence.js";
+import { handlePresence, handlePinning, handleSearch } from "./handlers/presence.js";
+import { handleTyping } from "./handlers/typing.js";
+import { handleReceipts } from "./handlers/receipts.js";
+import { handleReactions } from "./handlers/reactions.js";
 import { logger } from "../utils/logger.js";
 
 export const initHermesSocket = (io: Server) => {
@@ -30,20 +28,23 @@ export const initHermesSocket = (io: Server) => {
   hermes.use(tokenMiddleware);
 
   hermes.on("connection", async (socket) => {
-    // ✅ Use hermesUserId — matches what auth middleware sets
     const { hermesUserId, displayName } = (socket as any).hermesUser;
     logger.info(`New connection: ${hermesUserId} [${socket.id}]`);
 
     try {
       await handleConnection(socket, hermes as any);
 
+      // ── Feature handlers ────────────────────────────────────────────────
       handleMessaging(socket, hermes as any);
       handleRooms(socket, hermes as any);
       handlePresence(socket, hermes as any);
       handleTyping(socket, hermes as any);
       handleReceipts(socket, hermes as any);
       handleReactions(socket, hermes as any);
+      handlePinning(socket, hermes as any);
+      handleSearch(socket, hermes as any);
 
+      // ── Heartbeat ───────────────────────────────────────────────────────
       socket.on("ping", (data) => {
         socket.emit("pong", { timestamp: data?.timestamp ?? Date.now() });
       });

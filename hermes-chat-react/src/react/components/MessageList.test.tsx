@@ -45,10 +45,10 @@ describe("MessageList", () => {
       <MessageList 
         messages={[]} 
         currentUser={currentUser} 
-        typingUsers={[{ userId: "u2", displayName: "Alice" }, { userId: "u3", displayName: "Bob" }]} 
+        typingText="Alice and Bob are typing..."
       />
     );
-    expect(screen.getByText("Alice and Bob are typing")).toBeInTheDocument();
+    expect(screen.getByText("Alice and Bob are typing...")).toBeInTheDocument();
   });
 
   it("should call onLoadMore when Load older messages button is clicked", async () => {

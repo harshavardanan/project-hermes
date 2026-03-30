@@ -3,6 +3,9 @@ export interface HermesConfig {
   apiKey: string;
   secret: string;
   userId: string;
+  displayName?: string;
+  avatar?: string;
+  email?: string;
 }
 
 export interface HermesUser {
@@ -75,6 +78,10 @@ export interface Message {
   mimeType?: string;
   thumbnail?: string;
   replyTo?: string;
+  threadParentId?: string;
+  replyCount?: number;
+  pinnedAt?: string;
+  pinnedBy?: string;
   reactions: Reaction[];
   deliveryStatus: DeliveryStatus;
   seenBy: string[];

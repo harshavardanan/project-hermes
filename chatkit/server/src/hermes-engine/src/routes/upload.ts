@@ -22,7 +22,7 @@ router.post(
 
       const { originalname, mimetype, size, buffer } = req.file;
       const category = getMimeCategory(mimetype);
-      const userId = (req as any).hermesUser.userId;
+      const userId = (req as any).hermesUser.hermesUserId;
 
       // Determine Cloudinary resource type
       const resourceType =

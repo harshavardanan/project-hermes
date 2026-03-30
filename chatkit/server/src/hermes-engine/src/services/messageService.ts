@@ -9,6 +9,8 @@ import { logger } from "../utils/logger.js";
 
 const PAGE_SIZE = 30;
 
+// ── Types ─────────────────────────────────────────────────────────────────────
+
 interface SendMessageInput {
   roomId: string;
   senderId: string; // HermesUser._id
@@ -20,6 +22,7 @@ interface SendMessageInput {
   mimeType?: string;
   thumbnail?: string;
   replyTo?: string;
+  threadParentId?: string;
 }
 
 // ── Send message ──────────────────────────────────────────────────────────────
@@ -33,7 +36,7 @@ export const sendMessage = async (
 
   if (!room || room.isDeleted) return { error: "Room not found" };
 
-  // 2. 🛡️ ACCOUNT-WIDE TOKEN GUARD
+  // 2. Account-wide token guard
   const project = room.projectId as any;
   if (project?.userId) {
     const owner = await User.findById(project.userId).populate("plan");
@@ -56,7 +59,7 @@ export const sendMessage = async (
   const encryptedText = input.text ? encrypt(input.text) : undefined;
 
   // 3. Create the message
-  const message = await Message.create({
+  const messageData: any = {
     roomId: new Types.ObjectId(roomId),
     senderId: new Types.ObjectId(senderId),
     type: input.type,
@@ -69,7 +72,21 @@ export const sendMessage = async (
     replyTo: input.replyTo ? new Types.ObjectId(input.replyTo) : undefined,
     deliveryStatus: "sent",
     seenBy: [new Types.ObjectId(senderId)],
-  });
+  };
+
+  // Thread support: if this is a reply within a thread
+  if (input.threadParentId) {
+    messageData.threadParentId = new Types.ObjectId(input.threadParentId);
+  }
+
+  const message = await Message.create(messageData);
+
+  // If this is a thread reply, increment parent's replyCount
+  if (input.threadParentId) {
+    await Message.findByIdAndUpdate(input.threadParentId, {
+      $inc: { replyCount: 1 },
+    });
+  }
 
   // Update room last activity
   await Room.findByIdAndUpdate(roomId, {
@@ -93,7 +110,7 @@ export const sendMessage = async (
 
   logger.socket("MSG_SENT", senderId, `room:${roomId} type:${input.type}`);
 
-  // 4. 🚀 ATOMIC TOKEN TRACKING (Account-wide + per-project)
+  // 4. Atomic token tracking (Account-wide + per-project)
   if (project?._id) {
     try {
       const charCount = input.text ? input.text.length : 0;
@@ -138,7 +155,12 @@ export const getHistory = async (
   const isMember = room.members.some((m) => m.toString() === hermesUserId);
   if (!isMember) return { error: "Access denied" };
 
-  const query: any = { roomId: new Types.ObjectId(roomId), isDeleted: false };
+  const query: any = {
+    roomId: new Types.ObjectId(roomId),
+    isDeleted: false,
+    // Exclude thread replies from main history — they appear in thread view
+    threadParentId: { $exists: false },
+  };
   if (before) {
     const cursor = await Message.findById(before);
     if (cursor) query.createdAt = { $lt: cursor.createdAt };
@@ -164,6 +186,158 @@ export const getHistory = async (
   });
 
   return { messages: decrypted, hasMore };
+};
+
+// ── Get thread replies (paginated) ────────────────────────────────────────────
+export const getThreadReplies = async (
+  parentId: string,
+  hermesUserId: string,
+  before?: string,
+  limit = PAGE_SIZE,
+): Promise<{ messages?: any[]; hasMore?: boolean; error?: string }> => {
+  // Verify parent exists
+  const parent = await Message.findById(parentId);
+  if (!parent || parent.isDeleted) return { error: "Thread not found" };
+
+  // Verify the user is a member of the room
+  const room = await Room.findById(parent.roomId);
+  if (!room || room.isDeleted) return { error: "Room not found" };
+
+  const isMember = room.members.some((m) => m.toString() === hermesUserId);
+  if (!isMember) return { error: "Access denied" };
+
+  const query: any = {
+    threadParentId: new Types.ObjectId(parentId),
+    isDeleted: false,
+  };
+  if (before) {
+    const cursor = await Message.findById(before);
+    if (cursor) query.createdAt = { $lt: cursor.createdAt };
+  }
+
+  const messages = await Message.find(query)
+    .sort({ createdAt: -1 })
+    .limit(limit + 1);
+
+  const hasMore = messages.length > limit;
+  const result = messages.slice(0, limit).reverse();
+
+  const decrypted = result.map((m) => {
+    const obj = m.toObject();
+    if (obj.text) {
+      try {
+        obj.text = decrypt(obj.text);
+      } catch {
+        obj.text = "[encrypted]";
+      }
+    }
+    return obj;
+  });
+
+  return { messages: decrypted, hasMore };
+};
+
+// ── Pin message ───────────────────────────────────────────────────────────────
+export const pinMessage = async (
+  messageId: string,
+  hermesUserId: string,
+): Promise<{ message?: any; error?: string }> => {
+  const message = await Message.findById(messageId);
+  if (!message || message.isDeleted) return { error: "Message not found" };
+
+  // Verify user is a member of the room
+  const room = await Room.findById(message.roomId);
+  if (!room || room.isDeleted) return { error: "Room not found" };
+
+  const isMember = room.members.some((m) => m.toString() === hermesUserId);
+  if (!isMember) return { error: "Not a member of this room" };
+
+  message.pinnedAt = new Date();
+  message.pinnedBy = new Types.ObjectId(hermesUserId);
+  await message.save();
+
+  const obj = message.toObject();
+  if (obj.text) {
+    try {
+      obj.text = decrypt(obj.text);
+    } catch {
+      obj.text = "[encrypted]";
+    }
+  }
+
+  logger.socket("MSG_PINNED", hermesUserId, `msg:${messageId}`);
+  return { message: obj };
+};
+
+// ── Unpin message ─────────────────────────────────────────────────────────────
+export const unpinMessage = async (
+  messageId: string,
+  hermesUserId: string,
+): Promise<{ success: boolean; error?: string }> => {
+  const message = await Message.findById(messageId);
+  if (!message || message.isDeleted) return { success: false, error: "Message not found" };
+
+  // Verify user is a member of the room
+  const room = await Room.findById(message.roomId);
+  if (!room || room.isDeleted) return { success: false, error: "Room not found" };
+
+  const isMember = room.members.some((m) => m.toString() === hermesUserId);
+  if (!isMember) return { success: false, error: "Not a member of this room" };
+
+  message.pinnedAt = undefined;
+  message.pinnedBy = undefined;
+  await message.save();
+
+  logger.socket("MSG_UNPINNED", hermesUserId, `msg:${messageId}`);
+  return { success: true };
+};
+
+// ── Search messages ───────────────────────────────────────────────────────────
+export const searchMessages = async (
+  roomId: string,
+  hermesUserId: string,
+  query: string,
+  limit = 20,
+): Promise<{ messages?: any[]; error?: string }> => {
+  const room = await Room.findById(roomId);
+  if (!room || room.isDeleted) return { error: "Room not found" };
+
+  const isMember = room.members.some((m) => m.toString() === hermesUserId);
+  if (!isMember) return { error: "Access denied" };
+
+  if (!query || query.trim().length === 0) return { messages: [] };
+
+  // Fetch recent messages and decrypt to search (encrypted text cannot be
+  // searched at the DB level). Limit scan to last 500 messages for performance.
+  const recentMessages = await Message.find({
+    roomId: new Types.ObjectId(roomId),
+    isDeleted: false,
+    type: "text",
+  })
+    .sort({ createdAt: -1 })
+    .limit(500);
+
+  const lowerQuery = query.toLowerCase();
+  const matches: any[] = [];
+
+  for (const msg of recentMessages) {
+    if (matches.length >= limit) break;
+    if (!msg.text) continue;
+
+    try {
+      const decryptedText = decrypt(msg.text);
+      if (decryptedText.toLowerCase().includes(lowerQuery)) {
+        const obj = msg.toObject();
+        obj.text = decryptedText;
+        matches.push(obj);
+      }
+    } catch {
+      // Skip messages that can't be decrypted
+      continue;
+    }
+  }
+
+  return { messages: matches };
 };
 
 // ── Mark seen ─────────────────────────────────────────────────────────────────

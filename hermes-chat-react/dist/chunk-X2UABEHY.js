@@ -75,7 +75,7 @@ var HermesClient = class extends EventEmitter {
           apiKey: cfg.apiKey,
           secret: cfg.secret,
           userId: cfg.userId,
-          displayName: cfg.displayName ?? cfg.userId,
+          displayName: cfg.displayName,
           avatar: cfg.avatar,
           email: cfg.email
         })
@@ -231,4 +231,4 @@ var HermesClient = class extends EventEmitter {
 export {
   HermesClient
 };
-//# sourceMappingURL=chunk-OMLFDWYU.js.map
+//# sourceMappingURL=chunk-X2UABEHY.js.map

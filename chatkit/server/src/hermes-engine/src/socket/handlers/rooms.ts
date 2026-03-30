@@ -12,8 +12,8 @@ import { logger } from "../../utils/logger.js";
 export const handleRooms = (socket: Socket, io: Server) => {
   const { hermesUserId, displayName, projectId } = (socket as any).hermesUser;
   if (!hermesUserId) {
-    console.error(
-      "❌ handleRooms: hermesUserId is undefined!",
+    logger.error(
+      "handleRooms: hermesUserId is undefined!",
       (socket as any).hermesUser,
     );
     return;
@@ -144,6 +144,95 @@ export const handleRooms = (socket: Socket, io: Server) => {
     }
   });
 
+  // ── room:member:add ─────────────────────────────────────────────────────────
+  // SDK emits: client._emit("room:member:add", { roomId, newMemberId })
+  socket.on("room:member:add", async (...args) => {
+    const ack =
+      typeof args[args.length - 1] === "function"
+        ? args[args.length - 1]
+        : undefined;
+    const data =
+      args.length > 1 && typeof args[0] !== "function" ? args[0] : {};
+
+    try {
+      const { roomId, newMemberId } = data;
+      if (!roomId || !newMemberId) {
+        return ack?.({
+          success: false,
+          error: "roomId and newMemberId required",
+        });
+      }
+
+      const result = await addMember(roomId, hermesUserId, newMemberId);
+      if (!result.success)
+        return ack?.({ success: false, error: result.error });
+
+      // Auto-join the new member's sockets to the room
+      io.to(newMemberId).socketsJoin(roomId);
+
+      // Broadcast to the room so all clients (including the SDK's useRooms hook)
+      // can update their member list in real time
+      io.to(roomId).emit("room:member:joined", {
+        roomId,
+        userId: newMemberId,
+      });
+
+      ack?.({ success: true });
+      logger.socket(
+        "MEMBER_ADD",
+        hermesUserId,
+        `added ${newMemberId} to ${roomId}`,
+      );
+    } catch (err) {
+      logger.error("room:member:add error", err);
+      ack?.({ success: false, error: "Failed to add member" });
+    }
+  });
+
+  // ── room:member:remove ──────────────────────────────────────────────────────
+  // SDK emits: client._emit("room:member:remove", { roomId, targetId })
+  socket.on("room:member:remove", async (...args) => {
+    const ack =
+      typeof args[args.length - 1] === "function"
+        ? args[args.length - 1]
+        : undefined;
+    const data =
+      args.length > 1 && typeof args[0] !== "function" ? args[0] : {};
+
+    try {
+      const { roomId, targetId } = data;
+      if (!roomId || !targetId) {
+        return ack?.({
+          success: false,
+          error: "roomId and targetId required",
+        });
+      }
+
+      const result = await removeMember(roomId, hermesUserId, targetId);
+      if (!result.success)
+        return ack?.({ success: false, error: result.error });
+
+      // Broadcast before removing so the target gets the event
+      io.to(roomId).emit("room:member:left", {
+        roomId,
+        userId: targetId,
+      });
+
+      // Remove the target's sockets from the room
+      io.to(targetId).socketsLeave(roomId);
+
+      ack?.({ success: true });
+      logger.socket(
+        "MEMBER_REMOVE",
+        hermesUserId,
+        `removed ${targetId} from ${roomId}`,
+      );
+    } catch (err) {
+      logger.error("room:member:remove error", err);
+      ack?.({ success: false, error: "Failed to remove member" });
+    }
+  });
+
   // ── room:list ───────────────────────────────────────────────────────────────
   socket.on("room:list", async (...args) => {
     const ack =
@@ -151,20 +240,14 @@ export const handleRooms = (socket: Socket, io: Server) => {
         ? args[args.length - 1]
         : undefined;
 
-    console.log(`📋 room:list hit for User ID: ${hermesUserId}`);
-
     try {
       if (!hermesUserId) {
-        console.error("❌ room:list failed: hermesUserId is undefined");
         return ack?.({ success: false, error: "Unauthenticated socket" });
       }
 
       const rooms = await getUserRooms(hermesUserId);
-      console.log(`✅ getUserRooms returned ${rooms?.length || 0} rooms`);
-
       ack?.({ success: true, rooms: rooms || [] });
     } catch (err) {
-      console.error("❌ getUserRooms threw an error:", err);
       logger.error("room:list error", err);
       ack?.({ success: false, error: "Failed to fetch rooms" });
     }

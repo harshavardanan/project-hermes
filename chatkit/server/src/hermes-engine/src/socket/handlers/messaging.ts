@@ -5,6 +5,7 @@ import {
   getHistory,
   deleteMessage,
   editMessage,
+  getThreadReplies,
 } from "../../services/messageService.js";
 import { logger } from "../../utils/logger.js";
 
@@ -21,7 +22,8 @@ export const handleMessaging = (socket: Socket, io: Server) => {
       // Check per-user token limit
       if (socket.data.dailyTokensUsed >= socket.data.planLimit) {
         socket.emit("quota:exceeded", {
-          message: "Daily message limit reached for your plan. Upgrade your plan to send more.",
+          message:
+            "Daily message limit reached for your plan. Upgrade your plan to send more.",
         });
         return ack?.({
           success: false,
@@ -39,6 +41,7 @@ export const handleMessaging = (socket: Socket, io: Server) => {
         mimeType,
         thumbnail,
         replyTo,
+        threadParentId,
       } = data;
 
       if (!roomId || !type)
@@ -57,19 +60,15 @@ export const handleMessaging = (socket: Socket, io: Server) => {
         mimeType,
         thumbnail,
         replyTo,
+        threadParentId,
       });
 
       if (result.error) return ack?.({ success: false, error: result.error });
 
-      // Increment token tracking
+      // Increment token tracking on socket (in-memory counter for current session)
       socket.data.dailyTokensUsed++;
-      import("../../../../models/Users.js").then(({ default: User }) => {
-        User.updateOne(
-          { _id: socket.data.user._id },
-          { $inc: { dailyTokensUsed: 1 } },
-        ).catch((err) => logger.error("Failed to increment user token", err));
-      });
 
+      // Broadcast the message to the room
       io.to(roomId).emit("message:receive", result.message);
       ack?.({ success: true, message: result.message });
     } catch (err) {
@@ -88,6 +87,29 @@ export const handleMessaging = (socket: Socket, io: Server) => {
     } catch (err) {
       logger.error("message:history error", err);
       ack?.({ success: false, error: "Failed to fetch history" });
+    }
+  });
+
+  // ── message:thread:history ──────────────────────────────────────────────────
+  // Fetches paginated replies for a thread parent message
+  socket.on("message:thread:history", async (data, ack) => {
+    try {
+      const { parentId, before, limit } = data;
+      if (!parentId) {
+        return ack?.({ success: false, error: "parentId required" });
+      }
+
+      const result = await getThreadReplies(
+        parentId,
+        hermesUserId,
+        before,
+        limit,
+      );
+      if (result.error) return ack?.({ success: false, error: result.error });
+      ack?.({ success: true, ...result });
+    } catch (err) {
+      logger.error("message:thread:history error", err);
+      ack?.({ success: false, error: "Failed to fetch thread replies" });
     }
   });
 
