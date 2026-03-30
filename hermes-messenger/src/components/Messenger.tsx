@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { LogOut } from "lucide-react";
+import { LogOut, MessageSquarePlus } from "lucide-react";
 import { useHermes } from "../lib/hermes";
 import { useAuthStore } from "../store/authStore";
 import {
@@ -14,6 +14,7 @@ import {
   useRooms
 } from "hermes-chat-react/react";
 import type { Room as RoomType, Message, HermesClient, HermesUser } from "hermes-chat-react";
+import { NewChatModal } from "./NewChatModal";
 
 interface MessengerInnerProps {
   client: HermesClient;
@@ -24,6 +25,7 @@ interface MessengerInnerProps {
 const MessengerInner: React.FC<MessengerInnerProps> = ({ client, hermesUser, logout }) => {
   // Track the active room locally.
   const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
+  const [isNewChatOpen, setIsNewChatOpen] = useState(false);
 
   // Fetch rooms list from the old hook
   const { rooms, loading: roomsLoading } = useRooms(client);
@@ -45,13 +47,22 @@ const MessengerInner: React.FC<MessengerInnerProps> = ({ client, hermesUser, log
           {/* Sidebar Header */}
           <div className="p-4 flex items-center justify-between border-b border-gray-200 bg-white shadow-sm z-10">
             <h2 className="text-lg font-semibold tracking-tight text-gray-800">Hermes</h2>
-            <button
-              onClick={logout}
-              className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-              title="Sign Out"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsNewChatOpen(true)}
+                className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                title="New Chat"
+              >
+                <MessageSquarePlus className="w-4 h-4" />
+              </button>
+              <button
+                onClick={logout}
+                className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                title="Sign Out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto relative">
@@ -135,6 +146,13 @@ const MessengerInner: React.FC<MessengerInnerProps> = ({ client, hermesUser, log
         </div>
 
       </div>
+      <NewChatModal
+        client={client}
+        currentUser={hermesUser}
+        open={isNewChatOpen}
+        onClose={() => setIsNewChatOpen(false)}
+        onRoomCreated={(room) => setActiveRoomId(room._id)}
+      />
     </Chat>
   );
 };

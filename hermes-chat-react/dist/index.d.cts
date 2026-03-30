@@ -187,6 +187,7 @@ declare class HermesClient extends EventEmitter {
     createGroupRoom(input: CreateGroupRoomInput): Promise<Room>;
     deleteRoom(roomId: string): Promise<void>;
     getRooms(): Promise<Room[]>;
+    getUsers(): Promise<HermesUser[]>;
     addMember(roomId: string, newMemberId: string): Promise<void>;
     removeMember(roomId: string, targetId: string): Promise<void>;
     pingPresence(roomId: string): void;

@@ -165,6 +165,20 @@ export class HermesClient extends EventEmitter {
     const res = await this._emit<{ rooms: Room[] }>("room:list");
     return res.rooms;
   }
+  async getUsers(): Promise<HermesUser[]> {
+    if (!this.token) throw new Error("Not connected");
+    const res = await fetch(`${this.config.endpoint}/hermes/users`, {
+      headers: { Authorization: `Bearer ${this.token}` },
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message || "Failed to fetch users");
+    return data.users.map((u: any) => ({
+      userId: u._id,
+      displayName: u.displayName,
+      avatar: u.avatar,
+      email: u.email
+    }));
+  }
   async addMember(roomId: string, newMemberId: string): Promise<void> { await this._emit("room:member:add", { roomId, newMemberId }); }
   async removeMember(roomId: string, targetId: string): Promise<void> { await this._emit("room:member:remove", { roomId, targetId }); }
   pingPresence(roomId: string): void { this.socket?.emit("presence:ping", { roomId }); }

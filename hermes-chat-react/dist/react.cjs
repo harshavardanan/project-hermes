@@ -269,6 +269,20 @@ var HermesClient = class extends EventEmitter {
     const res = await this._emit("room:list");
     return res.rooms;
   }
+  async getUsers() {
+    if (!this.token) throw new Error("Not connected");
+    const res = await fetch(`${this.config.endpoint}/hermes/users`, {
+      headers: { Authorization: `Bearer ${this.token}` }
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message || "Failed to fetch users");
+    return data.users.map((u) => ({
+      userId: u._id,
+      displayName: u.displayName,
+      avatar: u.avatar,
+      email: u.email
+    }));
+  }
   async addMember(roomId, newMemberId) {
     await this._emit("room:member:add", { roomId, newMemberId });
   }
