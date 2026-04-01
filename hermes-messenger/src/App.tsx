@@ -13,10 +13,10 @@ function App() {
 
   if (loading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-gray-50">
+      <div className="flex h-[100dvh] w-full items-center justify-center" style={{ background: "var(--brand-bg)" }}>
         <div className="flex flex-col items-center gap-4">
-          <div className="h-12 w-12 border-4 border-accent-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-gray-500 animate-pulse">Initializing Messenger...</p>
+          <div className="h-10 w-10 border-4 border-white border-t-transparent rounded-full animate-spin" />
+          <p style={{ color: "var(--brand-muted)" }} className="animate-pulse text-sm">Initializing Messenger...</p>
         </div>
       </div>
     );
