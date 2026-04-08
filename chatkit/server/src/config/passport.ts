@@ -6,19 +6,6 @@ import User from "../models/Users.js";
 import { Plan } from "../models/Plans.js";
 import type { IUser } from "../types/user.js";
 
-passport.serializeUser((user: any, done) => {
-  done(null, user.id);
-});
-
-passport.deserializeUser(async (id: string, done) => {
-  try {
-    const user = await User.findById(id);
-    done(null, user);
-  } catch (err) {
-    done(err, null);
-  }
-});
-
 const authHandler = async (
   profile: any,
   done: (err: any, user?: any) => void,

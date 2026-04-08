@@ -4,8 +4,7 @@ import type { Application } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import passport from "passport";
-import session from "express-session";
-import MongoStore from "connect-mongo";
+
 import { Server } from "socket.io";
 import "dotenv/config";
 
@@ -46,28 +45,10 @@ export async function start() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
-  // ── SESSION (CRITICAL FIX) ─────────────────────────────────────────────────
-  app.use(
-    session({
-      name: "connect.sid",
-      secret: process.env.SESSION_SECRET!,
-      resave: false,
-      saveUninitialized: false,
-      store: MongoStore.create({
-        mongoUrl: mongoUri,
-      }),
-      cookie: {
-        secure: true, // REQUIRED on Vercel (HTTPS)
-        httpOnly: true,
-        sameSite: "none", // REQUIRED for cross-origin
-        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-      },
-    }),
-  );
+
 
   // ── Passport (ORDER MATTERS) ───────────────────────────────────────────────
   app.use(passport.initialize());
-  app.use(passport.session());
 
   // ── Routes ─────────────────────────────────────────────────────────────────
   app.use("/api/docs", docRoutes);
