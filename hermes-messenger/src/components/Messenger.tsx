@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { LogOut, MessageSquarePlus, ArrowLeft } from "lucide-react";
 import { useHermes } from "../lib/hermes";
 import { useAuthStore } from "../store/authStore";
@@ -119,21 +119,86 @@ const MessengerInner: React.FC<MessengerInnerProps> = ({ client, hermesUser, log
   const activeRoomName = activeRoom ? getRoomName(activeRoom) : "Chat";
   const activeRoomAvatar = activeRoom ? getRoomAvatar(activeRoom) : undefined;
 
-  /* ── Custom room avatar renderer for message list ─────────────── */
-  const renderMessageAvatar = (senderId: string) => {
-    const user = resolveUser(senderId);
-    const avatarUrl = user?.avatar;
-    const name = user?.displayName ?? "?";
-    if (avatarUrl) {
-      return <img src={avatarUrl} alt={name} className="w-8 h-8 rounded-full object-cover" />;
+  /* ── Custom message renderer for dark theme ────────────────────── */
+  const renderMessage = useCallback((message: Message, isOwn: boolean) => {
+    const sender = resolveUser(message.senderId);
+    const senderName = sender?.displayName ?? "User";
+    const senderAvatar = sender?.avatar;
+
+    const formatTime = (iso: string) =>
+      new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+    if (message.isDeleted) {
+      return (
+        <div className="text-xs italic py-1 px-4" style={{ color: "var(--brand-muted)" }}>
+          This message was deleted.
+        </div>
+      );
     }
+
     return (
-      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
-        style={{ background: "var(--brand-accent)", color: "var(--brand-muted)" }}>
-        {name[0]?.toUpperCase() || "?"}
+      <div
+        className={`flex ${isOwn ? "flex-row-reverse" : "flex-row"} items-end gap-2 mb-3`}
+      >
+        {/* Avatar */}
+        {!isOwn && (
+          <div className="flex-shrink-0 w-7 h-7 rounded-full overflow-hidden"
+            style={{ background: "var(--brand-accent)", border: "1px solid var(--brand-border)" }}>
+            {senderAvatar ? (
+              <img src={senderAvatar} alt={senderName} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-[10px] font-bold"
+                style={{ color: "var(--brand-muted)" }}>
+                {senderName[0]?.toUpperCase() || "?"}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Bubble + meta */}
+        <div className={`max-w-[70%] ${isOwn ? "items-end" : "items-start"} flex flex-col`}>
+          <div
+            className="px-3 py-2 rounded-2xl text-sm break-words"
+            style={{
+              background: isOwn ? "#2563eb" : "var(--brand-accent)",
+              color: isOwn ? "#ffffff" : "var(--brand-text)",
+              border: isOwn ? "none" : "1px solid var(--brand-border)",
+            }}
+          >
+            {message.type === "text" && <p className="m-0">{message.text}</p>}
+            {message.type === "image" && (
+              <img src={message.url} alt="" className="max-w-full rounded-lg" />
+            )}
+            {message.type === "video" && (
+              <video src={message.url} poster={message.thumbnail} controls className="max-w-full rounded-lg" />
+            )}
+            {message.type === "audio" && <audio src={message.url} controls className="w-full" />}
+            {message.type === "document" && (
+              <a href={message.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 no-underline" style={{ color: "inherit" }}>
+                <span>📄</span> {message.fileName ?? "File"}
+              </a>
+            )}
+            {message.type === "link" && (
+              <a href={message.url} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: isOwn ? "#bfdbfe" : "#60a5fa" }}>
+                {message.url}
+              </a>
+            )}
+          </div>
+          {/* Sender name + time */}
+          <div className={`flex items-center gap-1.5 mt-1 px-1 ${isOwn ? "flex-row-reverse" : "flex-row"}`}>
+            {!isOwn && (
+              <span className="text-[10px] font-medium" style={{ color: "var(--brand-muted)" }}>
+                {senderName}
+              </span>
+            )}
+            <span className="text-[10px]" style={{ color: "var(--brand-muted)", opacity: 0.6 }}>
+              {formatTime(message.createdAt)}
+            </span>
+          </div>
+        </div>
       </div>
     );
-  };
+  }, [userMap, hermesUser.userId]);
 
   /* ── Custom room list item renderer ──────────────────────────── */
   const renderRoomItem = (room: RoomType, isActive: boolean) => {
@@ -320,7 +385,7 @@ const MessengerInner: React.FC<MessengerInnerProps> = ({ client, hermesUser, log
                 <div className="flex-1 overflow-y-auto" style={{ background: "var(--brand-card)" }}>
                   <MessageList
                     className="h-full"
-                    renderAvatar={renderMessageAvatar}
+                    renderMessage={renderMessage}
                   />
                 </div>
 

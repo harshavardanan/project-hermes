@@ -1,10 +1,11 @@
-
 import http from "http";
 import express from "express";
 import type { Application } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import passport from "passport";
+import session from "express-session";
+import MongoStore from "connect-mongo";
 import { Server } from "socket.io";
 import "dotenv/config";
 
@@ -25,68 +26,89 @@ export async function start() {
 
   app.set("trust proxy", 1);
 
-  // ── Security headers ────────────────────────────────────────────────────────
+  // ── Security ───────────────────────────────────────────────────────────────
   app.use(
     helmet({
-      contentSecurityPolicy: false, // CSP managed by frontend/CDN
-      crossOriginEmbedderPolicy: false, // Allow cross-origin embeds (Cloudinary etc.)
+      contentSecurityPolicy: false,
+      crossOriginEmbedderPolicy: false,
     }),
   );
 
+  // ── CORS (STRICT - REQUIRED FOR COOKIES) ───────────────────────────────────
   app.use(
     cors({
-      origin: (origin, callback) => callback(null, origin || true),
+      origin: process.env.CLIENT_ORIGIN,
       credentials: true,
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
     }),
   );
 
+  // ── Body parsing ───────────────────────────────────────────────────────────
   app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
-  app.use(passport.initialize());
+  app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
+  // ── SESSION (CRITICAL FIX) ─────────────────────────────────────────────────
+  app.use(
+    session({
+      name: "connect.sid",
+      secret: process.env.SESSION_SECRET!,
+      resave: false,
+      saveUninitialized: false,
+      store: MongoStore.create({
+        mongoUrl: mongoUri,
+      }),
+      cookie: {
+        secure: true, // REQUIRED on Vercel (HTTPS)
+        httpOnly: true,
+        sameSite: "none", // REQUIRED for cross-origin
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      },
+    }),
+  );
+
+  // ── Passport (ORDER MATTERS) ───────────────────────────────────────────────
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+  // ── Routes ─────────────────────────────────────────────────────────────────
   app.use("/api/docs", docRoutes);
   app.use("/api", pricingRoutes);
   app.use("/auth", authRoutes);
   app.use("/api", projectRoutes);
   app.use("/api/admin", adminRoutes);
 
+  // ── Server ─────────────────────────────────────────────────────────────────
   const server = http.createServer(app);
+
   const io = new Server(server, {
     cors: {
-      origin: (origin, callback) => callback(null, origin || true),
+      origin: process.env.CLIENT_ORIGIN,
       credentials: true,
     },
-    // Performance tuning for Socket.IO
     pingTimeout: 30000,
     pingInterval: 25000,
-    maxHttpBufferSize: 1e7, // 10MB max payload
+    maxHttpBufferSize: 1e7,
     transports: ["websocket", "polling"],
   });
 
   initHermes(io, app);
 
   const PORT = process.env.PORT || 8080;
-  server.listen(PORT, () =>
-    console.log(`🚀 Server on http://localhost:${PORT}`),
-  );
 
-  // ── Graceful shutdown ───────────────────────────────────────────────────────
+  server.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+  });
+
+  // ── Graceful shutdown ──────────────────────────────────────────────────────
   const gracefulShutdown = async (signal: string) => {
-    console.log(`\n${signal} received. Shutting down gracefully...`);
+    console.log(`\n${signal} received. Shutting down...`);
 
-    // Stop accepting new connections
     server.close(() => {
       console.log("HTTP server closed.");
     });
 
-    // Close all socket connections
     io.disconnectSockets(true);
 
-    // Allow 5s for in-flight requests
     setTimeout(() => {
-      console.log("Force shutdown after timeout.");
       process.exit(0);
     }, 5000);
   };

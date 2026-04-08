@@ -77,13 +77,7 @@ body {
   background-color: rgba(255, 255, 255, 0.15);
 }
 
-/* Override SDK inline styles for dark theme */
-.hermes-message--other .hermes-message p,
-.hermes-message--other p {
-  color: var(--brand-text) !important;
-}
-
-/* Fix SDK ChatInput inline border for dark theme */
+/* Override SDK ChatInput inline styles for dark theme */
 .hermes-chat-input {
   border-top-color: var(--brand-border) !important;
 }
@@ -93,3 +87,9 @@ body {
   border-color: var(--brand-border) !important;
   color: var(--brand-text) !important;
 }
+
+/* SDK loading / empty states */
+.hermes-message-list {
+  color: var(--brand-text);
+}
+
