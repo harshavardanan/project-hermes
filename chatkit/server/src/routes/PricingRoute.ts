@@ -22,7 +22,7 @@ router.get("/plans", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/admin/plans", isAdmin, async (req: Request, res: Response) => {
+router.post("/admin/plans", [isAuthenticated, isAdmin], async (req: Request, res: Response) => {
   const { planId, name, dailyLimit, monthlyPrice, features } = req.body;
   try {
     const plan = await Plan.findOneAndUpdate(
@@ -39,7 +39,7 @@ router.post("/admin/plans", isAdmin, async (req: Request, res: Response) => {
 
 router.delete(
   "/admin/plans/:id",
-  isAdmin,
+  [isAuthenticated, isAdmin],
   async (req: Request, res: Response) => {
     try {
       await Plan.findByIdAndDelete(req.params["id"]);

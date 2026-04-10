@@ -6,7 +6,7 @@ import { getCached, setCached, delCached } from "../config/redis.js";
 
 const router = express.Router();
 
-router.post("/save", isAdmin, async (req: Request, res: Response) => {
+router.post("/save", [isAuthenticated, isAdmin], async (req: Request, res: Response) => {
   try {
     const { title, slug, content } = req.body;
 
@@ -39,7 +39,7 @@ router.post("/save", isAdmin, async (req: Request, res: Response) => {
   }
 });
 
-router.put("/update/:id", isAdmin, async (req: Request, res: Response) => {
+router.put("/update/:id", [isAuthenticated, isAdmin], async (req: Request, res: Response) => {
   try {
     const { _id, slug, ...safeBody } = req.body;
 
@@ -87,7 +87,7 @@ router.get("/list", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/reorder", isAdmin, async (req: Request, res: Response) => {
+router.post("/reorder", [isAuthenticated, isAdmin], async (req: Request, res: Response) => {
   try {
     const { ids } = req.body;
     if (!Array.isArray(ids)) {
@@ -133,7 +133,7 @@ router.get("/get/:slug", async (req: Request, res: Response) => {
   }
 });
 
-router.delete("/delete/:slug", isAdmin, async (req: Request, res: Response) => {
+router.delete("/delete/:slug", [isAuthenticated, isAdmin], async (req: Request, res: Response) => {
   try {
     const deleted = await Doc.findOneAndDelete({ slug: req.params.slug });
     if (!deleted) {
