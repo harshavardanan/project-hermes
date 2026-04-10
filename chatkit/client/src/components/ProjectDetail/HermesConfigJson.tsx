@@ -1,15 +1,17 @@
 import { useState } from "react";
 import { Copy, Check } from "lucide-react";
+import { useAppConfig } from "../../store/appConfig";
 import type { Project } from "./types";
 
 const HermesConfigJson = ({ project, showSecret = false }: { project: Project; showSecret?: boolean }) => {
+  const endpointFallback = useAppConfig((s) => s.endpoint);
   const [copied, setCopied] = useState(false);
 
   const config = {
     projectId: project.projectId ?? "",
     apiKey: project.apiKey ?? "",
     secret: project.secret ?? "",
-    endpoint: project.endpoint ?? "",
+    endpoint: project.endpoint || endpointFallback || "",
   };
 
   const raw = JSON.stringify(config, null, 2);
