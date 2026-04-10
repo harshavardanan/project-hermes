@@ -16,6 +16,7 @@ import AdminPanel from "./components/AdminPanel";
 import DocEditor from "./components/DocumentEditor";
 import { useUserStore } from "./store/userStore";
 import NotFound from "./components/NotFound";
+import AuthCallback from "./components/AuthCallback";
 import { getToken, setToken, clearToken, authFetch } from "./lib/authFetch";
 
 const AppContent: React.FC<{
@@ -72,6 +73,9 @@ const AppContent: React.FC<{
               user?.isAdmin ? <DocEditor /> : <Navigate to="/" replace />
             }
           />
+
+          {/* OAuth callback — must be public (no auth guard) */}
+          <Route path="/auth/callback" element={<AuthCallback />} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>

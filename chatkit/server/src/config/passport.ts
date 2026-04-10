@@ -68,7 +68,7 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      callbackURL: "/auth/google/callback",
+      callbackURL: `${process.env.SERVER_URL}/auth/google/callback`,
     },
     (_at, _rt, profile, done) => authHandler(profile, done, "googleId" as any),
   ),
@@ -79,7 +79,7 @@ passport.use(
     {
       clientID: process.env.GITHUB_CLIENT_ID!,
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-      callbackURL: "/auth/github/callback",
+      callbackURL: `${process.env.SERVER_URL}/auth/github/callback`,
     },
     (_at, _rt, profile, done) => authHandler(profile, done, "githubId" as any),
   ),

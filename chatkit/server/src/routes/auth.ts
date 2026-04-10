@@ -26,19 +26,10 @@ router.get(
       { expiresIn: "7d" },
     );
 
-    // Send token to the opener window via postMessage, then close
-    res.send(`
-  <script>
-    const token = "${token}";
-    if (window.opener) {
-      window.opener.postMessage({ type: 'HERMES_AUTH_SUCCESS', token: token }, "${frontendUrl}");
-      window.close();
-    } else {
-      localStorage.setItem("hermes_token", token);
-      window.location.href = "${frontendUrl}/dashboard";
-    }
-  </script>
-`);
+    // Redirect to the frontend /auth/callback page with the token in the hash.
+    // Using a hash fragment keeps the token out of server logs and referrer headers.
+    // The frontend callback page handles both the popup-close and new-tab cases.
+    res.redirect(`${frontendUrl}/auth/callback#token=${token}`);
   },
 );
 

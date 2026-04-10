@@ -23,13 +23,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const checkAuth = async () => {
     try {
+      const token = localStorage.getItem("hermes_token");
+      if (!token) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
       const res = await fetch(`${import.meta.env.VITE_SERVER_ENDPOINT}/auth/me`, {
-        credentials: "include",
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         const data = await res.json();
         setUser(data);
       } else {
+        localStorage.removeItem("hermes_token");
         setUser(null);
       }
     } catch {
