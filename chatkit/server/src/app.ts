@@ -43,10 +43,8 @@ export async function start() {
   app.use(
     cors({
       origin: (origin, callback) => {
-        // Allow requests with no origin (Postman, curl, server-to-server)
-        if (!origin) return callback(null, true);
-        if (allowedOrigins.includes(origin)) return callback(null, true);
-        callback(new Error(`CORS: origin '${origin}' not allowed`));
+        // ALWAYS ALLOW: dynamically reflect the requesting origin back to bypass wildcard + credentials restriction
+        callback(null, origin || true);
       },
       credentials: true,
     }),
@@ -73,7 +71,7 @@ export async function start() {
 
   const io = new Server(server, {
     cors: {
-      origin: process.env.CLIENT_ORIGIN,
+      origin: true, // Dynamically reflect origin to allow any client-side SDK consumers
       credentials: true,
     },
     pingTimeout: 30000,
