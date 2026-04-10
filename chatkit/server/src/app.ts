@@ -35,16 +35,10 @@ export async function start() {
   );
 
   // ── CORS ───────────────────────────────────────────────────────────────────
-  const allowedOrigins = (process.env.CLIENT_ORIGIN || "")
-    .split(",")
-    .map((o) => o.trim())
-    .filter(Boolean);
-
   app.use(
     cors({
-      origin: (origin, callback) => {
-        // ALWAYS ALLOW: dynamically reflect the requesting origin back to bypass wildcard + credentials restriction
-        callback(null, origin || true);
+      origin: (_origin, callback) => {
+        callback(null, true); // reflect any origin
       },
       credentials: true,
     }),
@@ -53,8 +47,6 @@ export async function start() {
   // ── Body parsing ───────────────────────────────────────────────────────────
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ extended: true, limit: "50mb" }));
-
-
 
   // ── Passport (ORDER MATTERS) ───────────────────────────────────────────────
   app.use(passport.initialize());
@@ -71,13 +63,15 @@ export async function start() {
 
   const io = new Server(server, {
     cors: {
-      origin: true, // Dynamically reflect origin to allow any client-side SDK consumers
+      origin: (_origin, callback) => {
+        callback(null, true); // reflect any origin
+      },
       credentials: true,
     },
     pingTimeout: 30000,
     pingInterval: 25000,
     maxHttpBufferSize: 1e7,
-    transports: ["websocket", "polling"],
+    transports: ["polling"], // websocket removed — Vercel doesn't support persistent WebSocket connections
   });
 
   initHermes(io, app);
