@@ -1,6 +1,6 @@
 import {
   HermesClient
-} from "./chunk-6L73MEPH.js";
+} from "./chunk-BIKAQSSY.js";
 
 // src/react/context/ChatContext.tsx
 import { createContext, useContext } from "react";

@@ -90,7 +90,7 @@ export async function start() {
     pingTimeout: 30000,
     pingInterval: 25000,
     maxHttpBufferSize: 1e7,
-    transports: ["polling", "websocket"],
+    transports: ["polling"],
   });
 
   initHermes(io, app);
