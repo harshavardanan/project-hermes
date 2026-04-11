@@ -34,23 +34,35 @@ export async function start() {
     }),
   );
 
+  // ── CORS ───────────────────────────────────────────────────────────────────
+  // /hermes/* routes are SDK-facing → open to ANY origin (third-party devs)
+  // /api/* and /auth/* routes are dashboard-facing → restricted to CLIENT_ORIGIN
   const allowedOrigins: string[] = process.env.CLIENT_ORIGIN
     ? process.env.CLIENT_ORIGIN.split(",").map((o) => o.trim()).filter(Boolean)
     : [];
 
-  app.use(
-    cors({
-      origin: (origin, callback) => {
-        // Allow server-to-server / curl (no origin header) and any whitelisted origin
-        if (!origin || allowedOrigins.includes(origin)) {
-          callback(null, true);
-        } else {
-          callback(new Error(`CORS: origin "${origin}" not allowed`));
-        }
-      },
-      credentials: true,
-    }),
-  );
+  const dashboardCors = cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS: origin "${origin}" not allowed`));
+      }
+    },
+    credentials: true,
+  });
+
+  const hermesCors = cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  });
+
+  // Apply open CORS to all /hermes routes (SDK endpoints)
+  app.use("/hermes", hermesCors);
+
+  // Apply restricted CORS to dashboard routes
+  app.use("/api", dashboardCors);
+  app.use("/auth", dashboardCors);
 
   // ── Body parsing ───────────────────────────────────────────────────────────
   app.use(express.json({ limit: "50mb" }));
