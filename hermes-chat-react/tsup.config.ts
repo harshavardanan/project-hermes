@@ -10,6 +10,6 @@ export default defineConfig({
   dts: true,
   clean: true,
   sourcemap: true,
-  external: ["react", "react-dom", "react/jsx-runtime", "fs", "path", "readline", "readline/promises"],
+  external: ["react", "react-dom", "react/jsx-runtime", "emoji-picker-react", "fs", "path", "readline", "readline/promises"],
   jsx: "react-jsx",
 });
