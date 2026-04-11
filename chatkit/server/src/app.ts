@@ -34,9 +34,6 @@ export async function start() {
     }),
   );
 
-  // ── CORS ───────────────────────────────────────────────────────────────────
-  // Allowed HTTP origins are read from CLIENT_ORIGIN (comma-separated list in .env)
-  // e.g. CLIENT_ORIGIN="https://hermes-sdk.vercel.app,http://localhost:5173"
   const allowedOrigins: string[] = process.env.CLIENT_ORIGIN
     ? process.env.CLIENT_ORIGIN.split(",").map((o) => o.trim()).filter(Boolean)
     : [];
