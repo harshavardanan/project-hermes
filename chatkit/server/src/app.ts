@@ -16,12 +16,14 @@ import pricingRoutes from "./routes/PricingRoute.js";
 import docRoutes from "./routes/Docroute.js";
 import adminRoutes from "./routes/AdminRoute.js";
 import { initHermes } from "./hermes-engine/src/index.js";
+import { startCronJobs } from "./config/cronJobs.js";
 
 export async function start() {
   const app: Application = express();
   const mongoUri = process.env.MONGO_URI!;
 
   await connectDB(mongoUri);
+  startCronJobs();
 
   app.set("trust proxy", 1);
 
