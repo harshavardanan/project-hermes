@@ -12,7 +12,7 @@ npm install hermes-chat-react
 
 `hermes-chat-react` is the official React SDK for the **Hermes** real-time messaging engine. Drop in a fully working chat system — rooms, messages, typing indicators, presence, reactions, file uploads, read receipts — without building any of it yourself.
 
-Built on **Socket.IO**, typed end-to-end with **TypeScript**, and designed to be styled however you want.
+Built on **Socket.IO**, typed end-to-end with **TypeScript**, and designed to be styled however you want. (v0.1.6 includes externalized UI dependencies like emoji-picker-react for easier bundling!)
 
 ---
 
