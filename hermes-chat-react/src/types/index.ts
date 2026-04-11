@@ -6,6 +6,7 @@ export interface HermesConfig {
   displayName?: string;
   avatar?: string;
   email?: string;
+  transports?: string[];
 }
 
 export interface HermesUser {

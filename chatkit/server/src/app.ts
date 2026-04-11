@@ -35,10 +35,21 @@ export async function start() {
   );
 
   // ── CORS ───────────────────────────────────────────────────────────────────
+  // Allowed HTTP origins are read from CLIENT_ORIGIN (comma-separated list in .env)
+  // e.g. CLIENT_ORIGIN="https://hermes-sdk.vercel.app,http://localhost:5173"
+  const allowedOrigins: string[] = process.env.CLIENT_ORIGIN
+    ? process.env.CLIENT_ORIGIN.split(",").map((o) => o.trim()).filter(Boolean)
+    : [];
+
   app.use(
     cors({
-      origin: (_origin, callback) => {
-        callback(null, true); // reflect any origin
+      origin: (origin, callback) => {
+        // Allow server-to-server / curl (no origin header) and any whitelisted origin
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error(`CORS: origin "${origin}" not allowed`));
+        }
       },
       credentials: true,
     }),
@@ -63,15 +74,14 @@ export async function start() {
 
   const io = new Server(server, {
     cors: {
-      origin: (_origin, callback) => {
-        callback(null, true); // reflect any origin
-      },
-      credentials: true,
+      // Sockets are intentionally open to any origin — SDK clients can connect from anywhere
+      origin: "*",
+      methods: ["GET", "POST"],
     },
     pingTimeout: 30000,
     pingInterval: 25000,
     maxHttpBufferSize: 1e7,
-    transports: ["polling"], // websocket removed — Vercel doesn't support persistent WebSocket connections
+    transports: ["polling", "websocket"],
   });
 
   initHermes(io, app);

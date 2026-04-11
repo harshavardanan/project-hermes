@@ -43,7 +43,8 @@ export const HermesProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           secret,
           userId: firebaseUser.uid,
           displayName: firebaseUser.displayName,
-          avatar: firebaseUser.photoURL
+          avatar: firebaseUser.photoURL,
+          transports: ["polling"]
         };
 
         const hClient = new HermesClient(config);

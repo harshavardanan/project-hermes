@@ -83,7 +83,7 @@ export class HermesClient extends EventEmitter {
   private async _connectSocket(): Promise<void> {
     this.socket = io(`${this.config.endpoint}/hermes`, {
       auth: { token: this.token },
-      transports: ["polling", "websocket"],
+      transports: this.config.transports || ["polling", "websocket"],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
