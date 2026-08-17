@@ -19,18 +19,6 @@ export const handleMessaging = (socket: Socket, io: Server) => {
         return ack?.({ success: false, error: "Rate limit exceeded" });
       }
 
-      // Check per-user token limit
-      if (socket.data.dailyTokensUsed >= socket.data.planLimit) {
-        socket.emit("quota:exceeded", {
-          message:
-            "Daily message limit reached for your plan. Upgrade your plan to send more.",
-        });
-        return ack?.({
-          success: false,
-          error: "Daily message limit reached. Upgrade your plan.",
-        });
-      }
-
       const {
         roomId,
         type,
@@ -63,10 +51,15 @@ export const handleMessaging = (socket: Socket, io: Server) => {
         threadParentId,
       });
 
-      if (result.error) return ack?.({ success: false, error: result.error });
-
-      // Increment token tracking on socket (in-memory counter for current session)
-      socket.data.dailyTokensUsed++;
+      if (result.error) {
+        if (result.error === "TOKEN_LIMIT_EXCEEDED") {
+          socket.emit("quota:exceeded", {
+            message:
+              "Daily message limit reached for your plan. Upgrade your plan to send more.",
+          });
+        }
+        return ack?.({ success: false, error: result.error });
+      }
 
       // Broadcast the message to the room
       io.to(roomId).emit("message:receive", result.message);

@@ -2,7 +2,6 @@ import React, { useState, useRef, useCallback } from "react";
 import type { Message, UploadResult } from "../../types/index";
 import { useRoomActionContext } from "../context/RoomActionContext";
 import { useTypingContext } from "../context/TypingContext";
-import { useChatContext } from "../context/ChatContext";
 
 export interface ChatInputProps {
   /** Send text callback (optional if inside <Room>) */
@@ -56,7 +55,6 @@ export interface ChatInputProps {
 export const ChatInput: React.FC<ChatInputProps> = (props) => {
   const roomActionCtx = useRoomActionContext("ChatInput");
   const typingCtx = useTypingContext("ChatInput");
-  const chatCtx = useChatContext("ChatInput");
 
   const onSendText = props.onSendText ?? (roomActionCtx.sendMessage
     ? async (text: string) => {
@@ -242,7 +240,7 @@ export const ChatInput: React.FC<ChatInputProps> = (props) => {
         {/* Send button */}
         <button
           onClick={handleSend}
-          disabled={!text.trim() || sending || disabled}
+          disabled={!text.trim() || sending || disabled || !onSendText}
           className="hermes-chat-input__send"
           style={{
             background: "none",
@@ -250,7 +248,7 @@ export const ChatInput: React.FC<ChatInputProps> = (props) => {
             cursor: "pointer",
             padding: 6,
             flexShrink: 0,
-            opacity: !text.trim() || sending || disabled ? 0.4 : 1,
+            opacity: !text.trim() || sending || disabled || !onSendText ? 0.4 : 1,
           }}
         >
           {renderSendIcon ? (

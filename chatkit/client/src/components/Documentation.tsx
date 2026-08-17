@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useEditor, EditorContent } from "@tiptap/react";
@@ -81,7 +81,11 @@ const DocumentationPage: React.FC = () => {
     }
   }, [urlSlug, docList, navigate]);
 
-  const { data: docResp, isLoading: docLoading, isError: docError } = useQuery<DocData | null>({
+  const {
+    data: docResp,
+    isLoading: docLoading,
+    isError: docError,
+  } = useQuery<DocData | null>({
     queryKey: ["doc", urlSlug],
     queryFn: async () => {
       if (!urlSlug) return null;
@@ -96,7 +100,8 @@ const DocumentationPage: React.FC = () => {
   });
 
   const docData = docResp || null;
-  const loading = (docLoading && !!urlSlug) || (!docListData && !docList.length);
+  const loading =
+    (docLoading && !!urlSlug) || (!docListData && !docList.length);
   const notFound = docError;
 
   useEffect(() => {
@@ -107,6 +112,35 @@ const DocumentationPage: React.FC = () => {
     if (!editor || !docData?.content) return;
     editor.commands.setContent(docData.content);
   }, [docData, editor]);
+
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [toc, setToc] = useState<{ id: string; text: string; level: number }[]>(
+    [],
+  );
+
+  useEffect(() => {
+    if (!docData?.content) {
+      setToc([]);
+      return;
+    }
+    const timer = setTimeout(() => {
+      const container = contentRef.current;
+      if (!container) return;
+      const nodes = Array.from(container.querySelectorAll("h1, h2, h3"));
+      const items = nodes.map((el, i) => {
+        const text = el.textContent || "";
+        const slug =
+          text
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/(^-|-$)/g, "") || `section-${i}`;
+        el.id = slug;
+        return { id: slug, text, level: Number(el.tagName[1]) };
+      });
+      setToc(items);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [docData]);
 
   const filteredList = useMemo(() => {
     if (!search.trim()) return docList;
@@ -149,10 +183,16 @@ const DocumentationPage: React.FC = () => {
   const SidebarContent = () => (
     <>
       <div className="px-5 pt-6 pb-4">
-        <div className={`flex items-center mb-5 ${isSidebarCollapsed ? "justify-center" : "justify-between"}`}>
+        <div
+          className={`flex items-center mb-5 ${isSidebarCollapsed ? "justify-center" : "justify-between"}`}
+        >
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 shrink-0 flex items-center justify-center">
-              <img src="/vite.svg" alt="Logo" className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(255,255,255,0.05)]" />
+              <img
+                src="/vite.svg"
+                alt="Logo"
+                className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(255,255,255,0.05)]"
+              />
             </div>
             {!isSidebarCollapsed && (
               <span
@@ -163,13 +203,16 @@ const DocumentationPage: React.FC = () => {
               </span>
             )}
           </div>
-          
+
           {/* Desktop Toggle Button */}
-          <button 
-             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-             className="hidden md:flex text-brand-muted hover:text-white transition-colors"
+          <button
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="hidden md:flex text-brand-muted hover:text-white transition-colors"
           >
-             <ChevronRight size={14} className={`transition-transform duration-200 ${isSidebarCollapsed ? "" : "rotate-180"}`} />
+            <ChevronRight
+              size={14}
+              className={`transition-transform duration-200 ${isSidebarCollapsed ? "" : "rotate-180"}`}
+            />
           </button>
 
           {/* Close button — mobile only */}
@@ -211,18 +254,33 @@ const DocumentationPage: React.FC = () => {
         </div>
       </div>
 
-      <nav className={`flex-1 overflow-y-auto px-3 pb-8 ${isSidebarCollapsed ? "flex flex-col items-center" : ""}`}>
-        {Object.keys(groupedDocs).length === 0 && !isSidebarCollapsed && (
-          <p
-            className="text-[11px] font-mono px-3 py-4"
-            style={{ color: "var(--brand-muted)" }}
-          >
-            {search ? "no results" : "no docs published yet"}
-          </p>
-        )}
-        {Object.entries(groupedDocs).map(([cat, catDocs]) => (
-          <div key={cat} className={`mb-2 w-full ${isSidebarCollapsed ? "flex flex-col items-center" : ""}`}>
-            {!isSidebarCollapsed && (
+      {isSidebarCollapsed ? (
+        // Collapsed: a minimal rail — no per-item icons (illegible at this width).
+        // Clicking anywhere expands the sidebar back out.
+        <button
+          onClick={() => setIsSidebarCollapsed(false)}
+          className="flex-1 flex flex-col items-center gap-1.5 pt-2 group"
+          title="Expand sidebar"
+        >
+          {Object.keys(groupedDocs).map((cat) => (
+            <span
+              key={cat}
+              className="w-6 h-1 rounded-full bg-white/10 group-hover:bg-white/25 transition-colors"
+            />
+          ))}
+        </button>
+      ) : (
+        <nav className="flex-1 overflow-y-auto px-3 pb-8">
+          {Object.keys(groupedDocs).length === 0 && (
+            <p
+              className="text-[11px] font-mono px-3 py-4"
+              style={{ color: "var(--brand-muted)" }}
+            >
+              {search ? "no results" : "no docs published yet"}
+            </p>
+          )}
+          {Object.entries(groupedDocs).map(([cat, catDocs]) => (
+            <div key={cat} className="mb-2 w-full">
               <button
                 onClick={() => toggleCategory(cat)}
                 className="w-full flex items-center justify-between px-2 py-1.5 mb-0.5 text-[10px] font-mono font-bold uppercase tracking-widest hover:opacity-80 transition-opacity"
@@ -234,40 +292,28 @@ const DocumentationPage: React.FC = () => {
                   className={`transition-transform duration-200 ${collapsedCategories.has(cat) ? "" : "rotate-90"}`}
                 />
               </button>
-            )}
-            
-            {isSidebarCollapsed && (
-                <div className="w-8 h-px bg-white/5 my-2" />
-            )}
 
-            {(!isSidebarCollapsed && collapsedCategories.has(cat)) ? null : (
-              (catDocs as DocMeta[]).map((item: DocMeta) => (
-                <Link
-                  key={item.slug}
-                  to={`/documentation/${item.slug}`}
-                  title={isSidebarCollapsed ? item.title : ""}
-                  className={`flex items-center rounded-lg transition-all duration-150 ${
-                    isSidebarCollapsed ? "justify-center p-2.5 w-10 h-10 mb-1" : "py-2 px-3 text-sm"
-                  } ${
-                    urlSlug === item.slug
-                      ? "bg-white/[0.06] font-semibold text-white"
-                      : "text-brand-muted hover:text-white hover:bg-white/[0.03]"
-                  }`}
-                >
-                  {urlSlug === item.slug && !isSidebarCollapsed && (
-                    <span className="w-[2px] h-4 rounded-full mr-2.5 shrink-0 bg-white" />
-                  )}
-                  {isSidebarCollapsed ? (
-                      <span className="text-[10px] font-mono font-black uppercase text-brand-primary">{item.title.charAt(0)}</span>
-                  ) : (
-                      <span className="truncate text-[13px]">{item.title}</span>
-                  )}
-                </Link>
-              ))
-            )}
-          </div>
-        ))}
-      </nav>
+              {!collapsedCategories.has(cat) &&
+                (catDocs as DocMeta[]).map((item: DocMeta) => (
+                  <Link
+                    key={item.slug}
+                    to={`/documentation/${item.slug}`}
+                    className={`flex items-center py-2 px-3 text-sm rounded-lg transition-all duration-150 ${
+                      urlSlug === item.slug
+                        ? "bg-white/[0.06] font-semibold text-white"
+                        : "text-brand-muted hover:text-white hover:bg-white/[0.03]"
+                    }`}
+                  >
+                    {urlSlug === item.slug && (
+                      <span className="w-[2px] h-4 rounded-full mr-2.5 shrink-0 bg-white" />
+                    )}
+                    <span className="truncate text-[13px]">{item.title}</span>
+                  </Link>
+                ))}
+            </div>
+          ))}
+        </nav>
+      )}
     </>
   );
 
@@ -304,15 +350,18 @@ const DocumentationPage: React.FC = () => {
           left: 0,
           bottom: 0,
           zIndex: 40,
-          transform: sidebarOpen || (typeof window !== 'undefined' && window.matchMedia("(min-width: 768px)").matches) ? "translateX(0)" : "translateX(-100%)",
-          transition: "transform 0.25s cubic-bezier(0.4,0,0.2,1), width 0.3s ease-in-out",
+          transform:
+            sidebarOpen ||
+            (typeof window !== "undefined" &&
+              window.matchMedia("(min-width: 768px)").matches)
+              ? "translateX(0)"
+              : "translateX(-100%)",
+          transition:
+            "transform 0.25s cubic-bezier(0.4,0,0.2,1), width 0.3s ease-in-out",
         }}
       >
         <SidebarContent />
       </aside>
-
-      {/* ── Desktop sidebar spacer ─────────────────────────────────────────── */}
-      <div className="hidden md:block shrink-0 transition-all duration-300 ease-in-out" style={{ width: isSidebarCollapsed ? 80 : 272 }} />
 
       {/* ── Main Content ──────────────────────────────────────────────────── */}
       <main
@@ -346,189 +395,243 @@ const DocumentationPage: React.FC = () => {
           )}
         </div>
 
-        <div className="max-w-3xl px-4 sm:px-6 pt-6 pb-24">
-          {loading && (
-            <div
-              className="font-mono text-[10px] tracking-widest"
-              style={{ color: "var(--brand-primary)" }}
-            >
-              &gt; FETCHING_RESOURCES...
-            </div>
-          )}
-
-          {!loading && notFound && (
-            <div className="h-[40vh] flex items-center font-mono text-xs opacity-50">
-              [!] 404_PAGE_NOT_FOUND
-            </div>
-          )}
-
-          {!loading && !notFound && docData && (
-            <>
-              {/* Breadcrumb */}
-              <nav
-                className="hidden sm:flex items-center gap-1.5 text-[11px] font-mono mb-5"
-                style={{ color: "var(--brand-muted)" }}
+        <div className="w-full flex gap-8 lg:gap-12 px-4 sm:px-6 md:pl-10 md:pr-6 pt-6 pb-24">
+          <div className=" flex-1">
+            {loading && (
+              <div
+                className="font-mono text-[10px] tracking-widest"
+                style={{ color: "var(--brand-primary)" }}
               >
-                {breadcrumb.map((crumb, i) => (
-                  <React.Fragment key={i}>
-                    {i > 0 && <ChevronRight size={10} className="opacity-50" />}
-                    {crumb.href && crumb.href !== "#" ? (
+                &gt; FETCHING_RESOURCES...
+              </div>
+            )}
+
+            {!loading && notFound && (
+              <div className="h-[40vh] flex items-center font-mono text-xs opacity-50">
+                [!] 404_PAGE_NOT_FOUND
+              </div>
+            )}
+
+            {!loading && !notFound && docData && (
+              <>
+                {/* Breadcrumb */}
+                <nav
+                  className="hidden sm:flex items-center gap-1.5 text-[11px] font-mono mb-5"
+                  style={{ color: "var(--brand-muted)" }}
+                >
+                  {breadcrumb.map((crumb, i) => (
+                    <React.Fragment key={i}>
+                      {i > 0 && (
+                        <ChevronRight size={10} className="opacity-50" />
+                      )}
+                      {crumb.href && crumb.href !== "#" ? (
+                        <Link
+                          to={crumb.href}
+                          className="hover:text-white transition-colors"
+                        >
+                          {crumb.label}
+                        </Link>
+                      ) : (
+                        <span
+                          className={
+                            i === breadcrumb.length - 1 ? "text-gray-400" : ""
+                          }
+                        >
+                          {crumb.label}
+                        </span>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </nav>
+
+                {/* Doc header */}
+                <header className="mb-6 pb-5 border-b border-white/[0.06]">
+                  <div className="flex items-center gap-2 mb-3 flex-wrap">
+                    <span
+                      className="text-[10px] font-mono text-white/30 uppercase tracking-widest"
+                      style={{
+                        borderRadius: 4,
+                        padding: "2px 8px",
+                        background: "rgba(255,255,255,0.04)",
+                        border: "1px solid rgba(255,255,255,0.07)",
+                      }}
+                    >
+                      {docData.category || "General"}
+                    </span>
+                    <span className="text-[10px] text-white/20 font-mono">
+                      updated{" "}
+                      {new Date(docData.lastUpdated).toLocaleDateString(
+                        "en-GB",
+                        {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        },
+                      )}
+                    </span>
+                  </div>
+                  <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tighter leading-tight">
+                    {docData.title}
+                  </h1>
+                </header>
+              </>
+            )}
+
+            <div
+              ref={contentRef}
+              className="prose prose-invert max-w-none"
+              style={{
+                display: loading || notFound || !docData ? "none" : "block",
+              }}
+            >
+              <EditorContent editor={editor} />
+            </div>
+
+            {/* Prev / Next navigation */}
+            {!loading &&
+              !notFound &&
+              docData &&
+              (() => {
+                const currentIndex = docList.findIndex(
+                  (d: DocMeta) => d.slug === urlSlug,
+                );
+                const prev =
+                  currentIndex > 0 ? docList[currentIndex - 1] : null;
+                const next =
+                  currentIndex < docList.length - 1
+                    ? docList[currentIndex + 1]
+                    : null;
+                if (!prev && !next) return null;
+                return (
+                  <div className="flex items-stretch gap-3 mt-16 pt-8 border-t border-white/[0.06]">
+                    {prev ? (
                       <Link
-                        to={crumb.href}
-                        className="hover:text-white transition-colors"
+                        to={`/documentation/${prev.slug}`}
+                        className="flex-1 flex flex-col gap-1 px-5 py-4 rounded-xl transition-all group"
+                        style={{
+                          background: "rgba(255,255,255,0.02)",
+                          border: "1px solid rgba(255,255,255,0.07)",
+                        }}
                       >
-                        {crumb.label}
+                        <span
+                          className="text-[10px] font-mono uppercase tracking-widest flex items-center gap-1.5"
+                          style={{ color: "var(--brand-muted)" }}
+                        >
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M19 12H5M12 19l-7-7 7-7" />
+                          </svg>
+                          Previous
+                        </span>
+                        <span className="text-sm font-semibold text-white truncate">
+                          {prev.title}
+                        </span>
+                        <span
+                          className="text-[11px] font-mono"
+                          style={{ color: "var(--brand-muted)" }}
+                        >
+                          {prev.category}
+                        </span>
                       </Link>
                     ) : (
-                      <span
-                        className={
-                          i === breadcrumb.length - 1 ? "text-gray-400" : ""
-                        }
-                      >
-                        {crumb.label}
-                      </span>
+                      <div className="flex-1" />
                     )}
-                  </React.Fragment>
-                ))}
-              </nav>
 
-              {/* Doc header */}
-              <header className="mb-6 pb-5 border-b border-white/[0.06]">
-                <div className="flex items-center gap-2 mb-3 flex-wrap">
-                  <span
-                    className="text-[10px] font-mono text-white/30 uppercase tracking-widest"
-                    style={{
-                      borderRadius: 4,
-                      padding: "2px 8px",
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.07)",
-                    }}
-                  >
-                    {docData.category || "General"}
-                  </span>
-                  <span className="text-[10px] text-white/20 font-mono">
-                    updated{" "}
-                    {new Date(docData.lastUpdated).toLocaleDateString("en-GB", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </span>
-                </div>
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tighter leading-tight">
-                  {docData.title}
-                </h1>
-              </header>
-            </>
-          )}
-
-          <div
-            className="prose prose-invert max-w-none"
-            style={{
-              display: loading || notFound || !docData ? "none" : "block",
-            }}
-          >
-            <EditorContent editor={editor} />
+                    {next ? (
+                      <Link
+                        to={`/documentation/${next.slug}`}
+                        className="flex-1 flex flex-col gap-1 px-5 py-4 rounded-xl transition-all group text-right"
+                        style={{
+                          background: "rgba(255,255,255,0.02)",
+                          border: "1px solid rgba(255,255,255,0.07)",
+                        }}
+                      >
+                        <span
+                          className="text-[10px] font-mono uppercase tracking-widest flex items-center justify-end gap-1.5"
+                          style={{ color: "var(--brand-muted)" }}
+                        >
+                          Next
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M5 12h14M12 5l7 7-7 7" />
+                          </svg>
+                        </span>
+                        <span className="text-sm font-semibold text-white truncate">
+                          {next.title}
+                        </span>
+                        <span
+                          className="text-[11px] font-mono"
+                          style={{ color: "var(--brand-muted)" }}
+                        >
+                          {next.category}
+                        </span>
+                      </Link>
+                    ) : (
+                      <div className="flex-1" />
+                    )}
+                  </div>
+                );
+              })()}
           </div>
 
-          {/* Prev / Next navigation */}
-          {!loading &&
-            !notFound &&
-            docData &&
-            (() => {
-              const currentIndex = docList.findIndex((d: DocMeta) => d.slug === urlSlug);
-              const prev = currentIndex > 0 ? docList[currentIndex - 1] : null;
-              const next =
-                currentIndex < docList.length - 1
-                  ? docList[currentIndex + 1]
-                  : null;
-              if (!prev && !next) return null;
-              return (
-                <div className="flex items-stretch gap-3 mt-16 pt-8 border-t border-white/[0.06]">
-                  {prev ? (
-                    <Link
-                      to={`/documentation/${prev.slug}`}
-                      className="flex-1 flex flex-col gap-1 px-5 py-4 rounded-xl transition-all group"
+          {/* ── On this page ──────────────────────────────────────────────── */}
+          {!loading && !notFound && docData && toc.length > 0 && (
+            <aside className="hidden xl:block w-56 shrink-0">
+              <div className="sticky top-8">
+                <p
+                  className="text-[10px] font-mono font-bold uppercase tracking-widest mb-4"
+                  style={{ color: "var(--brand-muted)" }}
+                >
+                  On this page
+                </p>
+                <nav
+                  className="flex flex-col gap-2.5 border-l"
+                  style={{ borderColor: "rgba(255,255,255,0.08)" }}
+                >
+                  {toc.map((item) => (
+                    <a
+                      key={item.id}
+                      href={`#${item.id}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        document
+                          .getElementById(item.id)
+                          ?.scrollIntoView({
+                            behavior: "smooth",
+                            block: "start",
+                          });
+                      }}
+                      className="text-[13px] leading-snug hover:text-white transition-colors"
                       style={{
-                        background: "rgba(255,255,255,0.02)",
-                        border: "1px solid rgba(255,255,255,0.07)",
+                        color: "var(--brand-muted)",
+                        paddingLeft: 12 + (item.level - 1) * 12,
+                        marginLeft: -1,
+                        borderLeft: "1px solid transparent",
                       }}
                     >
-                      <span
-                        className="text-[10px] font-mono uppercase tracking-widest flex items-center gap-1.5"
-                        style={{ color: "var(--brand-muted)" }}
-                      >
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M19 12H5M12 19l-7-7 7-7" />
-                        </svg>
-                        Previous
-                      </span>
-                      <span className="text-sm font-semibold text-white truncate">
-                        {prev.title}
-                      </span>
-                      <span
-                        className="text-[11px] font-mono"
-                        style={{ color: "var(--brand-muted)" }}
-                      >
-                        {prev.category}
-                      </span>
-                    </Link>
-                  ) : (
-                    <div className="flex-1" />
-                  )}
-
-                  {next ? (
-                    <Link
-                      to={`/documentation/${next.slug}`}
-                      className="flex-1 flex flex-col gap-1 px-5 py-4 rounded-xl transition-all group text-right"
-                      style={{
-                        background: "rgba(255,255,255,0.02)",
-                        border: "1px solid rgba(255,255,255,0.07)",
-                      }}
-                    >
-                      <span
-                        className="text-[10px] font-mono uppercase tracking-widest flex items-center justify-end gap-1.5"
-                        style={{ color: "var(--brand-muted)" }}
-                      >
-                        Next
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M5 12h14M12 5l7 7-7 7" />
-                        </svg>
-                      </span>
-                      <span className="text-sm font-semibold text-white truncate">
-                        {next.title}
-                      </span>
-                      <span
-                        className="text-[11px] font-mono"
-                        style={{ color: "var(--brand-muted)" }}
-                      >
-                        {next.category}
-                      </span>
-                    </Link>
-                  ) : (
-                    <div className="flex-1" />
-                  )}
-                </div>
-              );
-            })()}
+                      {item.text}
+                    </a>
+                  ))}
+                </nav>
+              </div>
+            </aside>
+          )}
         </div>
       </main>
 

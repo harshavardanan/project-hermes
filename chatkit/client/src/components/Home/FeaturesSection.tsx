@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { motion } from "motion/react";
 
 const FEATURES = [
   {
@@ -94,8 +95,8 @@ messages.forEach((msg) => {
 });
 
 const hermesUser = await client.connect();
-// hermesUser.userId — internal ID
-// hermesUser.token  — JWT`,
+// hermesUser.userId: internal ID
+// hermesUser.token:  JWT`,
   },
   {
     tag: "ENGAGEMENT",
@@ -300,17 +301,20 @@ export default function FeaturesSection() {
 
   return (
     <section className="w-full max-w-[1280px] px-6 md:px-10 py-24">
-      <div className="text-center mb-16">
-        <div className="inline-block px-3 py-1 rounded-full bg-#000 border border-white/10 text-white/50 text-[10px] font-bold uppercase tracking-widest mb-4">
-          SDK Primitives
-        </div>
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.4 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="text-center mb-16"
+      >
         <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter max-w-[700px] mx-auto">
           Everything you need to scale.
         </h2>
         <p className="text-white/40 text-lg max-w-[560px] mx-auto mt-4">
           Hermes ships every building block. You focus on your product.
         </p>
-      </div>
+      </motion.div>
 
       <div
         ref={sceneRef}

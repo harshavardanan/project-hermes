@@ -9,10 +9,10 @@ interface ExtendedError extends Error {
 }
 
 /**
- * Socket middleware: resolves the project owner's plan and daily token usage
- * for quota enforcement. Works with the Hermes JWT payload (hermesUserId,
- * projectId) rather than the platform User._id, fixing the SDK compatibility
- * bug where `socket.data.userId` was undefined.
+ * Socket middleware: ensures the project owner has a plan assigned before
+ * the connection proceeds. Quota enforcement itself happens per-message
+ * against the DB in messageService.sendMessage — never cached on the socket,
+ * since sockets stay connected across the daily token reset.
  */
 export const tokenMiddleware = async (
   socket: Socket,
@@ -21,31 +21,20 @@ export const tokenMiddleware = async (
   try {
     const hermesData = (socket as any).hermesUser;
     if (!hermesData?.projectId) {
-      logger.warn("[TokenMW] No projectId on socket — skipping quota attach");
-      // Allow connection but without quota tracking (e.g., admin sockets)
-      socket.data.planLimit = Infinity;
-      socket.data.dailyTokensUsed = 0;
       return next();
     }
 
-    // Look up the project → owner → plan chain
     const project = await Project.findById(hermesData.projectId).lean();
     if (!project) {
       logger.warn(
-        `[TokenMW] Project ${hermesData.projectId} not found — using defaults`,
+        `[TokenMW] Project ${hermesData.projectId} not found — skipping plan check`,
       );
-      socket.data.planLimit = 1000;
-      socket.data.dailyTokensUsed = 0;
       return next();
     }
 
-    const owner = await User.findById((project as any).userId).populate("plan");
+    const owner = await User.findById((project as any).userId);
     if (!owner) {
-      logger.warn(
-        `[TokenMW] Project owner not found — using default limits`,
-      );
-      socket.data.planLimit = 1000;
-      socket.data.dailyTokensUsed = 0;
+      logger.warn("[TokenMW] Project owner not found — skipping plan check");
       return next();
     }
 
@@ -58,17 +47,9 @@ export const tokenMiddleware = async (
       }
     }
 
-    // Attach quota data for downstream handlers
-    socket.data.owner = owner;
-    socket.data.planLimit = (owner.plan as any)?.dailyLimit || 1000;
-    socket.data.dailyTokensUsed = owner.dailyTokensUsed || 0;
-
     next();
   } catch (err) {
-    logger.error("[TokenMW] Error resolving quota", err);
-    // Non-fatal: allow connection with conservative defaults
-    socket.data.planLimit = 1000;
-    socket.data.dailyTokensUsed = 0;
+    logger.error("[TokenMW] Error resolving plan", err);
     next();
   }
 };

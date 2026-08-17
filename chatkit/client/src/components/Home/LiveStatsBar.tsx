@@ -1,4 +1,6 @@
 import React from "react";
+import { motion } from "motion/react";
+import UptimeCard from "./UptimeCard";
 
 interface HealthData {
   uptime: number;
@@ -11,61 +13,39 @@ interface LiveStatsBarProps {
   latency: number | null;
 }
 
-// Helper to format uptime from seconds into readable string
-const formatUptime = (seconds: number) => {
-  if (seconds < 60) return `${seconds}s`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
-  if (seconds < 86400)
-    return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
-  return `${Math.floor(seconds / 86400)}d ${Math.floor((seconds % 86400) / 3600)}h`;
-};
+function StatCard({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="rounded-2xl border border-brand-border bg-brand-card/60 p-5 h-full flex flex-col justify-center items-center text-center">
+      <p className="text-white text-3xl font-black mb-1">{value}</p>
+      <p className="text-brand-muted text-xs font-bold uppercase tracking-widest">
+        {label}
+      </p>
+    </div>
+  );
+}
 
 const LiveStatsBar: React.FC<LiveStatsBarProps> = ({ healthData, latency }) => {
   return (
-    <div className="w-full bg-brand-card/50 border-y border-brand-border py-12">
-      <div className="max-w-[1280px] mx-auto px-6 md:px-10 flex flex-wrap justify-center gap-8 md:gap-16">
-        <div className="flex flex-col items-center gap-1">
-          <p className="text-brand-primary text-3xl font-black ">
-            {healthData ? formatUptime(healthData.uptime) : "..."}
-          </p>
-          <p className="text-brand-muted text-xs font-bold uppercase tracking-widest">
-            Live Uptime
-          </p>
+    <div className="w-full max-w-6xl mx-auto px-6 py-16">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.3 }}
+        transition={{ duration: 0.7, ease: "easeOut" }}
+        className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4"
+      >
+        <div className="lg:col-span-2">
+          <UptimeCard />
         </div>
-
-        <div className="h-12 w-px bg-brand-border hidden md:block"></div>
-
-        <div className="flex flex-col items-center gap-1">
-          <p className="text-brand-primary text-3xl font-black ">
-            {healthData?.memory ? `${healthData.memory.used} MB` : "..."}
-          </p>
-          <p className="text-brand-muted text-xs font-bold uppercase tracking-widest">
-            Active Memory
-          </p>
-        </div>
-
-        <div className="h-12 w-px bg-brand-border hidden md:block"></div>
-
-        <div className="flex flex-col items-center gap-1">
-          <p className="text-brand-primary text-3xl font-black ">
-            {latency !== null ? `${latency}ms` : "..."}
-          </p>
-          <p className="text-brand-muted text-xs font-bold uppercase tracking-widest">
-            Edge Latency
-          </p>
-        </div>
-
-        <div className="h-12 w-px bg-brand-border hidden md:block"></div>
-
-        <div className="flex flex-col items-center gap-1">
-          <p className="text-brand-primary text-3xl font-black ">
-            {healthData?.status === "ok" ? "SECURE" : "E2EE"}
-          </p>
-          <p className="text-brand-muted text-xs font-bold uppercase tracking-widest">
-            Security
-          </p>
-        </div>
-      </div>
+        <StatCard
+          value={healthData?.memory ? `${healthData.memory.used} MB` : "..."}
+          label="Active Memory"
+        />
+        <StatCard
+          value={latency !== null ? `${latency}ms` : "..."}
+          label="Edge Latency"
+        />
+      </motion.div>
     </div>
   );
 };

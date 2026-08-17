@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { motion } from "motion/react";
 import { useAppConfig } from "../../store/appConfig";
 
 const POLL_MS = 5000;
@@ -227,7 +228,7 @@ export function Stats() {
       });
 
       const msgs = [
-        `Heartbeat OK — uptime ${Math.floor((h?.uptime || 0) / 60)}m`,
+        `Heartbeat OK, uptime ${Math.floor((h?.uptime || 0) / 60)}m`,
         `Active connections: ${m?.activeConnections || 0}`,
         // FIX: Use currentCpu instead of h?.cpu to prevent "[object Object]%" in logs
         `CPU ${currentCpu.toFixed(2)}% | RAM ${h?.memory?.used || 0}/${h?.memory?.total || 0}MB`,
@@ -256,9 +257,9 @@ export function Stats() {
   const mem = health?.memory?.used ?? 0;
 
   const card: React.CSSProperties = {
-    background: "#0a0a0a",
-    border: "1px solid #1a1a1a",
-    borderRadius: 14,
+    background: "rgba(255,255,255,0.02)",
+    border: "1px solid var(--brand-border)",
+    borderRadius: 16,
     padding: 20,
   };
 
@@ -321,33 +322,44 @@ export function Stats() {
   return (
     <section
       style={{
-        background: "#000",
         color: "#fff",
         fontFamily: "JetBrains Mono, monospace",
-        padding: "64px 24px",
+        padding: "96px 24px",
         width: "100%",
       }}
     >
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
         {/* Header */}
-        <div style={{ marginBottom: 40 }}>
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.4 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          style={{ marginBottom: 40, textAlign: "center" }}
+        >
           <h2
             style={{
               fontSize: "clamp(28px, 5vw, 48px)",
               fontWeight: 800,
               letterSpacing: "-0.03em",
               margin: 0,
+              backgroundImage:
+                "linear-gradient(180deg, #ffffff 20%, #8a8a90 100%)",
+              backgroundClip: "text",
+              WebkitBackgroundClip: "text",
+              color: "transparent",
             }}
           >
-            Live Stats
+            Real-time engine telemetry.
           </h2>
-          <p style={{ color: "#6b7280", marginTop: 8, fontSize: 14 }}>
-            Real-time metrics from the Hermes engine
-          </p>
-        </div>
+        </motion.div>
 
         {/* Metric cards */}
-        <div
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
@@ -365,7 +377,7 @@ export function Stats() {
               <Sparkline data={c.data} color={c.color} height={40} />
             </div>
           ))}
-        </div>
+        </motion.div>
 
         {/* Live telemetry chart */}
         <div style={{ ...card, marginBottom: 12 }}>

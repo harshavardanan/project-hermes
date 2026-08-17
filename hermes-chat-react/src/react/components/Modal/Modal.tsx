@@ -66,12 +66,13 @@ export const Modal: React.FC<PropsWithChildren<ModalProps>> = ({
         className="hermes-modal-content"
         onClick={(e) => e.stopPropagation()}
         style={{
+          position: "relative",
           maxWidth: "90vw",
           maxHeight: "90vh",
           overflow: "auto",
           borderRadius: 12,
-          background: "#fff",
-          boxShadow: "0 16px 64px rgba(0,0,0,0.3)",
+          background: "transparent",
+          boxShadow: "0 16px 64px rgba(0,0,0,0.5)",
           animation: "hermes-pop 0.2s ease",
         }}
       >
@@ -79,20 +80,20 @@ export const Modal: React.FC<PropsWithChildren<ModalProps>> = ({
           onClick={onClose}
           style={{
             position: "absolute",
-            top: 16,
-            right: 16,
+            top: 12,
+            right: 12,
             background: "rgba(0,0,0,0.5)",
             color: "#fff",
             border: "none",
             borderRadius: "50%",
-            width: 32,
-            height: 32,
+            width: 28,
+            height: 28,
             cursor: "pointer",
-            fontSize: 16,
+            fontSize: 14,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            zIndex: 1,
+            zIndex: 10,
           }}
         >
           ✕

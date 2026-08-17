@@ -9,6 +9,8 @@
   --color-brand-text: var(--brand-text);
   --color-brand-muted: var(--brand-muted);
   --color-brand-accent: var(--brand-accent);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
 }
 
 :root {
@@ -21,6 +23,10 @@
   --brand-text: #fafafa; /* primary text */
   --brand-muted: #71717a; /* zinc-500 muted text */
   --brand-accent: #18181b; /* hover / subtle highlights */
+
+  /* Signal accent — real-time / "live" violet. Used sparingly for emphasis. */
+  --accent: #8b5cf6;
+  --accent-fg: #ffffff;
 }
 
 body {

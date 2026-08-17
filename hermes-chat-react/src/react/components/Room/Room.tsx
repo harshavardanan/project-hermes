@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import type { PropsWithChildren } from "react";
 import type { Message } from "../../../types/index";
+import type { HermesClient } from "../../../core/HermesClient";
 import { useChatContext } from "../../context/ChatContext";
 import { RoomStateProvider } from "../../context/RoomStateContext";
 import { RoomActionProvider } from "../../context/RoomActionContext";
@@ -12,6 +13,11 @@ import type { TypingEvent } from "../../../types/index";
 export interface RoomProps extends Partial<ComponentContextValue> {
   /** The room ID to load */
   roomId: string;
+  /**
+   * HermesClient instance. Required when used outside of `<Chat>`.
+   * When inside `<Chat>`, the client is taken from context automatically.
+   */
+  client?: HermesClient;
 }
 
 /**
@@ -33,6 +39,7 @@ export interface RoomProps extends Partial<ComponentContextValue> {
 export const Room = ({
   roomId,
   children,
+  client: clientProp,
   // Component overrides forwarded to ComponentContext
   Avatar,
   Message: MessageOverride,
@@ -52,7 +59,13 @@ export const Room = ({
   Search,
   OnlineBadge,
 }: PropsWithChildren<RoomProps>) => {
-  const { client, customClasses } = useChatContext("Room");
+  const { client: ctxClient, customClasses } = useChatContext("Room");
+  const client = clientProp ?? ctxClient;
+
+  if (!client) {
+    console.error("[Room] No HermesClient available. Either wrap with <Chat client={...}> or pass the `client` prop directly to <Room>.");
+    return null;
+  }
 
   // ─── Messages state ───
   const [messages, setMessages] = useState<Message[]>([]);
@@ -161,16 +174,40 @@ export const Room = ({
       );
     };
 
+    const onPinned = ({ messageId, message: pinned }: any) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m._id === messageId
+            ? { ...m, pinnedAt: pinned?.pinnedAt, pinnedBy: pinned?.pinnedBy }
+            : m
+        )
+      );
+    };
+
+    const onUnpinned = ({ messageId }: any) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m._id === messageId
+            ? { ...m, pinnedAt: undefined, pinnedBy: undefined }
+            : m
+        )
+      );
+    };
+
     client.on("message:receive", onReceive);
     client.on("message:deleted", onDeleted);
     client.on("message:edited", onEdited);
     client.on("reaction:updated", onReaction);
+    client.on("message:pinned", onPinned);
+    client.on("message:unpinned", onUnpinned);
 
     return () => {
       client.off("message:receive", onReceive);
       client.off("message:deleted", onDeleted);
       client.off("message:edited", onEdited);
       client.off("reaction:updated", onReaction);
+      client.off("message:pinned", onPinned);
+      client.off("message:unpinned", onUnpinned);
     };
   }, [roomId, client, thread]);
 
@@ -282,8 +319,17 @@ export const Room = ({
     setThread(message);
     setThreadMessages([]);
     setThreadHasMore(false);
-    // TODO: load thread replies from server when API supports it
-  }, []);
+    setThreadLoadingMore(false);
+
+    client.getThreadHistory(message._id)
+      .then(({ messages: replies, hasMore: more }) => {
+        setThreadMessages(replies ?? []);
+        setThreadHasMore(more ?? false);
+      })
+      .catch(() => {
+        // non-fatal — thread still shows parent message
+      });
+  }, [client]);
 
   const closeThread = useCallback(() => {
     setThread(null);
@@ -291,8 +337,38 @@ export const Room = ({
   }, []);
 
   const loadMoreThread = useCallback(async () => {
-    // Placeholder — will be implemented when server supports thread pagination
-  }, []);
+    if (!thread || threadLoadingMore || !threadHasMore) return;
+    setThreadLoadingMore(true);
+    try {
+      const oldestId = threadMessages[0]?._id;
+      const { messages: older, hasMore: more } = await client.getThreadHistory(
+        thread._id,
+        oldestId
+      );
+      setThreadMessages((prev) => [...(older ?? []), ...prev]);
+      setThreadHasMore(more ?? false);
+    } catch {
+      // non-fatal
+    } finally {
+      setThreadLoadingMore(false);
+    }
+  }, [thread, threadLoadingMore, threadHasMore, threadMessages, client]);
+
+  const pinMessage = useCallback(
+    async (messageId: string) => {
+      if (!roomId) throw new Error("No room selected");
+      return client.pinMessage(messageId, roomId);
+    },
+    [roomId, client]
+  );
+
+  const unpinMessage = useCallback(
+    async (messageId: string) => {
+      if (!roomId) throw new Error("No room selected");
+      return client.unpinMessage(messageId, roomId);
+    },
+    [roomId, client]
+  );
 
   const startTyping = useCallback(() => {
     if (!roomId) return;
@@ -354,8 +430,10 @@ export const Room = ({
       openThread,
       closeThread,
       loadMoreThread,
+      pinMessage,
+      unpinMessage,
     }),
-    [sendMessage, editMessage, deleteMessage, addReaction, loadMore, markRead, openThread, closeThread, loadMoreThread]
+    [sendMessage, editMessage, deleteMessage, addReaction, loadMore, markRead, openThread, closeThread, loadMoreThread, pinMessage, unpinMessage]
   );
 
   const typingValue = useMemo(

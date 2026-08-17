@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 
 import Hero from "./Home/Hero";
+import ProductBento from "./Home/ProductBento";
 import LiveStatsBar from "./Home/LiveStatsBar";
 import FeaturesSection from "./Home/FeaturesSection";
 import TerminalSection from "./Home/TerminalSection";
 import Stats from "./Home/Stats";
+import DemoWalkthrough from "./Home/DemoWalkthrough";
 import Footer from "./Home/Footer";
 import { useAppConfig } from "../store/appConfig";
 import type { UserData } from "../types";
@@ -47,10 +49,12 @@ export default function Home({
     <div className="bg-brand-bg text-brand-text min-h-screen font-sans selection:bg-brand-primary/30 flex flex-col overflow-x-hidden">
       <main className="flex flex-col items-center">
         <Hero onSignInClick={onSignInClick} user={user} loading={loading} />
+        <ProductBento />
         <LiveStatsBar healthData={healthData} latency={latency} />
         <FeaturesSection />
         <TerminalSection />
         <Stats />
+        <DemoWalkthrough />
       </main>
       <Footer />
     </div>

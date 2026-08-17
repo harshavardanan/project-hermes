@@ -124,22 +124,35 @@ export const MessageList: React.FC<MessageListProps> = (props) => {
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isNearBottomRef = useRef(true);
 
-  // Auto-scroll
+  // Track whether the user is near the bottom so auto-scroll doesn't hijack manual scrolling
   useEffect(() => {
-    if (autoScroll && bottomRef.current) {
+    const container = containerRef.current;
+    if (!container) return;
+    const onScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      isNearBottomRef.current = scrollHeight - scrollTop - clientHeight < 80;
+    };
+    container.addEventListener("scroll", onScroll, { passive: true });
+    return () => container.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Auto-scroll only when already near the bottom
+  useEffect(() => {
+    if (autoScroll && isNearBottomRef.current && bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, autoScroll]);
 
-  // Infinite scroll
+  // Infinite scroll — use a threshold instead of exact === 0
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !onLoadMore) return;
     const onScroll = () => {
-      if (container.scrollTop === 0 && hasMore && !loadingMore) onLoadMore();
+      if (container.scrollTop <= 50 && hasMore && !loadingMore) onLoadMore();
     };
-    container.addEventListener("scroll", onScroll);
+    container.addEventListener("scroll", onScroll, { passive: true });
     return () => container.removeEventListener("scroll", onScroll);
   }, [hasMore, loadingMore, onLoadMore]);
 
@@ -182,6 +195,9 @@ export const MessageList: React.FC<MessageListProps> = (props) => {
         @keyframes hermes-pop {
           from { opacity: 0; transform: scale(0.85); }
           to   { opacity: 1; transform: scale(1); }
+        }
+        @keyframes hermes-spin {
+          to { transform: rotate(360deg); }
         }
       `}</style>
 

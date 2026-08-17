@@ -6,7 +6,7 @@ import type {
   CreateGroupRoomInput,
 } from "../../types/index";
 
-export const useRooms = (client: HermesClient) => {
+export const useRooms = (client: HermesClient, activeRoomId?: string | null) => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -102,10 +102,12 @@ export const useRooms = (client: HermesClient) => {
       setRooms((prev) => {
         const idx = prev.findIndex((r) => r._id === msg.roomId);
         if (idx === -1) return prev;
+        const isActive = msg.roomId === activeRoomId;
         const updated = {
           ...prev[idx],
           lastMessage: msg,
           lastActivity: msg.createdAt,
+          unreadCount: isActive ? prev[idx].unreadCount : prev[idx].unreadCount + 1,
         };
         return [updated, ...prev.filter((r) => r._id !== msg.roomId)];
       });
@@ -123,7 +125,15 @@ export const useRooms = (client: HermesClient) => {
       client.off("room:member:left", onMemberLeft);
       client.off("message:receive", onMessage);
     };
-  }, [client]);
+  }, [client, activeRoomId]);
+
+  // Clear unread count when the active room changes
+  useEffect(() => {
+    if (!activeRoomId) return;
+    setRooms((prev) =>
+      prev.map((r) => (r._id === activeRoomId ? { ...r, unreadCount: 0 } : r))
+    );
+  }, [activeRoomId]);
 
   
   const createDirect = useCallback(

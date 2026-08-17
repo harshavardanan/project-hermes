@@ -179,6 +179,11 @@ export interface HermesEvents {
 
   
   "reaction:updated": (event: ReactionEvent) => void;
+
+  "message:pinned": (data: { messageId: string; roomId: string; pinnedAt: string; pinnedBy: string; message: any }) => void;
+  "message:unpinned": (data: { messageId: string; roomId: string }) => void;
+
+  "quota:exceeded": (data: { message: string }) => void;
 }
 
 export type ConnectionStatus =

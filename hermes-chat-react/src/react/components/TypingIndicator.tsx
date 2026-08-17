@@ -22,6 +22,12 @@ export const TypingIndicator: React.FC<TypingIndicatorProps> = ({
         minHeight: 24,
       }}
     >
+      <style>{`
+        @keyframes hermes-bounce {
+          0%, 80%, 100% { transform: translateY(0); }
+          40% { transform: translateY(-4px); }
+        }
+      `}</style>
       <div style={{ display: "flex", gap: 3 }}>
         {[0, 1, 2].map((i) => (
           <span
@@ -30,20 +36,21 @@ export const TypingIndicator: React.FC<TypingIndicatorProps> = ({
               width: 6,
               height: 6,
               borderRadius: "50%",
-              background: "#aaa",
+              background: "var(--brand-muted, #71717a)",
               display: "block",
               animation: `hermes-bounce 1.2s ease-in-out ${i * 0.2}s infinite`,
             }}
           />
         ))}
       </div>
-      <span style={{ fontSize: 12, opacity: 0.6 }}>{typingText}</span>
-      <style>{`
-        @keyframes hermes-bounce {
-          0%, 80%, 100% { transform: translateY(0); }
-          40% { transform: translateY(-4px); }
-        }
-      `}</style>
+      <span
+        style={{
+          fontSize: 12,
+          color: "var(--brand-muted, #71717a)",
+        }}
+      >
+        {typingText}
+      </span>
     </div>
   );
 };

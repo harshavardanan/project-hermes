@@ -34,9 +34,6 @@ export class HermesClient extends EventEmitter {
   constructor(config: HermesConfig) {
     super();
     this.config = config;
-    if ("token" in config && typeof config.token === "string") {
-      this.token = config.token;
-    }
   }
 
   async connect(): Promise<HermesUser> {
@@ -83,7 +80,7 @@ export class HermesClient extends EventEmitter {
   private async _connectSocket(): Promise<void> {
     this.socket = io(`${this.config.endpoint}/hermes`, {
       auth: { token: this.token },
-      transports: this.config.transports || ["polling"],
+      transports: this.config.transports || ["websocket", "polling"],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
@@ -112,6 +109,8 @@ export class HermesClient extends EventEmitter {
     s.on("message:receive", (msg: Message) => this.emit("message:receive", msg));
     s.on("message:deleted", (data) => this.emit("message:deleted", data));
     s.on("message:edited", (msg: Message) => this.emit("message:edited", msg));
+    s.on("message:pinned", (data) => this.emit("message:pinned", data));
+    s.on("message:unpinned", (data) => this.emit("message:unpinned", data));
     s.on("room:created", (room: Room) => this.emit("room:created", room));
     s.on("room:deleted", (data) => this.emit("room:deleted", data));
     s.on("room:member:joined", (data) => this.emit("room:member:joined", data));
@@ -122,6 +121,7 @@ export class HermesClient extends EventEmitter {
     s.on("typing:stopped", (event) => this.emit("typing:stopped", event));
     s.on("receipt:updated", (event) => this.emit("receipt:updated", event));
     s.on("reaction:updated", (event) => this.emit("reaction:updated", event));
+    s.on("quota:exceeded", (data) => this.emit("quota:exceeded", data));
   }
 
   _emit<T = any>(event: string, data?: any): Promise<T> {
@@ -186,6 +186,15 @@ export class HermesClient extends EventEmitter {
   stopTyping(roomId: string): void { this.socket?.emit("typing:stop", { roomId }); }
   async markSeen(roomId: string, lastMessageId: string): Promise<void> { await this._emit("receipt:seen", { roomId, lastMessageId }); }
   async addReaction(messageId: string, roomId: string, emoji: string): Promise<void> { await this._emit("reaction:add", { messageId, roomId, emoji }); }
+  async getThreadHistory(parentId: string, before?: string, limit?: number): Promise<MessageHistoryResult> {
+    return this._emit("message:thread:history", { parentId, before, limit });
+  }
+  async searchMessages(roomId: string, query: string, limit?: number): Promise<Message[]> {
+    const res = await this._emit<{ messages: Message[] }>("message:search", { roomId, query, limit });
+    return res.messages ?? [];
+  }
+  async pinMessage(messageId: string, roomId: string): Promise<void> { await this._emit("message:pin", { messageId, roomId }); }
+  async unpinMessage(messageId: string, roomId: string): Promise<void> { await this._emit("message:unpin", { messageId, roomId }); }
   async uploadFile(file: File): Promise<UploadResult> {
     if (!this.token) throw new Error("Not connected");
     const formData = new FormData();

@@ -1,10 +1,16 @@
 import { Github, Terminal, Code2, ArrowRight } from "lucide-react";
+import { motion } from "motion/react";
 
 const Footer = () => {
   return (
     <footer className="w-full bg-brand-bg border-t border-brand-border py-16 relative overflow-hidden">
       <div className="max-w-[1280px] mx-auto px-6 md:px-10 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-12">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+          className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-12">
           {/* Brand Column */}
           <div className="col-span-1 md:col-span-2 lg:col-span-3 flex flex-col gap-6">
             <div className="flex items-center gap-3">
@@ -90,7 +96,7 @@ const Footer = () => {
               </a>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Giant watermark wordmark */}

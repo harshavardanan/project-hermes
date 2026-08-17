@@ -23,6 +23,10 @@ export interface RoomActionContextValue {
   closeThread: () => void;
   /** Load more thread replies */
   loadMoreThread: () => Promise<void>;
+  /** Pin a message in the current room */
+  pinMessage?: (messageId: string) => Promise<void>;
+  /** Unpin a message in the current room */
+  unpinMessage?: (messageId: string) => Promise<void>;
 }
 
 export const RoomActionContext = createContext<

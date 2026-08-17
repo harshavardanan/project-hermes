@@ -48,7 +48,7 @@ const MessengerInner: React.FC<MessengerInnerProps> = ({ client, hermesUser, log
   const [showSidebar, setShowSidebar] = useState(true);
   const [userMap, setUserMap] = useState<Record<string, HermesUser>>({});
 
-  const { rooms, loading: roomsLoading } = useRooms(client);
+  const { rooms, loading: roomsLoading } = useRooms(client, activeRoomId);
 
   // Fetch all users and index by BOTH `userId` and any composite key variants
   useEffect(() => {
@@ -109,6 +109,15 @@ const MessengerInner: React.FC<MessengerInnerProps> = ({ client, hermesUser, log
     }
   };
 
+  const handleSearch = useCallback(async (query: string): Promise<Message[]> => {
+    if (!activeRoomId) return [];
+    try {
+      return await (client as any).searchMessages(activeRoomId, query);
+    } catch {
+      return [];
+    }
+  }, [client, activeRoomId]);
+
   const handleSelectRoom = (r: RoomType) => {
     setActiveRoomId(r._id);
     if (window.innerWidth < 768) setShowSidebar(false);
@@ -119,7 +128,7 @@ const MessengerInner: React.FC<MessengerInnerProps> = ({ client, hermesUser, log
   const activeRoomName = activeRoom ? getRoomName(activeRoom) : "Chat";
   const activeRoomAvatar = activeRoom ? getRoomAvatar(activeRoom) : undefined;
 
-  /* ── Custom message renderer for dark theme ────────────────────── */
+  /* ── Custom message renderer ────────────────────────────────── */
   const renderMessage = useCallback((message: Message, isOwn: boolean) => {
     const sender = resolveUser(message.senderId);
     const senderName = sender?.displayName ?? "User";
@@ -137,18 +146,20 @@ const MessengerInner: React.FC<MessengerInnerProps> = ({ client, hermesUser, log
     }
 
     return (
-      <div
-        className={`flex ${isOwn ? "flex-row-reverse" : "flex-row"} items-end gap-2 mb-3`}
-      >
+      <div className={`flex ${isOwn ? "flex-row-reverse" : "flex-row"} items-end gap-2.5 group`}>
         {/* Avatar */}
         {!isOwn && (
-          <div className="flex-shrink-0 w-7 h-7 rounded-full overflow-hidden"
-            style={{ background: "var(--brand-accent)", border: "1px solid var(--brand-border)" }}>
+          <div
+            className="flex-shrink-0 w-7 h-7 rounded-full overflow-hidden ring-1"
+            style={{ background: "var(--brand-accent)", ringColor: "var(--brand-border)" }}
+          >
             {senderAvatar ? (
               <img src={senderAvatar} alt={senderName} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-[10px] font-bold"
-                style={{ color: "var(--brand-muted)" }}>
+              <div
+                className="w-full h-full flex items-center justify-center text-[10px] font-bold"
+                style={{ background: "linear-gradient(135deg, #3b82f6, #8b5cf6)", color: "#fff" }}
+              >
                 {senderName[0]?.toUpperCase() || "?"}
               </div>
             )}
@@ -156,45 +167,76 @@ const MessengerInner: React.FC<MessengerInnerProps> = ({ client, hermesUser, log
         )}
 
         {/* Bubble + meta */}
-        <div className={`max-w-[70%] ${isOwn ? "items-end" : "items-start"} flex flex-col`}>
+        <div className={`max-w-[72%] flex flex-col ${isOwn ? "items-end" : "items-start"}`}>
+          {/* Sender name (group chats, others only) */}
+          {!isOwn && (
+            <span className="text-[10px] font-semibold mb-1 ml-1 tracking-wide" style={{ color: "var(--brand-muted)" }}>
+              {senderName}
+            </span>
+          )}
+
           <div
-            className="px-3 py-2 rounded-2xl text-sm break-words"
+            className="px-3.5 py-2 text-sm break-words leading-relaxed"
             style={{
-              background: isOwn ? "#2563eb" : "var(--brand-accent)",
+              borderRadius: isOwn ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+              background: isOwn
+                ? "linear-gradient(135deg, var(--brand-primary) 0%, #8b5cf6 100%)"
+                : "var(--brand-accent)",
               color: isOwn ? "#ffffff" : "var(--brand-text)",
               border: isOwn ? "none" : "1px solid var(--brand-border)",
+              boxShadow: isOwn
+                ? "0 2px 16px var(--brand-primary-glow), 0 1px 3px rgba(0,0,0,0.2)"
+                : "0 1px 4px rgba(0,0,0,0.2)",
             }}
           >
-            {message.type === "text" && <p className="m-0">{message.text}</p>}
+            {message.type === "text" && (
+              <p className="m-0 whitespace-pre-wrap">{message.text}</p>
+            )}
             {message.type === "image" && (
-              <img src={message.url} alt="" className="max-w-full rounded-lg" />
+              <img src={message.url} alt="" className="max-w-full rounded-xl block" style={{ maxHeight: 280 }} />
             )}
             {message.type === "video" && (
-              <video src={message.url} poster={message.thumbnail} controls className="max-w-full rounded-lg" />
+              <video src={message.url} poster={message.thumbnail} controls className="max-w-full rounded-xl" />
             )}
-            {message.type === "audio" && <audio src={message.url} controls className="w-full" />}
+            {message.type === "audio" && (
+              <audio src={message.url} controls className="w-full" />
+            )}
             {message.type === "document" && (
-              <a href={message.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 no-underline" style={{ color: "inherit" }}>
-                <span>📄</span> {message.fileName ?? "File"}
+              <a
+                href={message.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 no-underline rounded-lg p-1"
+                style={{ color: "inherit" }}
+              >
+                <span className="text-lg">📄</span>
+                <span className="text-xs font-medium truncate">{message.fileName ?? "File"}</span>
               </a>
             )}
             {message.type === "link" && (
-              <a href={message.url} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: isOwn ? "#bfdbfe" : "#60a5fa" }}>
+              <a
+                href={message.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2"
+                style={{ color: isOwn ? "#bfdbfe" : "#60a5fa" }}
+              >
                 {message.url}
               </a>
             )}
-          </div>
-          {/* Sender name + time */}
-          <div className={`flex items-center gap-1.5 mt-1 px-1 ${isOwn ? "flex-row-reverse" : "flex-row"}`}>
-            {!isOwn && (
-              <span className="text-[10px] font-medium" style={{ color: "var(--brand-muted)" }}>
-                {senderName}
-              </span>
+
+            {message.editedAt && (
+              <span className="text-[9px] ml-1.5 opacity-50">(edited)</span>
             )}
-            <span className="text-[10px]" style={{ color: "var(--brand-muted)", opacity: 0.6 }}>
-              {formatTime(message.createdAt)}
-            </span>
           </div>
+
+          {/* Timestamp */}
+          <span
+            className={`text-[10px] mt-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 ${isOwn ? "text-right" : "text-left"}`}
+            style={{ color: "var(--brand-muted)" }}
+          >
+            {formatTime(message.createdAt)}
+          </span>
         </div>
       </div>
     );
@@ -271,11 +313,11 @@ const MessengerInner: React.FC<MessengerInnerProps> = ({ client, hermesUser, log
             transition-transform duration-300 ease-in-out md:static md:translate-x-0
             ${showSidebar ? "translate-x-0 w-full md:w-80" : "-translate-x-full w-full md:w-80"}
           `}
-          style={{ background: "var(--brand-bg)", borderRight: "1px solid var(--brand-border)" }}
+          style={{ background: "var(--brand-sidebar)", borderRight: "1px solid var(--brand-border)" }}
         >
           {/* Header */}
           <div className="h-14 flex items-center justify-between px-4 shrink-0"
-            style={{ borderBottom: "1px solid var(--brand-border)" }}>
+            style={{ borderBottom: "1px solid var(--brand-border)", background: "var(--brand-sidebar)" }}>
             <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2.5" style={{ color: "var(--brand-text)" }}>
               <div className="w-7 h-7 rounded-md flex items-center justify-center" style={{ background: "var(--brand-primary)" }}>
                 <span className="text-xs font-bold" style={{ color: "var(--brand-primary-fg)" }}>H</span>
@@ -303,10 +345,11 @@ const MessengerInner: React.FC<MessengerInnerProps> = ({ client, hermesUser, log
           </div>
 
           {/* Search + Room List */}
-          <div className="flex-1 overflow-y-auto relative" style={{ background: "var(--brand-bg)" }}>
-            <div className="p-3 sticky top-0 z-10" style={{ background: "var(--brand-bg)", borderBottom: "1px solid var(--brand-border)" }}>
+          <div className="flex-1 overflow-y-auto relative" style={{ background: "var(--brand-sidebar)" }}>
+            <div className="p-3 sticky top-0 z-10" style={{ background: "var(--brand-sidebar)", borderBottom: "1px solid var(--brand-border)" }}>
               <Search
                 onSelectResult={handleSearchResult}
+                onSearch={activeRoomId ? handleSearch : undefined}
                 placeholder="Search messages..."
                 className="w-full text-sm"
               />
@@ -324,7 +367,7 @@ const MessengerInner: React.FC<MessengerInnerProps> = ({ client, hermesUser, log
 
           {/* User Footer */}
           <div className="h-14 px-4 flex items-center gap-3 shrink-0"
-            style={{ borderTop: "1px solid var(--brand-border)" }}>
+            style={{ borderTop: "1px solid var(--brand-border)", background: "var(--brand-sidebar)" }}>
             <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0"
               style={{ background: "var(--brand-accent)", border: "1px solid var(--brand-border)" }}>
               {hermesUser.avatar ? (
@@ -355,7 +398,7 @@ const MessengerInner: React.FC<MessengerInnerProps> = ({ client, hermesUser, log
 
                 {/* Chat Header */}
                 <div className="h-14 flex items-center px-4 md:px-5 z-10 shrink-0"
-                  style={{ borderBottom: "1px solid var(--brand-border)", background: "var(--brand-card)" }}>
+                  style={{ borderBottom: "1px solid var(--brand-border)", background: "var(--brand-card)", backdropFilter: "blur(8px)" }}>
                   <button
                     onClick={() => setShowSidebar(true)}
                     className="md:hidden mr-3 p-1.5 -ml-1 rounded-lg hover:opacity-70"
@@ -390,10 +433,12 @@ const MessengerInner: React.FC<MessengerInnerProps> = ({ client, hermesUser, log
                 </div>
 
                 {/* Chat Input */}
-                <div className="p-3 shrink-0" style={{ borderTop: "1px solid var(--brand-border)", background: "var(--brand-card)" }}>
+                <div
+                  className="px-4 py-3 shrink-0"
+                  style={{ borderTop: "1px solid var(--brand-border)", background: "var(--brand-card)" }}
+                >
                   <ChatInput
-                    className="flex text-sm"
-                    inputClassName="flex-1 rounded-xl px-4 py-2.5 text-sm focus:ring-1 focus:outline-none transition-shadow"
+                    inputClassName="rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-all"
                   />
                 </div>
               </Window>

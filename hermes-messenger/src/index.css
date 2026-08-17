@@ -3,15 +3,27 @@
 @tailwind utilities;
 
 :root {
-  /* CLEAN NEUTRAL DARK THEME — matching chatkit/client */
-  --brand-primary: #ffffff;
-  --brand-primary-fg: #09090b;
-  --brand-bg: #0a0a0a;
-  --brand-card: #111113;
-  --brand-border: #27272a;
-  --brand-text: #fafafa;
-  --brand-muted: #71717a;
-  --brand-accent: #18181b;
+  /* Base surfaces — indigo-infused deep dark */
+  --brand-bg: #0c0c15;
+  --brand-sidebar: #0e0e1c;
+  --brand-card: #11111e;
+  --brand-accent: #191928;
+  --brand-hover: #1e1e30;
+
+  /* Borders */
+  --brand-border: rgba(99, 102, 241, 0.12);
+  --brand-border-strong: rgba(99, 102, 241, 0.22);
+
+  /* Text */
+  --brand-text: #f0f0ff;
+  --brand-muted: #6b7280;
+
+  /* Primary — indigo */
+  --brand-primary: #6366f1;
+  --brand-primary-dark: #4f46e5;
+  --brand-primary-fg: #ffffff;
+  --brand-primary-glow: rgba(99, 102, 241, 0.25);
+
   color-scheme: dark;
 }
 
@@ -24,6 +36,7 @@ body {
   min-height: 100dvh;
   background-color: var(--brand-bg);
   color: var(--brand-text);
+  font-family: "Inter", "Outfit", system-ui, sans-serif;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
@@ -32,64 +45,85 @@ body {
   margin: 0 auto;
 }
 
-/* Glass surface */
+/* ── Surfaces ────────────────────────────────────────────────── */
+
 .glass {
-  background: rgba(17, 17, 19, 0.75);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--brand-border);
+  background: rgba(17, 17, 30, 0.8);
+  backdrop-filter: blur(16px) saturate(1.8);
+  border: 1px solid var(--brand-border-strong);
 }
 
-/* Premium gradient */
 .premium-gradient {
-  background: linear-gradient(135deg, #fafafa 0%, #a1a1aa 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
 }
 
-/* Premium border */
-.premium-border {
-  border: 1px solid var(--brand-border);
-}
-
-/* Shadow */
 .shadow-premium {
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px var(--brand-border);
 }
 
-/* Scrollbar — dark theme */
+/* ── Scrollbar ───────────────────────────────────────────────── */
+
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+  scrollbar-color: rgba(99, 102, 241, 0.18) transparent;
 }
 
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: rgba(99, 102, 241, 0.22);
   border-radius: 20px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.15);
+  background-color: rgba(99, 102, 241, 0.38);
 }
 
-/* Override SDK ChatInput inline styles for dark theme */
+/* ── SDK ChatInput overrides ─────────────────────────────────── */
+
 .hermes-chat-input {
-  border-top-color: var(--brand-border) !important;
+  border-top: none !important;
+  padding: 0 !important;
+  background: transparent !important;
 }
 
 .hermes-chat-input__textarea {
   background: var(--brand-accent) !important;
   border-color: var(--brand-border) !important;
   color: var(--brand-text) !important;
+  transition: border-color 0.15s, box-shadow 0.15s !important;
 }
 
-/* SDK loading / empty states */
+.hermes-chat-input__textarea::placeholder {
+  color: var(--brand-muted) !important;
+}
+
+.hermes-chat-input__textarea:focus {
+  border-color: rgba(99, 102, 241, 0.45) !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1) !important;
+}
+
+.hermes-chat-input__attach,
+.hermes-chat-input__send {
+  color: var(--brand-muted) !important;
+  transition: color 0.15s !important;
+}
+
+.hermes-chat-input__attach:hover,
+.hermes-chat-input__send:not([disabled]):hover {
+  color: var(--brand-primary) !important;
+}
+
+/* ── SDK message list ────────────────────────────────────────── */
+
 .hermes-message-list {
   color: var(--brand-text);
 }
 
+.hermes-message {
+  animation: hermes-msg-in 0.18s ease;
+}
+
+@keyframes hermes-msg-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

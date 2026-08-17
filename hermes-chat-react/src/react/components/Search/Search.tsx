@@ -1,36 +1,54 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import type { Message } from "../../../types/index";
 
 export interface SearchProps {
-  /** Messages to search through */
   messages?: Message[];
-  /** Callback when a result is selected */
+  /** Server-side search function. When provided, replaces client-side filtering. */
+  onSearch?: (query: string) => Promise<Message[]>;
   onSelectResult?: (message: Message) => void;
-  /** Placeholder text */
   placeholder?: string;
-  /** Additional class name */
   className?: string;
 }
 
 /**
- * Client-side search component that filters messages.
+ * Search component that supports both client-side filtering and server-side search.
  *
- * @example
- * ```tsx
- * <Search messages={messages} onSelectResult={msg => jumpTo(msg._id)} />
- * ```
+ * Pass `onSearch` to use server-side search (recommended). Otherwise pass `messages`
+ * for client-side filtering of already-loaded messages.
  */
 export const Search: React.FC<SearchProps> = ({
   messages = [],
+  onSearch,
   onSelectResult,
   placeholder = "Search messages...",
   className = "",
 }) => {
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
+  const [serverResults, setServerResults] = useState<Message[]>([]);
+  const [searching, setSearching] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const results = useMemo(() => {
-    if (!query.trim()) return [];
+  useEffect(() => {
+    if (!onSearch) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!query.trim()) { setServerResults([]); return; }
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await onSearch(query);
+        setServerResults(res ?? []);
+      } catch {
+        setServerResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [query, onSearch]);
+
+  const clientResults = useMemo(() => {
+    if (onSearch || !query.trim()) return [];
     const lower = query.toLowerCase();
     return messages
       .filter(
@@ -40,7 +58,9 @@ export const Search: React.FC<SearchProps> = ({
           m.text?.toLowerCase().includes(lower)
       )
       .slice(0, 20);
-  }, [query, messages]);
+  }, [query, messages, onSearch]);
+
+  const results = onSearch ? serverResults : clientResults;
 
   const handleSelect = useCallback(
     (msg: Message) => {
@@ -52,24 +72,34 @@ export const Search: React.FC<SearchProps> = ({
   );
 
   return (
-    <div
-      className={`hermes-search ${className}`}
-      style={{ position: "relative" }}
-    >
+    <div className={`hermes-search ${className}`} style={{ position: "relative" }}>
       <div
         style={{
           display: "flex",
           alignItems: "center",
           gap: 8,
           padding: "6px 12px",
-          border: "1px solid rgba(128,128,128,0.2)",
+          border: "1px solid var(--brand-border, rgba(128,128,128,0.2))",
           borderRadius: 10,
-          background: focused ? "#fff" : "rgba(128,128,128,0.05)",
-          transition: "background 0.15s, border-color 0.15s",
-          borderColor: focused ? "#0084ff" : "rgba(128,128,128,0.2)",
+          background: "var(--brand-accent, rgba(128,128,128,0.05))",
+          transition: "border-color 0.15s, box-shadow 0.15s",
+          boxShadow: focused ? "0 0 0 2px rgba(255,255,255,0.04)" : "none",
         }}
       >
-        <span style={{ fontSize: 14, opacity: 0.5 }}>🔍</span>
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ flexShrink: 0, color: "var(--brand-muted, rgba(128,128,128,0.6))" }}
+        >
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
         <input
           type="text"
           value={query}
@@ -83,6 +113,7 @@ export const Search: React.FC<SearchProps> = ({
             outline: "none",
             fontSize: 13,
             background: "transparent",
+            color: "var(--brand-text, inherit)",
           }}
         />
         {query && (
@@ -92,40 +123,56 @@ export const Search: React.FC<SearchProps> = ({
               background: "none",
               border: "none",
               cursor: "pointer",
-              fontSize: 14,
-              opacity: 0.5,
               lineHeight: 1,
+              padding: 0,
+              display: "flex",
+              alignItems: "center",
+              color: "var(--brand-muted, rgba(128,128,128,0.6))",
             }}
           >
-            ✕
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
           </button>
         )}
       </div>
 
-      {/* Results dropdown */}
       {focused && query.trim() && (
         <div
           style={{
             position: "absolute",
-            top: "calc(100% + 4px)",
+            top: "calc(100% + 6px)",
             left: 0,
             right: 0,
             zIndex: 50,
-            background: "#fff",
-            border: "1px solid rgba(128,128,128,0.15)",
+            background: "var(--brand-card, #1a1a1e)",
+            border: "1px solid var(--brand-border, rgba(255,255,255,0.08))",
             borderRadius: 10,
-            boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
+            boxShadow: "0 16px 48px rgba(0,0,0,0.5), 0 4px 12px rgba(0,0,0,0.3)",
             maxHeight: 300,
             overflowY: "auto",
+            color: "var(--brand-text, inherit)",
           }}
         >
-          {results.length === 0 ? (
+          {searching ? (
             <div
               style={{
                 padding: 16,
                 textAlign: "center",
                 fontSize: 13,
-                opacity: 0.5,
+                color: "var(--brand-muted, rgba(128,128,128,0.6))",
+              }}
+            >
+              Searching...
+            </div>
+          ) : results.length === 0 ? (
+            <div
+              style={{
+                padding: 16,
+                textAlign: "center",
+                fontSize: 13,
+                color: "var(--brand-muted, rgba(128,128,128,0.6))",
               }}
             >
               No results found
@@ -138,11 +185,12 @@ export const Search: React.FC<SearchProps> = ({
                 style={{
                   padding: "8px 12px",
                   cursor: "pointer",
-                  borderBottom: "1px solid rgba(128,128,128,0.08)",
+                  borderBottom: "1px solid var(--brand-border, rgba(128,128,128,0.08))",
                   transition: "background 0.1s",
                 }}
                 onMouseEnter={(e) =>
-                  (e.currentTarget.style.background = "rgba(0,132,255,0.05)")
+                  (e.currentTarget.style.background =
+                    "var(--brand-accent, rgba(255,255,255,0.04))")
                 }
                 onMouseLeave={(e) =>
                   (e.currentTarget.style.background = "transparent")
@@ -154,11 +202,18 @@ export const Search: React.FC<SearchProps> = ({
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
+                    color: "var(--brand-text, inherit)",
                   }}
                 >
                   {msg.text}
                 </div>
-                <div style={{ fontSize: 11, opacity: 0.5, marginTop: 2 }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    marginTop: 2,
+                    color: "var(--brand-muted, rgba(128,128,128,0.6))",
+                  }}
+                >
                   {new Date(msg.createdAt).toLocaleString()}
                 </div>
               </div>
